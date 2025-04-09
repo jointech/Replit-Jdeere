@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Instrucciones de Autenticación</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-info-circle me-2"></i> Importante</h5>
+                    <p>Después de iniciar sesión en John Deere, por favor siga estos pasos:</p>
+                </div>
+                
+                <ol class="list-group list-group-numbered mb-4">
+                    <li class="list-group-item">Para iniciar el proceso de autenticación, haga clic en el botón "Iniciar sesión con John Deere" a continuación.</li>
+                    <li class="list-group-item">Inicie sesión con sus credenciales de John Deere cuando se le solicite.</li>
+                    <li class="list-group-item">Una vez autenticado, verá una página de redirección a <strong>operationscenter.deere.com</strong> que podría mostrar un error.</li>
+                    <li class="list-group-item">En ese momento, regrese a nuestra aplicación y haga clic en el botón "Completar Autenticación Manual" que aparecerá abajo.</li>
+                </ol>
+                
+                <div class="d-grid gap-2">
+                    <a href="https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri=https%3A%2F%2Foperationscenter.deere.com%2Flogin&state=aHR0cHM6Ly9vcGVyYXRpb25zY2VudGVyLmRlZXJlLmNvbS9sb2dpbg%3D%3D" class="btn btn-primary btn-lg mb-3" target="_blank">
+                        <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión con John Deere
+                    </a>
+                    <a href="{{ url_for('auth_complete') }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-check-circle me-2"></i> Completar Autenticación Manual
+                    </a>
+                </div>
+            </div>
+            <div class="card-footer text-muted text-center">
+                <small>Este proceso es necesario hasta que configuremos el redirect_uri correcto con John Deere.</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

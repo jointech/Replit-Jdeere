@@ -32,25 +32,16 @@ def index():
 
 @app.route('/login')
 def login():
-    """Para desarrollo, usaremos un flujo de autenticación simulado."""
+    """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        # Para evitar problemas de redirección, vamos a simular una autenticación exitosa
-        # en un entorno de desarrollo sin conectar realmente con John Deere
-        logger.info("Simulando autenticación exitosa para desarrollo")
+        # URL exacta proporcionada por el usuario
+        auth_url = "https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri=https%3A%2F%2Foperationscenter.deere.com%2Flogin&state=aHR0cHM6Ly9vcGVyYXRpb25zY2VudGVyLmRlZXJlLmNvbS9sb2dpbg%3D%3D"
         
-        # Crear un token simulado
-        simulated_token = {
-            'access_token': 'dev_access_token',
-            'token_type': 'Bearer',
-            'expires_in': 3600,
-            'refresh_token': 'dev_refresh_token'
-        }
+        # Guardar información en la sesión para verificar después
+        session['auth_flow_started'] = True
         
-        # Guardar el token en la sesión
-        session['oauth_token'] = simulated_token
-        
-        # Redirigir al dashboard
-        return redirect(url_for('dashboard'))
+        # Mostrar instrucciones antes de redirigir a John Deere
+        return render_template('auth_instructions.html')
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))
@@ -68,13 +59,28 @@ def callback():
             return render_template('error.html', error="No authorization code received")
         
         # For now, simulate a successful login and redirect to dashboard
-        # In a real app, this would exchange the code for a token
-        # This is just to test the basic flow
+        # En una implementación real, aquí intercambiaríamos el código por un token
         session['oauth_token'] = {'access_token': 'simulated_token'}
-        logger.info("Code received, simulating successful login")
+        logger.info("Código recibido, simulando inicio de sesión exitoso")
         return redirect(url_for('dashboard'))
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
+        return render_template('error.html', error=str(e))
+
+@app.route('/auth-complete')
+def auth_complete():
+    """Captura la autenticación después de la redirección de John Deere."""
+    try:
+        logger.info("Capturando redirección de autenticación de John Deere")
+        # Este endpoint es para capturar cuando el usuario regresa de John Deere
+        
+        # Para propósitos de desarrollo, simularemos una autenticación exitosa
+        session['oauth_token'] = {'access_token': 'simulated_token'}
+        
+        # Redirigir al dashboard
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        logger.error(f"Error en auth-complete: {str(e)}")
         return render_template('error.html', error=str(e))
 
 @app.route('/dashboard')
