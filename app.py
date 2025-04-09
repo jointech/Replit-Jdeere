@@ -34,18 +34,11 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        # Obtener la URL base para la redirección
-        host = request.host_url.rstrip('/')
-        callback_url = f"{host}/callback"
-        callback_url_encoded = quote(callback_url)
+        # Usar exactamente la URL proporcionada en la URL que mostraste
+        # Esta URL debe coincidir exactamente con la registrada en la aplicación cliente de John Deere
+        auth_url = "https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri=https%3A%2F%2Foperationscenter.deere.com%2Flogin&state=aHR0cHM6Ly9vcGVyYXRpb25zY2VudGVyLmRlZXJlLmNvbS9sb2dpbg%3D%3D"
         
-        # Construir la URL de autorización con el callback dinámico
-        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri={callback_url_encoded}"
-        
-        # Guardar la URL de callback en la sesión
-        session['callback_url'] = callback_url
-        logger.info(f"Redireccionando a: {auth_url}")
-        logger.info(f"Con callback a: {callback_url}")
+        logger.info(f"Redireccionando a la URL de autorización de John Deere configurada")
         
         return redirect(auth_url)
     except Exception as e:
