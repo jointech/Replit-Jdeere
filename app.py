@@ -256,17 +256,33 @@ def get_machine_details(machine_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
+        # Determinar el tipo y modelo según el ID para datos consistentes
+        machine_type = ""
+        machine_model = ""
+        
+        if 'M-1001' in machine_id:
+            machine_type = "HARVESTER"
+            machine_model = "550G-LC"
+        elif 'M-1002' in machine_id:
+            machine_type = "FORWARDER"
+            machine_model = "1710D"
+        else:
+            machine_type = "EXCAVATOR"
+            machine_model = "350G-LC"
+        
         # Sample machine details data
         machine_details = {
             'id': machine_id,
-            'name': f'Machine {machine_id}',
+            'name': f'Máquina {machine_id}',
             'serialNumber': f'SN-{machine_id}',
-            'model': '550G-LC' if 'M-1001' in machine_id else '1710D',
-            'type': 'HARVESTER' if 'M-1001' in machine_id else 'FORWARDER',
+            'model': machine_model,
+            'type': machine_type,
+            'category': machine_type,  # Añadir category para el frontend
             'status': 'ACTIVE',
             'location': {
                 'latitude': -36.8282, 
-                'longitude': -73.0514
+                'longitude': -73.0514,
+                'timestamp': '2025-04-08T14:30:00Z'
             },
             'hoursOfOperation': 1250,
             'fuelLevel': 78,
@@ -289,6 +305,7 @@ def get_machine_alerts(machine_id):
             {
                 'id': f'ALT-{machine_id}-001',
                 'type': 'WARNING',
+                'severity': 'warning',
                 'title': 'Bajo nivel de combustible',
                 'description': 'El nivel de combustible está por debajo del 25%',
                 'timestamp': '2025-04-07T10:15:00Z',
@@ -297,6 +314,7 @@ def get_machine_alerts(machine_id):
             {
                 'id': f'ALT-{machine_id}-002',
                 'type': 'CRITICAL',
+                'severity': 'critical',
                 'title': 'Temperatura del motor alta',
                 'description': 'La temperatura del motor ha superado el nivel recomendado',
                 'timestamp': '2025-04-08T14:22:00Z',
@@ -305,6 +323,7 @@ def get_machine_alerts(machine_id):
             {
                 'id': f'ALT-{machine_id}-003',
                 'type': 'INFO',
+                'severity': 'info',
                 'title': 'Mantenimiento programado',
                 'description': 'Mantenimiento de rutina requerido en las próximas 50 horas',
                 'timestamp': '2025-04-05T08:30:00Z',

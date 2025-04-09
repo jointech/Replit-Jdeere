@@ -28,8 +28,8 @@ function addMachinesToMap(machines) {
     
     // Add each machine with location to the map
     machines.forEach(machine => {
-        if (machine.location && machine.location.lat && machine.location.lng) {
-            const position = [machine.location.lat, machine.location.lng];
+        if (machine.location && machine.location.latitude && machine.location.longitude) {
+            const position = [machine.location.latitude, machine.location.longitude];
             
             // Create a marker with popup
             const marker = L.marker(position)

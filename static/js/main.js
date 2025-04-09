@@ -101,7 +101,7 @@ function renderMachineList(machines) {
         machineItem.className = 'list-group-item list-group-item-action machine-item';
         machineItem.setAttribute('data-machine-id', machine.id);
         
-        const hasLocation = machine.location && machine.location.lat && machine.location.lng;
+        const hasLocation = machine.location && machine.location.latitude && machine.location.longitude;
         
         // Create the HTML content for the item
         machineItem.innerHTML = `
@@ -178,10 +178,10 @@ function loadMachineDetails(machineId) {
             
             // Update location info
             if (machine.location) {
-                document.getElementById('machineLatitude').textContent = machine.location.lat || '-';
-                document.getElementById('machineLongitude').textContent = machine.location.lng || '-';
+                document.getElementById('machineLatitude').textContent = machine.location.latitude || '-';
+                document.getElementById('machineLongitude').textContent = machine.location.longitude || '-';
                 
-                const timestamp = machine.location.timestamp;
+                const timestamp = machine.location.timestamp || machine.lastUpdated;
                 document.getElementById('machineLocationUpdate').textContent = timestamp ? 
                     new Date(timestamp).toLocaleString() : 'Desconocido';
             } else {
