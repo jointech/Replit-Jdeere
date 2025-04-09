@@ -37,8 +37,13 @@ def login():
         # Construir la URL con el redirect_uri configurado
         redirect_uri_encoded = quote(REDIRECT_URI)
         
-        # URL exacta según lo solicitado
-        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id={JOHN_DEERE_CLIENT_ID}&response_type=code&scope=openid+support-tool&redirect_uri={redirect_uri_encoded}"
+        # Generar un state único para seguridad
+        state = os.urandom(16).hex()
+        session['oauth_state'] = state
+        
+        # Construir la URL exacta según lo proporcionado
+        scopes = '+'.join(JOHN_DEERE_SCOPES)
+        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id={JOHN_DEERE_CLIENT_ID}&redirect_uri={redirect_uri_encoded}&scope={scopes}&state={state}"
         
         # Guardar información en la sesión para verificar después
         session['auth_flow_started'] = True
@@ -57,14 +62,25 @@ def callback():
         return render_template('error.html', error=f"OAuth error: {error}")
     
     try:
+        # Verificar el state para prevenir CSRF
+        state = request.args.get('state')
+        if state and state != session.get('oauth_state'):
+            logger.warning("Estado OAuth no coincide, posible ataque CSRF")
+            return render_template('error.html', error="Verificación de estado fallida, intente nuevamente")
+        
         code = request.args.get('code')
         if not code:
             return render_template('error.html', error="No authorization code received")
         
-        # For now, simulate a successful login and redirect to dashboard
-        # En una implementación real, aquí intercambiaríamos el código por un token
-        session['oauth_token'] = {'access_token': 'simulated_token'}
-        logger.info("Código recibido, simulando inicio de sesión exitoso")
+        # Intercambiar el código por un token
+        from john_deere_api import exchange_code_for_token
+        token = exchange_code_for_token(code)
+        logger.info(f"Token recibido: access_token válido por {token.get('expires_in', 0)/60/60} horas")
+        
+        # Guardar el token en la sesión
+        session['oauth_token'] = token
+        
+        # Redireccionar al dashboard
         return redirect(url_for('dashboard'))
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
@@ -93,7 +109,16 @@ def dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Provide sample organization data for testing
+        token = session.get('oauth_token')
+        
+        # Para desarrollo, usamos datos de muestra
+        # En producción, descomentar para usar datos reales:
+        """
+        from john_deere_api import fetch_organizations
+        organizations = fetch_organizations(token)
+        """
+        
+        # Datos de muestra para pruebas
         organizations = [
             {
                 'id': '463153',
@@ -111,7 +136,15 @@ def dashboard():
                 'type': 'CUSTOMER'
             }
         ]
-        return render_template('dashboard.html', organizations=organizations)
+        
+        # Mostrar información del token en el dashboard (solo para desarrollo)
+        token_info = {
+            'access_token': token.get('access_token', '')[:10] + '...' if token.get('access_token') else 'No disponible',
+            'refresh_token': token.get('refresh_token', '')[:10] + '...' if token.get('refresh_token') else 'No disponible',
+            'expires_in': f"{token.get('expires_in', 0)/60/60:.1f} horas" if token.get('expires_in') else 'No disponible',
+        }
+        
+        return render_template('dashboard.html', organizations=organizations, token_info=token_info)
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
         flash(f"Error loading dashboard: {str(e)}", "danger")

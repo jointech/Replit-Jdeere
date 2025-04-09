@@ -17,11 +17,28 @@ def get_oauth_session(token=None, state=None):
         client_id=JOHN_DEERE_CLIENT_ID,
         token=token,
         state=state,
-        redirect_uri=REDIRECT_URI
+        redirect_uri=REDIRECT_URI,
+        scope=JOHN_DEERE_SCOPES
     )
+
+def exchange_code_for_token(code):
+    """Exchange authorization code for access token."""
+    try:
+        oauth = get_oauth_session()
+        token = oauth.fetch_token(
+            JOHN_DEERE_TOKEN_URL,
+            code=code,
+            client_id=JOHN_DEERE_CLIENT_ID,
+            client_secret=JOHN_DEERE_CLIENT_SECRET
+        )
+        return token
+    except Exception as e:
+        logger.error(f"Error exchanging code for token: {str(e)}")
+        raise
 
 def refresh_token_if_needed(token):
     """Refreshes the token if it's expired."""
+    import time
     if token.get('expires_at') and token['expires_at'] < time.time():
         oauth = get_oauth_session(token=token)
         token = oauth.refresh_token(

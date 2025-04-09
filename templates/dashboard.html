@@ -62,6 +62,39 @@
     </div>
 </div>
 
+{% if token_info %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow bg-dark">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-key me-2"></i> Información de Autenticación
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <strong>Access Token:</strong> <span>{{ token_info.access_token }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <strong>Refresh Token:</strong> <span>{{ token_info.refresh_token }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <strong>Expira en:</strong> <span>{{ token_info.expires_in }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row">
     <div class="col-md-4">
         <div class="card shadow mb-4">
