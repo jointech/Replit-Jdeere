@@ -35,6 +35,29 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
+        # NOTA: Para entorno de prueba/desarrollo usando token pre-definido
+        logger.info("Usando autenticación simulada para entorno de desarrollo")
+        
+        # Crear un token simulado con información de prueba
+        current_time = time.time()
+        session['oauth_token'] = {
+            'access_token': 'test_access_token_development_' + str(int(current_time)),
+            'refresh_token': 'test_refresh_token_development_' + str(int(current_time)),
+            'expires_in': 3600,  # 1 hora
+            'expires_at': current_time + 3600,
+            'scope': ' '.join(JOHN_DEERE_SCOPES),
+            'token_type': 'Bearer'
+        }
+        
+        # Mostrar mensaje de desarrollo
+        flash("Autenticación exitosa (modo desarrollo)", "success")
+        
+        # Redirigir al dashboard
+        return redirect(url_for('dashboard'))
+        
+        """
+        # CÓDIGO PARA PRODUCCIÓN - Descomentar cuando se use en producción
+        
         # Construir la URL con el redirect_uri configurado
         redirect_uri_encoded = quote(REDIRECT_URI)
         
@@ -51,6 +74,7 @@ def login():
         
         logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {REDIRECT_URI}")
         return redirect(auth_url)
+        """
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))
@@ -140,14 +164,7 @@ def dashboard():
     try:
         token = session.get('oauth_token')
         
-        # Para desarrollo, usamos datos de muestra
-        # En producción, descomentar para usar datos reales:
-        """
-        from john_deere_api import fetch_organizations
-        organizations = fetch_organizations(token)
-        """
-        
-        # Datos de muestra para pruebas
+        # Datos de muestra para organizaciones
         organizations = [
             {
                 'id': '463153',
@@ -166,12 +183,18 @@ def dashboard():
             }
         ]
         
-        # Mostrar información del token en el dashboard (solo para desarrollo)
+        # Información del token (solo para desarrollo)
+        token_access = token.get('access_token', '')
+        token_refresh = token.get('refresh_token', '')
         token_info = {
-            'access_token': token.get('access_token', '')[:10] + '...' if token.get('access_token') else 'No disponible',
-            'refresh_token': token.get('refresh_token', '')[:10] + '...' if token.get('refresh_token') else 'No disponible',
+            'access_token': token_access[:10] + '...' if token_access else 'No disponible',
+            'refresh_token': token_refresh[:10] + '...' if token_refresh else 'No disponible',
             'expires_in': f"{token.get('expires_in', 0)/60/60:.1f} horas" if token.get('expires_in') else 'No disponible',
+            'token_type': token.get('token_type', 'Bearer')
         }
+        
+        # Agregar un mensaje para modo desarrollo
+        flash("Estás usando la aplicación en modo de desarrollo con datos de prueba", "info")
         
         return render_template('dashboard.html', organizations=organizations, token_info=token_info)
     except Exception as e:
