@@ -1,0 +1,56 @@
+/* Additional custom styles */
+
+/* Card shadows */
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+/* Machine item in list */
+.machine-item {
+    border-left: 3px solid transparent;
+    padding-left: 0.75rem;
+}
+
+.machine-item.active {
+    border-left-color: var(--bs-primary);
+}
+
+/* Map customization */
+.leaflet-popup-content-wrapper {
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+.leaflet-popup-tip {
+    background-color: var(--bs-dark);
+}
+
+/* Alert indicators */
+.alert-indicator {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Fade animation for content loading */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #map {
+        height: 300px;
+    }
+    
+    .machine-list, .alert-list {
+        max-height: 250px !important;
+    }
+}
