@@ -23,8 +23,9 @@ function setupOrganizationSelection() {
             const orgId = this.getAttribute('data-org-id');
             const orgName = this.textContent;
             
-            // Update dropdown button
-            document.getElementById('organizationDropdown').textContent = orgName;
+            // Update dropdown button with organization name but keep the icon
+            const dropdownButton = document.getElementById('organizationDropdown');
+            dropdownButton.innerHTML = `<i class="fas fa-building me-2"></i> ${orgName}`;
             
             // Save selected organization
             selectedOrganizationId = orgId;

@@ -209,14 +209,17 @@ def get_machines(organization_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
-        # Sample data for machines in organization
-        if organization_id == '463153':
+        # Generar datos de máquinas específicos para cada organización
+        machines = []
+        
+        if organization_id == '463153':  # Forestal Link
             machines = [
                 {
                     'id': 'M-1001',
                     'name': 'Harvester JD-550',
                     'model': '550G-LC',
                     'type': 'HARVESTER',
+                    'category': 'HARVESTER',
                     'location': {'latitude': -36.8282, 'longitude': -73.0514}
                 },
                 {
@@ -224,6 +227,7 @@ def get_machines(organization_id):
                     'name': 'Forwarder JD-1710',
                     'model': '1710D',
                     'type': 'FORWARDER',
+                    'category': 'FORWARDER',
                     'location': {'latitude': -36.8301, 'longitude': -73.0498}
                 },
                 {
@@ -231,17 +235,66 @@ def get_machines(organization_id):
                     'name': 'Excavator JD-350',
                     'model': '350G-LC',
                     'type': 'EXCAVATOR',
+                    'category': 'EXCAVATOR',
                     'location': {'latitude': -36.8325, 'longitude': -73.0532}
                 }
             ]
+        elif organization_id == '123456':  # Agrícola Santa Rosa
+            machines = [
+                {
+                    'id': 'M-2001',
+                    'name': 'Tractor JD-6120M',
+                    'model': '6120M',
+                    'type': 'TRACTOR',
+                    'category': 'TRACTOR',
+                    'location': {'latitude': -35.4263, 'longitude': -71.6552}
+                },
+                {
+                    'id': 'M-2002',
+                    'name': 'Cosechadora JD-S760',
+                    'model': 'S760',
+                    'type': 'COMBINE',
+                    'category': 'COMBINE',
+                    'location': {'latitude': -35.4291, 'longitude': -71.6498}
+                }
+            ]
+        elif organization_id == '789012':  # Hacienda El Bosque
+            machines = [
+                {
+                    'id': 'M-3001',
+                    'name': 'Excavadora JD-470G LC',
+                    'model': '470G LC',
+                    'type': 'EXCAVATOR',
+                    'category': 'EXCAVATOR',
+                    'location': {'latitude': -33.4530, 'longitude': -70.6682}
+                },
+                {
+                    'id': 'M-3002',
+                    'name': 'Tractor Compacto 3033R',
+                    'model': '3033R',
+                    'type': 'COMPACT_TRACTOR',
+                    'category': 'COMPACT_TRACTOR',
+                    'location': {'latitude': -33.4514, 'longitude': -70.6710}
+                },
+                {
+                    'id': 'M-3003',
+                    'name': 'Cargadora 544L',
+                    'model': '544L',
+                    'type': 'LOADER',
+                    'category': 'LOADER',
+                    'location': {'latitude': -33.4492, 'longitude': -70.6653}
+                }
+            ]
         else:
+            # Para cualquier otra organización, generar una máquina por defecto
             machines = [
                 {
                     'id': f'M-{organization_id}-01',
-                    'name': f'Harvester {organization_id}',
-                    'model': '550G-LC',
-                    'type': 'HARVESTER',
-                    'location': {'latitude': -36.8282, 'longitude': -73.0514}
+                    'name': f'Máquina {organization_id}',
+                    'model': 'Modelo Estándar',
+                    'type': 'UNDEFINED',
+                    'category': 'UNDEFINED',
+                    'location': {'latitude': -36.5, 'longitude': -72.0}
                 }
             ]
         return jsonify(machines)
@@ -256,34 +309,68 @@ def get_machine_details(machine_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
-        # Determinar el tipo y modelo según el ID para datos consistentes
-        machine_type = ""
-        machine_model = ""
+        # Determinar el tipo, modelo y ubicación según el ID
+        machine_type = "UNDEFINED"
+        machine_model = "Unknown"
+        machine_name = f"Máquina {machine_id}"
+        machine_location = {'latitude': -36.0, 'longitude': -72.0, 'timestamp': '2025-04-08T14:30:00Z'}
         
-        if 'M-1001' in machine_id:
+        # Forestal Link machines
+        if machine_id == 'M-1001':
             machine_type = "HARVESTER"
             machine_model = "550G-LC"
-        elif 'M-1002' in machine_id:
+            machine_name = "Harvester JD-550"
+            machine_location = {'latitude': -36.8282, 'longitude': -73.0514, 'timestamp': '2025-04-08T14:30:00Z'}
+        elif machine_id == 'M-1002':
             machine_type = "FORWARDER"
             machine_model = "1710D"
-        else:
+            machine_name = "Forwarder JD-1710"
+            machine_location = {'latitude': -36.8301, 'longitude': -73.0498, 'timestamp': '2025-04-08T15:20:00Z'}
+        elif machine_id == 'M-1003':
             machine_type = "EXCAVATOR"
             machine_model = "350G-LC"
+            machine_name = "Excavator JD-350"
+            machine_location = {'latitude': -36.8325, 'longitude': -73.0532, 'timestamp': '2025-04-08T12:45:00Z'}
+        
+        # Agrícola Santa Rosa machines
+        elif machine_id == 'M-2001':
+            machine_type = "TRACTOR"
+            machine_model = "6120M"
+            machine_name = "Tractor JD-6120M"
+            machine_location = {'latitude': -35.4263, 'longitude': -71.6552, 'timestamp': '2025-04-08T16:10:00Z'}
+        elif machine_id == 'M-2002':
+            machine_type = "COMBINE"
+            machine_model = "S760"
+            machine_name = "Cosechadora JD-S760"
+            machine_location = {'latitude': -35.4291, 'longitude': -71.6498, 'timestamp': '2025-04-08T17:30:00Z'}
+        
+        # Hacienda El Bosque machines
+        elif machine_id == 'M-3001':
+            machine_type = "EXCAVATOR"
+            machine_model = "470G LC"
+            machine_name = "Excavadora JD-470G LC"
+            machine_location = {'latitude': -33.4530, 'longitude': -70.6682, 'timestamp': '2025-04-08T10:15:00Z'}
+        elif machine_id == 'M-3002':
+            machine_type = "COMPACT_TRACTOR"
+            machine_model = "3033R"
+            machine_name = "Tractor Compacto 3033R"
+            machine_location = {'latitude': -33.4514, 'longitude': -70.6710, 'timestamp': '2025-04-08T11:45:00Z'}
+        elif machine_id == 'M-3003':
+            machine_type = "LOADER"
+            machine_model = "544L"
+            machine_name = "Cargadora 544L"
+            machine_location = {'latitude': -33.4492, 'longitude': -70.6653, 'timestamp': '2025-04-08T13:20:00Z'}
         
         # Sample machine details data
         machine_details = {
             'id': machine_id,
-            'name': f'Máquina {machine_id}',
+            'name': machine_name,
             'serialNumber': f'SN-{machine_id}',
             'model': machine_model,
             'type': machine_type,
             'category': machine_type,  # Añadir category para el frontend
             'status': 'ACTIVE',
-            'location': {
-                'latitude': -36.8282, 
-                'longitude': -73.0514,
-                'timestamp': '2025-04-08T14:30:00Z'
-            },
+            'location': machine_location,
             'hoursOfOperation': 1250,
             'fuelLevel': 78,
             'lastUpdated': '2025-04-08T14:30:00Z'
