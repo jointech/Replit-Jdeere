@@ -18,4 +18,4 @@ DEBUG = True
 SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
 # Application Configuration
-REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://www.forestlink.cl')
+REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://replit.com/oauth/cb/oauth2')

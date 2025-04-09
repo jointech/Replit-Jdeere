@@ -36,7 +36,9 @@ def login():
     try:
         # Construir la URL con el redirect_uri configurado
         redirect_uri_encoded = quote(REDIRECT_URI)
-        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri={redirect_uri_encoded}"
+        
+        # URL exacta según lo solicitado
+        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id={JOHN_DEERE_CLIENT_ID}&response_type=code&scope=openid+support-tool&redirect_uri={redirect_uri_encoded}"
         
         # Guardar información en la sesión para verificar después
         session['auth_flow_started'] = True
