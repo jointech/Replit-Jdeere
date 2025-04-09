@@ -18,4 +18,4 @@ DEBUG = True
 SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
 # Application Configuration
-REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://c5eeb8a4-9ffe-4c51-9c91-4ff1f34335d3-00-3hdn2hfox8ovy.kirk.replit.dev/callback')
+REDIRECT_URI = os.environ.get('REDIRECT_URI', 'ForestLink')
