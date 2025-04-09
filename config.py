@@ -1,22 +1,16 @@
 import os
 
 # OAuth2 Configuration
-JOHN_DEERE_CLIENT_ID = os.environ.get('JOHN_DEERE_CLIENT_ID', '')
+JOHN_DEERE_CLIENT_ID = os.environ.get('JOHN_DEERE_CLIENT_ID', '0oaknbms0250i6yty5d6')
 JOHN_DEERE_CLIENT_SECRET = os.environ.get('JOHN_DEERE_CLIENT_SECRET', '')
-JOHN_DEERE_API_BASE_URL = 'https://sandboxapi.deere.com'
-JOHN_DEERE_TOKEN_URL = f'{JOHN_DEERE_API_BASE_URL}/platform/oauth/token'
-JOHN_DEERE_AUTHORIZE_URL = f'{JOHN_DEERE_API_BASE_URL}/platform/oauth/authorize'
+JOHN_DEERE_API_BASE_URL = 'https://partnerapi.deere.com'
+JOHN_DEERE_TOKEN_URL = 'https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/token'
+JOHN_DEERE_AUTHORIZE_URL = 'https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize'
 
 # Scopes needed for the application
 JOHN_DEERE_SCOPES = [
-    'ag1',
-    'ag2',
-    'ag3',
-    'org1',
-    'org2',
-    'files',
-    'eq1',
-    'eq2'
+    'openid',
+    'support-tool'
 ]
 
 # Flask Configuration
@@ -24,4 +18,4 @@ DEBUG = True
 SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
 # Application Configuration
-REDIRECT_URI = 'http://localhost:5000/callback'
+REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://forest-dashboard.replit.app/callback')

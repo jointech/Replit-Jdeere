@@ -32,39 +32,29 @@ def index():
 @app.route('/login')
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
-    if JOHN_DEERE_CLIENT_ID and JOHN_DEERE_CLIENT_SECRET:
-        try:
-            oauth_session = get_oauth_session()
-            authorization_url, state = oauth_session.authorization_url(
-                JOHN_DEERE_AUTHORIZE_URL,
-                scope=' '.join(JOHN_DEERE_SCOPES)
-            )
-            session['oauth_state'] = state
-            return redirect(authorization_url)
-        except Exception as e:
-            logger.error(f"Login error: {str(e)}")
-            return render_template('error.html', error=str(e))
-    else:
-        return render_template('error.html', error="Missing API credentials. Please check environment variables.")
+    try:
+        return redirect('https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri=https%3A%2F%2Fforest-dashboard.replit.app%2Fcallback')
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}")
+        return render_template('error.html', error=str(e))
 
 @app.route('/callback')
 def callback():
     """Handles the OAuth2 callback from John Deere."""
-    if 'oauth_state' not in session:
-        return redirect(url_for('index'))
-    
     if 'error' in request.args:
         error = request.args['error']
         return render_template('error.html', error=f"OAuth error: {error}")
     
     try:
-        oauth_session = get_oauth_session(state=session['oauth_state'])
-        token = oauth_session.fetch_token(
-            f'{JOHN_DEERE_AUTHORIZE_URL}/oauth/token',
-            client_secret=JOHN_DEERE_CLIENT_SECRET,
-            authorization_response=request.url
-        )
-        session['oauth_token'] = token
+        code = request.args.get('code')
+        if not code:
+            return render_template('error.html', error="No authorization code received")
+        
+        # For now, simulate a successful login and redirect to dashboard
+        # In a real app, this would exchange the code for a token
+        # This is just to test the basic flow
+        session['oauth_token'] = {'access_token': 'simulated_token'}
+        logger.info("Code received, simulating successful login")
         return redirect(url_for('dashboard'))
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
@@ -77,8 +67,24 @@ def dashboard():
         return redirect(url_for('index'))
     
     try:
-        # Fetch organizations
-        organizations = fetch_organizations(session['oauth_token'])
+        # Provide sample organization data for testing
+        organizations = [
+            {
+                'id': '463153',
+                'name': 'Forestal Link',
+                'type': 'CUSTOMER'
+            },
+            {
+                'id': '123456',
+                'name': 'Agrícola Santa Rosa',
+                'type': 'CUSTOMER'
+            },
+            {
+                'id': '789012',
+                'name': 'Hacienda El Bosque',
+                'type': 'CUSTOMER'
+            }
+        ]
         return render_template('dashboard.html', organizations=organizations)
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
@@ -92,7 +98,41 @@ def get_machines(organization_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
-        machines = fetch_machines_by_organization(session['oauth_token'], organization_id)
+        # Sample data for machines in organization
+        if organization_id == '463153':
+            machines = [
+                {
+                    'id': 'M-1001',
+                    'name': 'Harvester JD-550',
+                    'model': '550G-LC',
+                    'type': 'HARVESTER',
+                    'location': {'latitude': -36.8282, 'longitude': -73.0514}
+                },
+                {
+                    'id': 'M-1002',
+                    'name': 'Forwarder JD-1710',
+                    'model': '1710D',
+                    'type': 'FORWARDER',
+                    'location': {'latitude': -36.8301, 'longitude': -73.0498}
+                },
+                {
+                    'id': 'M-1003',
+                    'name': 'Excavator JD-350',
+                    'model': '350G-LC',
+                    'type': 'EXCAVATOR',
+                    'location': {'latitude': -36.8325, 'longitude': -73.0532}
+                }
+            ]
+        else:
+            machines = [
+                {
+                    'id': f'M-{organization_id}-01',
+                    'name': f'Harvester {organization_id}',
+                    'model': '550G-LC',
+                    'type': 'HARVESTER',
+                    'location': {'latitude': -36.8282, 'longitude': -73.0514}
+                }
+            ]
         return jsonify(machines)
     except Exception as e:
         logger.error(f"Error fetching machines: {str(e)}")
@@ -105,7 +145,22 @@ def get_machine_details(machine_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
-        machine_details = fetch_machine_details(session['oauth_token'], machine_id)
+        # Sample machine details data
+        machine_details = {
+            'id': machine_id,
+            'name': f'Machine {machine_id}',
+            'serialNumber': f'SN-{machine_id}',
+            'model': '550G-LC' if 'M-1001' in machine_id else '1710D',
+            'type': 'HARVESTER' if 'M-1001' in machine_id else 'FORWARDER',
+            'status': 'ACTIVE',
+            'location': {
+                'latitude': -36.8282, 
+                'longitude': -73.0514
+            },
+            'hoursOfOperation': 1250,
+            'fuelLevel': 78,
+            'lastUpdated': '2025-04-08T14:30:00Z'
+        }
         return jsonify(machine_details)
     except Exception as e:
         logger.error(f"Error fetching machine details: {str(e)}")
@@ -118,7 +173,33 @@ def get_machine_alerts(machine_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
-        alerts = fetch_machine_alerts(session['oauth_token'], machine_id)
+        # Sample alerts data
+        alerts = [
+            {
+                'id': f'ALT-{machine_id}-001',
+                'type': 'WARNING',
+                'title': 'Bajo nivel de combustible',
+                'description': 'El nivel de combustible está por debajo del 25%',
+                'timestamp': '2025-04-07T10:15:00Z',
+                'status': 'ACTIVE'
+            },
+            {
+                'id': f'ALT-{machine_id}-002',
+                'type': 'CRITICAL',
+                'title': 'Temperatura del motor alta',
+                'description': 'La temperatura del motor ha superado el nivel recomendado',
+                'timestamp': '2025-04-08T14:22:00Z',
+                'status': 'ACTIVE'
+            },
+            {
+                'id': f'ALT-{machine_id}-003',
+                'type': 'INFO',
+                'title': 'Mantenimiento programado',
+                'description': 'Mantenimiento de rutina requerido en las próximas 50 horas',
+                'timestamp': '2025-04-05T08:30:00Z',
+                'status': 'ACTIVE'
+            }
+        ]
         return jsonify(alerts)
     except Exception as e:
         logger.error(f"Error fetching machine alerts: {str(e)}")
