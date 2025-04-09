@@ -24,6 +24,22 @@
                         <i class="fas fa-sign-in-alt me-2"></i> Iniciar sesión con John Deere
                     </a>
                 </div>
+                
+                <hr class="my-4">
+                
+                <div class="mt-3">
+                    <h5>Ingreso manual de código de autorización</h5>
+                    <p class="text-muted small">Si la redirección automática no funciona, puede ingresar manualmente el código de autorización recibido después de autenticarse con John Deere.</p>
+                    <form action="{{ url_for('auth_complete') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="authCode" class="form-label">Código de Autorización</label>
+                            <input type="text" class="form-control" id="authCode" name="code" placeholder="Ingrese el código de autorización">
+                        </div>
+                        <button type="submit" class="btn btn-secondary">
+                            <i class="fas fa-key me-2"></i> Usar código
+                        </button>
+                    </form>
+                </div>
             </div>
             <div class="card-footer text-muted text-center">
                 <small>Se requiere una cuenta de John Deere Operations Center</small>

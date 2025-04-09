@@ -35,8 +35,6 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        # En un entorno de producción, descomentar este código para iniciar el flujo real de OAuth
-        """
         # Construir la URL con el redirect_uri configurado
         redirect_uri_encoded = quote(REDIRECT_URI)
         
@@ -53,21 +51,6 @@ def login():
         
         logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {REDIRECT_URI}")
         return redirect(auth_url)
-        """
-        
-        # Para entorno de desarrollo: simular un token exitoso
-        logger.info("Simulando inicio de sesión exitoso para entorno de desarrollo")
-        
-        # Simular token para desarrollo
-        session['oauth_token'] = {
-            'access_token': 'simulated_access_token_for_development',
-            'refresh_token': 'simulated_refresh_token_for_development',
-            'expires_in': 3600,  # 1 hora
-            'expires_at': time.time() + 3600
-        }
-        
-        # Redireccionar al dashboard
-        return redirect(url_for('dashboard'))
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))
@@ -104,15 +87,43 @@ def callback():
         logger.error(f"Callback error: {str(e)}")
         return render_template('error.html', error=str(e))
 
-@app.route('/auth-complete')
+@app.route('/auth-complete', methods=['GET', 'POST'])
 def auth_complete():
-    """Captura la autenticación después de la redirección de John Deere."""
+    """Captura la autenticación después de la redirección de John Deere o código manual."""
     try:
-        logger.info("Capturando redirección de autenticación de John Deere")
-        # Este endpoint es para capturar cuando el usuario regresa de John Deere
+        logger.info("Capturando código de autorización")
         
-        # Para propósitos de desarrollo, simularemos una autenticación exitosa
-        session['oauth_token'] = {'access_token': 'simulated_token'}
+        # Obtener el código de autorización
+        code = None
+        if request.method == 'POST':
+            code = request.form.get('code')
+        else:
+            code = request.args.get('code')
+        
+        if not code:
+            flash("No se proporcionó un código de autorización válido.", "danger")
+            return redirect(url_for('index'))
+        
+        # Intercambiar el código por un token
+        try:
+            from john_deere_api import exchange_code_for_token
+            token = exchange_code_for_token(code)
+            logger.info(f"Token recibido manualmente: access_token válido por {token.get('expires_in', 0)/60/60} horas")
+            
+            # Guardar el token en la sesión
+            session['oauth_token'] = token
+            
+            flash("Autenticación exitosa con código proporcionado", "success")
+        except Exception as token_error:
+            logger.error(f"Error intercambiando código por token: {str(token_error)}")
+            # En caso de error, usar un token simulado para desarrollo
+            session['oauth_token'] = {
+                'access_token': 'simulated_token_manual',
+                'refresh_token': 'simulated_refresh_token_manual',
+                'expires_in': 3600,
+                'expires_at': time.time() + 3600
+            }
+            flash("No se pudo obtener un token real. Usando token simulado para desarrollo.", "warning")
         
         # Redirigir al dashboard
         return redirect(url_for('dashboard'))
