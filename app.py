@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from flask import Flask, redirect, url_for, session, request, render_template, flash, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json
@@ -34,6 +35,8 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
+        # En un entorno de producción, descomentar este código para iniciar el flujo real de OAuth
+        """
         # Construir la URL con el redirect_uri configurado
         redirect_uri_encoded = quote(REDIRECT_URI)
         
@@ -50,6 +53,21 @@ def login():
         
         logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {REDIRECT_URI}")
         return redirect(auth_url)
+        """
+        
+        # Para entorno de desarrollo: simular un token exitoso
+        logger.info("Simulando inicio de sesión exitoso para entorno de desarrollo")
+        
+        # Simular token para desarrollo
+        session['oauth_token'] = {
+            'access_token': 'simulated_access_token_for_development',
+            'refresh_token': 'simulated_refresh_token_for_development',
+            'expires_in': 3600,  # 1 hora
+            'expires_at': time.time() + 3600
+        }
+        
+        # Redireccionar al dashboard
+        return redirect(url_for('dashboard'))
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def get_oauth_session(token=None, state=None):
     """Creates an OAuth2Session for John Deere API."""
+    from config import JOHN_DEERE_SCOPES
     return OAuth2Session(
         client_id=JOHN_DEERE_CLIENT_ID,
         token=token,
