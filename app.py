@@ -34,14 +34,15 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        # URL exacta proporcionada por el usuario
-        auth_url = "https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri=https%3A%2F%2Foperationscenter.deere.com%2Flogin&state=aHR0cHM6Ly9vcGVyYXRpb25zY2VudGVyLmRlZXJlLmNvbS9sb2dpbg%3D%3D"
+        # Construir la URL con el redirect_uri configurado
+        redirect_uri_encoded = quote(REDIRECT_URI)
+        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri={redirect_uri_encoded}"
         
         # Guardar información en la sesión para verificar después
         session['auth_flow_started'] = True
         
-        # Mostrar instrucciones antes de redirigir a John Deere
-        return render_template('auth_instructions.html')
+        logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {REDIRECT_URI}")
+        return redirect(auth_url)
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))
