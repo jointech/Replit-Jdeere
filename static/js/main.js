@@ -14,41 +14,81 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Organization selection functionality
 function setupOrganizationSelection() {
-    const organizationItems = document.querySelectorAll('.organization-item');
+    console.log("Configurando selección de organizaciones");
     
-    organizationItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+    // Añadir manejadores a los elementos existentes
+    addOrganizationClickHandlers();
+    
+    // También agregar un controlador de eventos al elemento padre para manejar delegación de eventos
+    // Esto ayudará si los elementos se recrean dinámicamente
+    document.getElementById('organizationList').addEventListener('click', function(e) {
+        // Verificar si el elemento clicado o alguno de sus padres es un .organization-item
+        const item = e.target.closest('.organization-item');
+        if (item) {
             e.preventDefault();
+            const orgId = item.getAttribute('data-org-id');
+            const orgName = item.textContent.trim();
             
-            const orgId = this.getAttribute('data-org-id');
-            const orgName = this.textContent;
+            console.log(`Organización seleccionada: ${orgName} (${orgId})`);
             
             // Update dropdown button with organization name but keep the icon
             const dropdownButton = document.getElementById('organizationDropdown');
-            dropdownButton.innerHTML = `<i class="fas fa-building me-2"></i> ${orgName}`;
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-building me-2"></i> ${orgName}`;
+            } else {
+                console.error("No se encontró el elemento dropdownButton");
+            }
             
             // Save selected organization
             selectedOrganizationId = orgId;
             
             // Load machines for this organization
             loadMachines(orgId);
-        });
+        }
+    });
+}
+
+// Función auxiliar para añadir manejadores de clic a elementos de organización
+function addOrganizationClickHandlers() {
+    const organizationItems = document.querySelectorAll('.organization-item');
+    console.log(`Encontrados ${organizationItems.length} elementos de organización`);
+    
+    organizationItems.forEach(item => {
+        const orgId = item.getAttribute('data-org-id');
+        const orgName = item.textContent.trim();
+        console.log(`  - ${orgName} (${orgId})`);
     });
 }
 
 // Load machines for the selected organization
 function loadMachines(organizationId) {
+    console.log(`Cargando máquinas para la organización: ${organizationId}`);
+    
+    // Obtener referencias a los elementos del DOM
     const machineListContainer = document.getElementById('machineListContainer');
     const machineLoader = document.getElementById('machineLoader');
     const emptyMachineMessage = document.getElementById('emptyMachineMessage');
+    const machineCountElement = document.getElementById('machineCount');
+    
+    // Verificar que los elementos existen
+    if (!machineListContainer) {
+        console.error("No se encontró el elemento machineListContainer");
+        return;
+    }
     
     // Clear previous machine selection
     selectedMachineId = null;
     
     // Show loading
     machineListContainer.innerHTML = '';
-    machineLoader.classList.remove('d-none');
-    emptyMachineMessage.classList.add('d-none');
+    
+    if (machineLoader) {
+        machineLoader.classList.remove('d-none');
+    }
+    
+    if (emptyMachineMessage) {
+        emptyMachineMessage.classList.add('d-none');
+    }
     
     // Clear map markers
     clearMapMarkers();
@@ -65,17 +105,28 @@ function loadMachines(organizationId) {
             return response.json();
         })
         .then(machines => {
-            machineLoader.classList.add('d-none');
+            console.log(`Recibidas ${machines.length} máquinas para la organización ${organizationId}`);
+            
+            if (machineLoader) {
+                machineLoader.classList.add('d-none');
+            }
             
             if (machines.length === 0) {
-                emptyMachineMessage.textContent = 'No hay máquinas disponibles para esta organización';
-                emptyMachineMessage.classList.remove('d-none');
-                document.getElementById('machineCount').textContent = '0';
+                if (emptyMachineMessage) {
+                    emptyMachineMessage.textContent = 'No hay máquinas disponibles para esta organización';
+                    emptyMachineMessage.classList.remove('d-none');
+                }
+                
+                if (machineCountElement) {
+                    machineCountElement.textContent = '0';
+                }
                 return;
             }
             
             // Update machine count
-            document.getElementById('machineCount').textContent = machines.length;
+            if (machineCountElement) {
+                machineCountElement.textContent = machines.length;
+            }
             
             // Render machines in the list
             renderMachineList(machines);
@@ -85,9 +136,15 @@ function loadMachines(organizationId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            machineLoader.classList.add('d-none');
-            emptyMachineMessage.textContent = 'Error al cargar máquinas: ' + error.message;
-            emptyMachineMessage.classList.remove('d-none');
+            
+            if (machineLoader) {
+                machineLoader.classList.add('d-none');
+            }
+            
+            if (emptyMachineMessage) {
+                emptyMachineMessage.textContent = 'Error al cargar máquinas: ' + error.message;
+                emptyMachineMessage.classList.remove('d-none');
+            }
         });
 }
 
@@ -129,34 +186,54 @@ function renderMachineList(machines) {
 
 // Select a machine to show details and alerts
 function selectMachine(machineId) {
-    // Remove active class from all machine items
-    document.querySelectorAll('.machine-item').forEach(item => {
-        item.classList.remove('active');
-    });
+    console.log(`Seleccionando máquina: ${machineId}`);
     
-    // Add active class to selected machine
-    const selectedItem = document.querySelector(`.machine-item[data-machine-id="${machineId}"]`);
-    if (selectedItem) {
-        selectedItem.classList.add('active');
+    try {
+        // Remove active class from all machine items
+        const machineItems = document.querySelectorAll('.machine-item');
+        if (machineItems && machineItems.length > 0) {
+            machineItems.forEach(item => {
+                if (item && item.classList) {
+                    item.classList.remove('active');
+                }
+            });
+        }
+        
+        // Add active class to selected machine
+        const selectedItem = document.querySelector(`.machine-item[data-machine-id="${machineId}"]`);
+        if (selectedItem && selectedItem.classList) {
+            selectedItem.classList.add('active');
+        } else {
+            console.warn(`No se encontró elemento para la máquina con ID: ${machineId}`);
+        }
+        
+        // Save selected machine
+        selectedMachineId = machineId;
+        
+        // Focus map on selected machine
+        focusMapOnMachine(machineId);
+        
+        // Load machine details
+        loadMachineDetails(machineId);
+        
+        // Load machine alerts
+        loadMachineAlerts(machineId);
+    } catch (error) {
+        console.error(`Error al seleccionar máquina ${machineId}:`, error);
     }
-    
-    // Save selected machine
-    selectedMachineId = machineId;
-    
-    // Focus map on selected machine
-    focusMapOnMachine(machineId);
-    
-    // Load machine details
-    loadMachineDetails(machineId);
-    
-    // Load machine alerts
-    loadMachineAlerts(machineId);
 }
 
 // Load details for the selected machine
 function loadMachineDetails(machineId) {
+    console.log(`Cargando detalles para máquina: ${machineId}`);
+    
     const machineDetailEmpty = document.getElementById('machineDetailEmpty');
     const machineDetailContent = document.getElementById('machineDetailContent');
+    
+    if (!machineDetailEmpty || !machineDetailContent) {
+        console.error("No se encontraron los contenedores de detalles de máquina");
+        return;
+    }
     
     // Show loading
     machineDetailEmpty.textContent = 'Cargando detalles...';
@@ -172,23 +249,35 @@ function loadMachineDetails(machineId) {
             return response.json();
         })
         .then(machine => {
+            console.log("Detalles de máquina recibidos:", machine);
+            
             // Update machine details
-            document.getElementById('machineName').textContent = machine.name || 'Sin nombre';
-            document.getElementById('machineModel').textContent = machine.model || 'Modelo desconocido';
-            document.getElementById('machineCategory').textContent = machine.category || 'Sin categoría';
+            const machineName = document.getElementById('machineName');
+            const machineModel = document.getElementById('machineModel');
+            const machineCategory = document.getElementById('machineCategory');
+            const machineLatitude = document.getElementById('machineLatitude');
+            const machineLongitude = document.getElementById('machineLongitude');
+            const machineLocationUpdate = document.getElementById('machineLocationUpdate');
+            
+            // Actualizar elementos solo si existen
+            if (machineName) machineName.textContent = machine.name || 'Sin nombre';
+            if (machineModel) machineModel.textContent = machine.model || 'Modelo desconocido';
+            if (machineCategory) machineCategory.textContent = machine.category || 'Sin categoría';
             
             // Update location info
             if (machine.location) {
-                document.getElementById('machineLatitude').textContent = machine.location.latitude || '-';
-                document.getElementById('machineLongitude').textContent = machine.location.longitude || '-';
+                if (machineLatitude) machineLatitude.textContent = machine.location.latitude || '-';
+                if (machineLongitude) machineLongitude.textContent = machine.location.longitude || '-';
                 
                 const timestamp = machine.location.timestamp || machine.lastUpdated;
-                document.getElementById('machineLocationUpdate').textContent = timestamp ? 
-                    new Date(timestamp).toLocaleString() : 'Desconocido';
+                if (machineLocationUpdate) {
+                    machineLocationUpdate.textContent = timestamp ? 
+                        new Date(timestamp).toLocaleString() : 'Desconocido';
+                }
             } else {
-                document.getElementById('machineLatitude').textContent = '-';
-                document.getElementById('machineLongitude').textContent = '-';
-                document.getElementById('machineLocationUpdate').textContent = 'No disponible';
+                if (machineLatitude) machineLatitude.textContent = '-';
+                if (machineLongitude) machineLongitude.textContent = '-';
+                if (machineLocationUpdate) machineLocationUpdate.textContent = 'No disponible';
             }
             
             // Show content
@@ -197,14 +286,23 @@ function loadMachineDetails(machineId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            machineDetailEmpty.textContent = 'Error al cargar detalles: ' + error.message;
+            if (machineDetailEmpty) {
+                machineDetailEmpty.textContent = 'Error al cargar detalles: ' + error.message;
+            }
         });
 }
 
 // Load alerts for the selected machine
 function loadMachineAlerts(machineId) {
+    console.log(`Cargando alertas para máquina: ${machineId}`);
+    
     const alertListContainer = document.getElementById('alertListContainer');
     const emptyAlertMessage = document.getElementById('emptyAlertMessage');
+    
+    if (!alertListContainer || !emptyAlertMessage) {
+        console.error("No se encontraron los contenedores de alertas");
+        return;
+    }
     
     // Show loading
     alertListContainer.innerHTML = '';
@@ -220,6 +318,8 @@ function loadMachineAlerts(machineId) {
             return response.json();
         })
         .then(alerts => {
+            console.log(`Recibidas ${alerts.length} alertas para la máquina ${machineId}`);
+            
             if (alerts.length === 0) {
                 emptyAlertMessage.textContent = 'No hay alertas para esta máquina';
                 return;
@@ -233,63 +333,102 @@ function loadMachineAlerts(machineId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            emptyAlertMessage.textContent = 'Error al cargar alertas: ' + error.message;
+            if (emptyAlertMessage) {
+                emptyAlertMessage.textContent = 'Error al cargar alertas: ' + error.message;
+            }
         });
 }
 
 // Render the alert list
 function renderAlertList(alerts) {
+    console.log(`Renderizando lista de ${alerts.length} alertas`);
+    
     const alertListContainer = document.getElementById('alertListContainer');
+    if (!alertListContainer) {
+        console.error("No se encontró el contenedor de lista de alertas");
+        return;
+    }
+    
     alertListContainer.innerHTML = '';
     
     alerts.forEach(alert => {
-        const alertItem = document.createElement('div');
-        alertItem.className = 'list-group-item';
-        
-        // Determine severity class
-        let severityClass, severityIcon;
-        switch (alert.severity && alert.severity.toLowerCase()) {
-            case 'critical':
-                severityClass = 'text-danger';
-                severityIcon = 'exclamation-circle';
-                break;
-            case 'warning':
-                severityClass = 'text-warning';
-                severityIcon = 'exclamation-triangle';
-                break;
-            default:
-                severityClass = 'text-info';
-                severityIcon = 'info-circle';
+        try {
+            const alertItem = document.createElement('div');
+            alertItem.className = 'list-group-item';
+            
+            // Determine severity class
+            let severityClass = 'text-info';
+            let severityIcon = 'info-circle';
+            
+            if (alert.severity) {
+                const severityLower = String(alert.severity).toLowerCase();
+                switch (severityLower) {
+                    case 'critical':
+                        severityClass = 'text-danger';
+                        severityIcon = 'exclamation-circle';
+                        break;
+                    case 'warning':
+                        severityClass = 'text-warning';
+                        severityIcon = 'exclamation-triangle';
+                        break;
+                }
+            }
+            
+            // Format timestamp
+            let timestamp = 'Desconocido';
+            if (alert.timestamp) {
+                try {
+                    timestamp = new Date(alert.timestamp).toLocaleString();
+                } catch (e) {
+                    console.warn(`Error al formatear timestamp: ${e.message}`);
+                }
+            }
+            
+            // Create the HTML content for the alert
+            alertItem.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1 ${severityClass}">
+                        <i class="fas fa-${severityIcon} me-2"></i>
+                        ${alert.title || 'Alerta sin título'}
+                    </h6>
+                    <small>${alert.status || 'Estado desconocido'}</small>
+                </div>
+                <p class="mb-1 small">${alert.description || 'Sin descripción'}</p>
+                <small class="text-muted">${timestamp}</small>
+            `;
+            
+            alertListContainer.appendChild(alertItem);
+        } catch (error) {
+            console.error("Error al renderizar alerta:", error);
         }
-        
-        // Format timestamp
-        const timestamp = alert.timestamp ? new Date(alert.timestamp).toLocaleString() : 'Desconocido';
-        
-        // Create the HTML content for the alert
-        alertItem.innerHTML = `
-            <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1 ${severityClass}">
-                    <i class="fas fa-${severityIcon} me-2"></i>
-                    ${alert.title || 'Alerta sin título'}
-                </h6>
-                <small>${alert.status || 'Estado desconocido'}</small>
-            </div>
-            <p class="mb-1 small">${alert.description || 'Sin descripción'}</p>
-            <small class="text-muted">${timestamp}</small>
-        `;
-        
-        alertListContainer.appendChild(alertItem);
     });
 }
 
 // Reset machine details
 function resetMachineDetails() {
+    console.log("Reseteando detalles de máquina");
+    
     // Reset alerts
-    document.getElementById('emptyAlertMessage').textContent = 'Seleccione una máquina para ver sus alertas';
-    document.getElementById('emptyAlertMessage').classList.remove('d-none');
-    document.getElementById('alertListContainer').innerHTML = '';
+    const emptyAlertMessage = document.getElementById('emptyAlertMessage');
+    const alertListContainer = document.getElementById('alertListContainer');
+    const machineDetailEmpty = document.getElementById('machineDetailEmpty');
+    const machineDetailContent = document.getElementById('machineDetailContent');
+    
+    if (emptyAlertMessage) {
+        emptyAlertMessage.textContent = 'Seleccione una máquina para ver sus alertas';
+        emptyAlertMessage.classList.remove('d-none');
+    }
+    
+    if (alertListContainer) {
+        alertListContainer.innerHTML = '';
+    }
     
     // Reset machine details
-    document.getElementById('machineDetailEmpty').classList.remove('d-none');
-    document.getElementById('machineDetailContent').classList.add('d-none');
+    if (machineDetailEmpty) {
+        machineDetailEmpty.classList.remove('d-none');
+    }
+    
+    if (machineDetailContent) {
+        machineDetailContent.classList.add('d-none');
+    }
 }
