@@ -3,6 +3,7 @@ import logging
 from flask import Flask, redirect, url_for, session, request, render_template, flash, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json
+from urllib.parse import quote
 
 from john_deere_api import (
     get_oauth_session, 
@@ -33,7 +34,20 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        return redirect('https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri=https%3A%2F%2Fforest-dashboard.replit.app%2Fcallback')
+        # Obtener la URL base para la redirección
+        host = request.host_url.rstrip('/')
+        callback_url = f"{host}/callback"
+        callback_url_encoded = quote(callback_url)
+        
+        # Construir la URL de autorización con el callback dinámico
+        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?client_id=0oaknbms0250i6yty5d6&response_type=code&scope=openid+support-tool&redirect_uri={callback_url_encoded}"
+        
+        # Guardar la URL de callback en la sesión
+        session['callback_url'] = callback_url
+        logger.info(f"Redireccionando a: {auth_url}")
+        logger.info(f"Con callback a: {callback_url}")
+        
+        return redirect(auth_url)
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))
