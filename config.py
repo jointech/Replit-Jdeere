@@ -20,4 +20,7 @@ DEBUG = True
 SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
 # Application Configuration
-REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://www.forestlink.cl')
+# Usar URL de Replit para desarrollo local
+REPLIT_DOMAIN = os.environ.get('REPL_SLUG', 'john-deere-dashboard')
+REPLIT_URL = f"https://{REPLIT_DOMAIN}.replit.app"
+REDIRECT_URI = os.environ.get('REDIRECT_URI', f"{REPLIT_URL}/callback")
