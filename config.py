@@ -11,8 +11,8 @@ JOHN_DEERE_AUTHORIZE_URL = 'https://signin.johndeere.com/oauth2/aus78tnlaysMraFh
 USE_ALTERNATE_OAUTH_FLOW = True  # Si es True, usa los nuevos scopes y parámetros
 USE_PERSISTENCE_HEADER_REDIRECT = False  # Si es True, usa la URL de redirección de persistent-header
 
-# Modo de desarrollo para evitar errores de OAuth
-DEVELOPMENT_MODE = True  # Si es True, no intenta conectar con John Deere API y usa datos simulados
+# Modo de desarrollo para evitar errores de OAuth (desactivado)
+DEVELOPMENT_MODE = False  # Si es True, no intenta conectar con John Deere API y usa datos simulados
 
 # URI de redirección registrada en la configuración del cliente de John Deere (no se usa en modo desarrollo)
 JOHN_DEERE_REGISTERED_REDIRECT_URI = 'https://johndeerecustomer-admin.okta.com/admin/app/oidc_client/instance/0oae3jf8shz7Y4avG1t7'
