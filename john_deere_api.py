@@ -221,21 +221,38 @@ def fetch_machines_by_organization(token, organization_id):
         data = response.json()
         machines = []
         
+        # Log especial para la organización 463153
+        if organization_id == "463153":
+            logger.info(f"Respuesta completa para organización 463153: {data}")
+            # Verificar el número total de valores devueltos
+            if 'values' in data:
+                logger.info(f"Total de valores para organización 463153: {len(data['values'])}")
+        
         if 'values' in data:
+            total_machines = len(data['values'])
+            logger.info(f"Procesando {total_machines} máquinas para la organización {organization_id}")
+            
+            # Si hay muchas máquinas (más de 10), limitamos la obtención de ubicaciones
+            # para mejorar el rendimiento y evitar demasiadas peticiones a la API
+            limit_location_fetching = total_machines > 10
+            
             for machine in data['values']:
-                logger.info(f"Processing machine: {machine.get('id')} - {machine.get('name')}")
+                machine_id = machine.get('id')
+                logger.info(f"Processing machine: {machine_id} - {machine.get('name')}")
                 
                 # Inicializar location como None
                 location = None
-                machine_id = machine.get('id')
                 
-                # Intentar obtener ubicación de la máquina desde un endpoint específico
-                if machine_id:
+                # Para organizaciones con muchas máquinas, solo buscamos ubicación para 
+                # algunas máquinas (las primeras 5) para mejorar el rendimiento
+                if machine_id and (not limit_location_fetching or len(machines) < 5):
                     location = fetch_machine_location(token, machine_id)
                     
                     # Si encontramos una ubicación, registrar el éxito
                     if location:
                         logger.info(f"Machine location found for {machine_id}: {location}")
+                elif limit_location_fetching:
+                    logger.info(f"Omitiendo búsqueda de ubicación para máquina {machine_id} para mejorar rendimiento")
                 
                 # Crear el objeto de máquina
                 machine_obj = {
