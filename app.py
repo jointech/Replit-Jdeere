@@ -93,6 +93,9 @@ def callback():
         # Guardar el token en la sesión
         session['oauth_token'] = token
         
+        # Guardar el código de autorización utilizado exitosamente
+        session['last_auth_code'] = code
+        
         # Redireccionar al dashboard
         return redirect(url_for('dashboard'))
     except Exception as e:
@@ -131,6 +134,9 @@ def auth_complete():
             
             # Guardar el token en la sesión
             session['oauth_token'] = token
+            
+            # Guardar el código de autorización utilizado exitosamente
+            session['last_auth_code'] = code
             
             # Responder según el tipo de solicitud
             if request.is_json:
@@ -235,7 +241,21 @@ def dashboard():
             'token_type': token.get('token_type', 'Bearer')
         }
         
-        return render_template('dashboard.html', organizations=organizations, token_info=token_info)
+        # Recuperar el último código de autorización utilizado exitosamente (si existe)
+        last_auth_code = session.get('last_auth_code')
+        auth_code_info = None
+        if last_auth_code:
+            auth_code_info = {
+                'code': last_auth_code[:5] + '...' + last_auth_code[-5:] if len(last_auth_code) > 10 else last_auth_code,
+                'full_length': len(last_auth_code)
+            }
+        
+        return render_template(
+            'dashboard.html', 
+            organizations=organizations, 
+            token_info=token_info,
+            auth_code_info=auth_code_info
+        )
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
         flash(f"Error al cargar el dashboard: {str(e)}", "danger")
@@ -541,6 +561,21 @@ def get_machine_alerts(machine_id):
     except Exception as e:
         logger.error(f"Error general en get_machine_alerts: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/auth-setup')
+def auth_setup():
+    """Página con instrucciones para configurar la autenticación automática."""
+    # Determinar la URL base de la aplicación
+    base_url = request.host_url.rstrip('/')
+    if request.headers.get('X-Forwarded-Proto') == 'https':
+        base_url = base_url.replace('http:', 'https:')
+    
+    return render_template(
+        'auth_setup.html', 
+        redirect_uri=REDIRECT_URI,
+        auth_capture_url=AUTH_CAPTURE_URL,
+        base_url=base_url
+    )
 
 @app.route('/logout')
 def logout():

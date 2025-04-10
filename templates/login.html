@@ -58,8 +58,13 @@
                     </form>
                 </div>
             </div>
-            <div class="card-footer text-muted text-center">
-                <small>Se requiere una cuenta de John Deere Operations Center</small>
+            <div class="card-footer text-muted">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small>Se requiere una cuenta de John Deere Operations Center</small>
+                    <a href="{{ url_for('auth_setup') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-cog me-1"></i> Configuración avanzada
+                    </a>
+                </div>
             </div>
         </div>
     </div>
