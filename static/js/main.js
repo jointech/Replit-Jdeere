@@ -1195,3 +1195,68 @@ function resetMachineDetails() {
         machineDetailContent.classList.add('d-none');
     }
 }
+
+// Función para manejar el cambio de tema claro/oscuro
+function setupThemeSwitcher() {
+    const themeSwitch = document.getElementById('themeSwitch');
+    const themeSwitchLabel = document.querySelector('.theme-switch-wrapper .form-check-label');
+    
+    if (!themeSwitch || !themeSwitchLabel) {
+        console.warn('Elementos del selector de tema no encontrados');
+        return;
+    }
+    
+    // Verificar si hay una preferencia guardada
+    const savedTheme = localStorage.getItem('theme');
+    
+    // Aplicar tema guardado, o mantener oscuro por defecto
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        themeSwitch.checked = false;
+        themeSwitchLabel.innerHTML = '<i class="fas fa-sun"></i>';
+    } else {
+        document.body.classList.remove('light-theme');
+        themeSwitch.checked = true;
+        themeSwitchLabel.innerHTML = '<i class="fas fa-moon"></i>';
+    }
+    
+    // Escuchar cambios del interruptor
+    themeSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            // Tema oscuro
+            document.body.classList.remove('light-theme');
+            localStorage.setItem('theme', 'dark');
+            themeSwitchLabel.innerHTML = '<i class="fas fa-moon"></i>';
+        } else {
+            // Tema claro
+            document.body.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
+            themeSwitchLabel.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+    });
+}
+
+// Función para manejar la visibilidad del panel de autenticación
+function setupAuthPanelToggle() {
+    const toggleAuthBtn = document.getElementById('toggleAuthInfo');
+    const authPanel = document.getElementById('authInfoPanel');
+    
+    if (!toggleAuthBtn || !authPanel) {
+        console.warn('Elementos del panel de autenticación no encontrados');
+        return;
+    }
+    
+    toggleAuthBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const isVisible = authPanel.style.display !== 'none';
+        
+        if (isVisible) {
+            authPanel.style.display = 'none';
+            toggleAuthBtn.textContent = 'Mostrar información de autenticación';
+        } else {
+            authPanel.style.display = 'block';
+            toggleAuthBtn.textContent = 'Ocultar información de autenticación';
+        }
+    });
+}
