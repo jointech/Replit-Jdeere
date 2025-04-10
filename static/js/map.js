@@ -2,6 +2,8 @@
 let map;
 let markers = {};
 let infoWindow;
+let googleMapsLoaded = false;
+let mapPendingCallbacks = [];
 
 // Definir colores según el tipo de máquina para Google Maps
 const machineColors = {
@@ -16,6 +18,53 @@ const machineColors = {
     'Vehicle': '#007bff', // Azul
     'Two-wheel Drive Tractors - 140 Hp And Above': '#28a745' // Verde
 };
+
+// Cargar Google Maps API de forma asíncrona
+function loadGoogleMaps() {
+    // Si ya se está cargando o ya está cargado, no hacer nada
+    if (window.googleMapsLoading || googleMapsLoaded) {
+        return;
+    }
+    
+    console.log("Cargando Google Maps API...");
+    window.googleMapsLoading = true;
+    
+    // Función de callback que será llamada cuando la API se cargue
+    window.initGoogleMaps = function() {
+        console.log("Google Maps API cargada correctamente");
+        googleMapsLoaded = true;
+        
+        // Inicializar el mapa
+        initMapImpl();
+        
+        // Llamar a todas las funciones pendientes
+        while (mapPendingCallbacks.length > 0) {
+            const callback = mapPendingCallbacks.shift();
+            callback();
+        }
+    };
+    
+    // Crear el script para cargar la API de Google Maps
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&libraries=places,geometry&callback=initGoogleMaps`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+}
+
+// Wrapper para las funciones que dependen de Google Maps
+// Si Google Maps aún no está cargado, guarda la función para ejecutarla más tarde
+function withGoogleMaps(callback) {
+    if (googleMapsLoaded) {
+        callback();
+    } else {
+        console.log("Google Maps todavía no está cargado, añadiendo a la cola...");
+        mapPendingCallbacks.push(callback);
+        
+        // Asegurarse de que se cargue Google Maps si aún no se ha iniciado
+        loadGoogleMaps();
+    }
+}
 
 // Función para obtener el color según el tipo de máquina
 function getMachineColor(machine) {
@@ -34,110 +83,133 @@ function getMachineColor(machine) {
     return machineColors[machineType] || machineColors['default'];
 }
 
-// Initialize the map
+// Iniciar la carga de Google Maps
+loadGoogleMaps();
+
+// Initialize the map - wrapper function que se llama desde DOMContentLoaded
 function initMap() {
-    // Info window compartida para todos los marcadores
-    infoWindow = new google.maps.InfoWindow();
+    // Si Google Maps ya está cargado, inicializar inmediatamente
+    // Si no, se iniciará automáticamente cuando se cargue la API
+    if (googleMapsLoaded) {
+        initMapImpl();
+    }
+}
+
+// Implementación real de la inicialización del mapa
+function initMapImpl() {
+    console.log("Inicializando Google Maps...");
     
-    // Crear mapa centrado en una ubicación predeterminada (centro de Chile si no hay datos)
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
-        zoom: 5,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        streetViewControl: false,
-        mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
-        }
-    });
+    try {
+        // Info window compartida para todos los marcadores
+        infoWindow = new google.maps.InfoWindow();
+        
+        // Crear mapa centrado en una ubicación predeterminada (centro de Chile si no hay datos)
+        map = new google.maps.Map(document.getElementById('map'), {
+            center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
+            zoom: 5,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControl: true,
+            fullscreenControl: true,
+            streetViewControl: false,
+            mapTypeControlOptions: {
+                style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+            }
+        });
+        
+        console.log("Mapa de Google Maps inicializado correctamente");
+    } catch (error) {
+        console.error("Error al inicializar el mapa:", error);
+    }
 }
 
 // Add machines to the map
 function addMachinesToMap(machines) {
     console.log(`Añadiendo ${machines.length} máquinas al mapa`);
     
-    // Clear existing markers
-    clearMapMarkers();
-    
-    // Bounds to fit all markers
-    const bounds = new google.maps.LatLngBounds();
-    let validLocations = 0;
-    
-    // Para grandes cantidades de máquinas, mostrar solo las primeras 50 con localización
-    // para evitar sobrecargar el mapa y mejorar rendimiento
-    const MAX_MARKERS = 50;
-    let markersAdded = 0;
-    let hasLimitedMarkers = false;
-    
-    // Primero, añadir máquina seleccionada si existe
-    if (selectedMachineId) {
-        const selectedMachine = machines.find(m => m.id === selectedMachineId);
-        if (selectedMachine && selectedMachine.location && 
-            selectedMachine.location.latitude && selectedMachine.location.longitude) {
-            addSingleMachineToMap(selectedMachine, bounds);
-            validLocations++;
-            markersAdded++;
-        }
-    }
-    
-    // Luego añadir el resto hasta el límite
-    for (const machine of machines) {
-        // Si ya tenemos la máquina seleccionada, saltarla
-        if (selectedMachineId && machine.id === selectedMachineId) {
-            continue;
+    // Usar el wrapper para asegurarnos de que Google Maps está cargado
+    withGoogleMaps(() => {
+        // Clear existing markers
+        clearMapMarkers();
+        
+        // Bounds to fit all markers
+        const bounds = new google.maps.LatLngBounds();
+        let validLocations = 0;
+        
+        // Para grandes cantidades de máquinas, mostrar solo las primeras 50 con localización
+        // para evitar sobrecargar el mapa y mejorar rendimiento
+        const MAX_MARKERS = 50;
+        let markersAdded = 0;
+        let hasLimitedMarkers = false;
+        
+        // Primero, añadir máquina seleccionada si existe
+        if (selectedMachineId) {
+            const selectedMachine = machines.find(m => m.id === selectedMachineId);
+            if (selectedMachine && selectedMachine.location && 
+                selectedMachine.location.latitude && selectedMachine.location.longitude) {
+                addSingleMachineToMap(selectedMachine, bounds);
+                validLocations++;
+                markersAdded++;
+            }
         }
         
-        if (machine.location && machine.location.latitude && machine.location.longitude) {
-            // Si alcanzamos el límite, detenernos
-            if (markersAdded >= MAX_MARKERS) {
-                hasLimitedMarkers = true;
-                break;
+        // Luego añadir el resto hasta el límite
+        for (const machine of machines) {
+            // Si ya tenemos la máquina seleccionada, saltarla
+            if (selectedMachineId && machine.id === selectedMachineId) {
+                continue;
             }
             
-            addSingleMachineToMap(machine, bounds);
-            validLocations++;
-            markersAdded++;
+            if (machine.location && machine.location.latitude && machine.location.longitude) {
+                // Si alcanzamos el límite, detenernos
+                if (markersAdded >= MAX_MARKERS) {
+                    hasLimitedMarkers = true;
+                    break;
+                }
+                
+                addSingleMachineToMap(machine, bounds);
+                validLocations++;
+                markersAdded++;
+            }
         }
-    }
-    
-    // Si tenemos ubicaciones válidas, ajustar el mapa a esos límites
-    if (validLocations > 0) {
-        map.fitBounds(bounds);
         
-        // Limitar el zoom máximo para no acercarse demasiado si solo hay un marcador
-        if (validLocations === 1) {
-            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
-                if (map.getZoom() > 15) map.setZoom(15);
-            });
+        // Si tenemos ubicaciones válidas, ajustar el mapa a esos límites
+        if (validLocations > 0) {
+            map.fitBounds(bounds);
+            
+            // Limitar el zoom máximo para no acercarse demasiado si solo hay un marcador
+            if (validLocations === 1) {
+                google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                    if (map.getZoom() > 15) map.setZoom(15);
+                });
+            }
         }
-    }
-    
-    // Si hemos limitado los marcadores, mostrar un mensaje
-    if (hasLimitedMarkers) {
-        // Crear un control de información personalizado
-        const limitInfoDiv = document.createElement('div');
-        limitInfoDiv.className = 'map-info-control';
-        limitInfoDiv.innerHTML = `
-            <div class="alert alert-info p-2 m-0" style="font-size: 0.8rem; opacity: 0.9;">
-                <i class="fas fa-info-circle"></i> 
-                Mostrando ${markersAdded} de ${machines.filter(m => m.location && 
-                m.location.latitude && m.location.longitude).length} ubicaciones.
-            </div>`;
         
-        // Estilos CSS para el control personalizado
-        limitInfoDiv.style.margin = '10px';
-        limitInfoDiv.style.padding = '5px';
-        limitInfoDiv.style.backgroundColor = 'white';
-        limitInfoDiv.style.border = '1px solid #ccc';
-        limitInfoDiv.style.borderRadius = '4px';
-        limitInfoDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+        // Si hemos limitado los marcadores, mostrar un mensaje
+        if (hasLimitedMarkers) {
+            // Crear un control de información personalizado
+            const limitInfoDiv = document.createElement('div');
+            limitInfoDiv.className = 'map-info-control';
+            limitInfoDiv.innerHTML = `
+                <div class="alert alert-info p-2 m-0" style="font-size: 0.8rem; opacity: 0.9;">
+                    <i class="fas fa-info-circle"></i> 
+                    Mostrando ${markersAdded} de ${machines.filter(m => m.location && 
+                    m.location.latitude && m.location.longitude).length} ubicaciones.
+                </div>`;
+            
+            // Estilos CSS para el control personalizado
+            limitInfoDiv.style.margin = '10px';
+            limitInfoDiv.style.padding = '5px';
+            limitInfoDiv.style.backgroundColor = 'white';
+            limitInfoDiv.style.border = '1px solid #ccc';
+            limitInfoDiv.style.borderRadius = '4px';
+            limitInfoDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            
+            // Añadir el control al mapa
+            map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(limitInfoDiv);
+        }
         
-        // Añadir el control al mapa
-        map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(limitInfoDiv);
-    }
-    
-    console.log(`Añadidos ${markersAdded} marcadores al mapa`);
+        console.log(`Añadidos ${markersAdded} marcadores al mapa`);
+    });
 }
 
 // Función auxiliar para añadir una máquina al mapa
@@ -213,6 +285,13 @@ function createMachinePopupContent(machine) {
 
 // Clear all markers from the map
 function clearMapMarkers() {
+    if (!googleMapsLoaded) {
+        // Si Google Maps no está cargado, simplemente limpiar el objeto markers
+        markers = {};
+        return;
+    }
+    
+    // Si hay marcadores activos, eliminarlos del mapa
     Object.values(markers).forEach(marker => {
         marker.setMap(null);
     });
@@ -221,13 +300,16 @@ function clearMapMarkers() {
 
 // Focus map on a specific machine
 function focusMapOnMachine(machineId) {
-    const marker = markers[machineId];
-    if (marker) {
-        map.setCenter(marker.getPosition());
-        map.setZoom(14);
-        infoWindow.setContent(createMachinePopupContent(
-            window.lastLoadedMachines.find(m => m.id === machineId)
-        ));
-        infoWindow.open(map, marker);
-    }
+    // Usar el wrapper para asegurarnos de que Google Maps está cargado
+    withGoogleMaps(() => {
+        const marker = markers[machineId];
+        if (marker) {
+            map.setCenter(marker.getPosition());
+            map.setZoom(14);
+            infoWindow.setContent(createMachinePopupContent(
+                window.lastLoadedMachines.find(m => m.id === machineId)
+            ));
+            infoWindow.open(map, marker);
+        }
+    });
 }
