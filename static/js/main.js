@@ -757,6 +757,21 @@ function renderAlertList(alerts) {
             console.error("Error al renderizar alerta:", error);
         }
     });
+    
+    // Agregar manejador para los botones de "Ver detalles adicionales"
+    // Usamos event delegation para evitar añadir muchos event listeners
+    alertListContainer.addEventListener('click', function(e) {
+        // Verificar si el elemento clicado o alguno de sus padres es un botón de detalles
+        const detailsButton = e.target.closest('.show-alert-details');
+        if (detailsButton) {
+            e.preventDefault();
+            const definitionUri = detailsButton.getAttribute('data-definition-uri');
+            if (definitionUri) {
+                console.log('Cargando detalles para definición:', definitionUri);
+                loadAlertDetails(detailsButton, definitionUri);
+            }
+        }
+    });
 }
 
 // Configurar la búsqueda de máquinas

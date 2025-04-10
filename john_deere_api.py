@@ -404,6 +404,58 @@ def fetch_alert_definition(token, definition_uri):
         logger.error(f"Error fetching alert definition for {definition_uri}: {str(e)}")
         return None
 
+def fetch_alert_definition(token, definition_uri):
+    """Fetches detailed definition for a specific alert.
+    
+    Args:
+        token: OAuth token
+        definition_uri: URI for the alert definition, either a full URL or just the path
+    
+    Returns:
+        Dictionary with alert definition details or None if there was an error
+    """
+    try:
+        logger.info(f"Fetching alert definition from: {definition_uri}")
+        # Refresh token if needed
+        token = refresh_token_if_needed(token)
+        
+        # Create OAuth session
+        oauth = OAuth2Session(JOHN_DEERE_CLIENT_ID, token=token)
+        
+        # Handle either full URL or just path
+        if not definition_uri.startswith('http'):
+            # Ensure definition_uri starts with a slash if it's just a path
+            if not definition_uri.startswith('/'):
+                definition_uri = '/' + definition_uri
+                
+            definition_uri = f"https://partnerapi.deere.com{definition_uri}"
+        
+        # Add header to disable pagination
+        headers = {'x-deere-no-paging': 'true'}
+        
+        response = oauth.get(definition_uri, headers=headers)
+        response.raise_for_status()
+        
+        # Parse the response
+        definition_data = response.json()
+        logger.info(f"Retrieved alert definition: {str(definition_data)[:150]}...")
+        
+        # Normalize the definition data to a standard format
+        normalized_definition = {
+            'id': definition_data.get('id', 'unknown'),
+            'title': definition_data.get('title', 'Sin título'),
+            'description': definition_data.get('description', 'Sin descripción detallada'),
+            'causes': definition_data.get('causes', []),
+            'resolutions': definition_data.get('resolutions', []),
+            'additionalInfo': definition_data.get('additionalInformation')
+        }
+        
+        return normalized_definition
+        
+    except Exception as e:
+        logger.error(f"Error fetching alert definition from {definition_uri}: {str(e)}")
+        return None
+
 def fetch_machine_alerts(token, machine_id, days_back=30):
     """Fetches alerts for a specific machine within a date range.
     
@@ -508,6 +560,11 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
                     if not description or description == 'Sin descripción':
                         description = alert.get('description', 'Sin descripción')
                     
+                    # Extraer enlaces si están disponibles
+                    links = []
+                    if 'links' in alert and isinstance(alert['links'], list):
+                        links = alert['links']
+                    
                     # Crear objeto de alerta normalizado
                     alert_obj = {
                         'id': alert.get('id', 'sin-id'),
@@ -516,7 +573,8 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
                         'severity': severity,
                         'timestamp': alert.get('timestamp'),
                         'status': alert.get('status', 'ACTIVE'),
-                        'type': alert.get('type', 'UNDEFINED')
+                        'type': alert.get('type', 'UNDEFINED'),
+                        'links': links
                     }
                     
                     logger.info(f"Alerta procesada: {str(alert_obj)[:150]}...")
