@@ -78,6 +78,17 @@ body {
     color: #e6edf3;
 }
 
+/* Asegurar que el tema claro tenga colores consistentes */
+body.light-theme h1,
+body.light-theme h2,
+body.light-theme h3,
+body.light-theme h4,
+body.light-theme h5,
+body.light-theme h6,
+body.light-theme .display-5 {
+    color: #2c3e50 !important;
+}
+
 /* Machine item in list with enhanced styling */
 .machine-item {
     border-left: 3px solid transparent;
@@ -331,8 +342,8 @@ body.light-theme .bg-severity-info {
 
 /* Light theme styles - Modern dashboard style with turquoise and purple accents */
 body.light-theme {
-    --bs-body-bg: #0a1929;
-    --bs-body-color: #ffffff;
+    --bs-body-bg: #e9f0f4;
+    --bs-body-color: #2c3e50;
     --bs-primary: #00e2ac;
     --bs-info: #00d5e2;
     --bs-link-color: #00e2ac;
@@ -341,8 +352,8 @@ body.light-theme {
     --card-bg: #ffffff;
     --card-text: #2c3e50;
     --winter-white: #f0f8ff; /* Blanco invierno para fondos especiales */
-    background-color: #0a1929;
-    color: #ffffff;
+    background-color: #e9f0f4;
+    color: #2c3e50;
 }
 
 /* Modern card styling with clean white background */
@@ -367,8 +378,17 @@ body.light-theme .card-header {
     border-top-left-radius: 12px;
     border-top-right-radius: 12px;
     font-weight: 600;
-    color: #2c3e50;
+    color: #2c3e50 !important; /* Forzar color del texto */
     padding: 15px 20px;
+}
+
+/* Asegurar que el texto en el título del encabezado sea visible */
+body.light-theme .card-header h5 {
+    color: #2c3e50 !important;
+}
+
+body.light-theme .card-header h5 i {
+    color: #00e2ac !important;
 }
 
 /* Info panel styling */
@@ -377,6 +397,48 @@ body.light-theme .bg-dark {
     color: #2c3e50 !important;
     border: 1px solid rgba(0, 226, 172, 0.2);
     border-radius: 10px;
+}
+
+/* Panel de autenticación en modo claro */
+body.light-theme #authInfoPanel .card.shadow.bg-dark,
+body.light-theme .location-card.bg-dark {
+    background-color: var(--winter-white) !important;
+    border: 1px solid rgba(0, 226, 172, 0.1);
+}
+
+/* Estilos específicos para la tarjeta de ubicación en modo claro */
+body.light-theme .location-card h6,
+body.light-theme .location-card strong,
+body.light-theme .location-card span {
+    color: #2c3e50 !important;
+}
+
+body.light-theme .location-card .card-body {
+    background-color: var(--winter-white) !important;
+}
+
+body.light-theme #authInfoPanel .card-header {
+    background: linear-gradient(to right, var(--winter-white), #ffffff) !important;
+}
+
+body.light-theme #authInfoPanel .card-body {
+    background-color: var(--winter-white) !important;
+}
+
+body.light-theme #authInfoPanel .btn-outline-light {
+    border-color: #00e2ac;
+    color: #00e2ac;
+}
+
+body.light-theme #authInfoPanel .btn-outline-light:hover {
+    background-color: #00e2ac;
+    color: #ffffff;
+}
+
+body.light-theme #authInfoPanel .text-muted,
+body.light-theme #authInfoPanel strong,
+body.light-theme #authInfoPanel span {
+    color: #2c3e50 !important;
 }
 
 /* Improved text colors */
