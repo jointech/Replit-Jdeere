@@ -195,6 +195,9 @@ function loadMachines(organizationId) {
         .then(machines => {
             console.log(`Recibidas ${machines.length} máquinas para la organización ${organizationId}`);
             
+            // Guardar las máquinas cargadas para usarlas en otras funciones
+            window.lastLoadedMachines = machines;
+            
             if (machineLoader) {
                 machineLoader.classList.add('d-none');
             }
@@ -352,7 +355,10 @@ function selectMachine(machineId) {
     console.log(`Seleccionando máquina: ${machineId}`);
     
     try {
-        // Remove active class from all machine items
+        // Guardar el ID anterior de la máquina seleccionada para comparar si cambió
+        const previousSelectedMachineId = selectedMachineId;
+        
+        // Remove active class from all machine items in the list
         const machineItems = document.querySelectorAll('.machine-item');
         if (machineItems && machineItems.length > 0) {
             machineItems.forEach(item => {
@@ -362,7 +368,7 @@ function selectMachine(machineId) {
             });
         }
         
-        // Add active class to selected machine
+        // Add active class to selected machine in the list
         const selectedItem = document.querySelector(`.machine-item[data-machine-id="${machineId}"]`);
         if (selectedItem && selectedItem.classList) {
             selectedItem.classList.add('active');
@@ -375,6 +381,13 @@ function selectMachine(machineId) {
         
         // Focus map on selected machine
         focusMapOnMachine(machineId);
+        
+        // Si tenemos máquinas cargadas y cambió la selección, actualizar el mapa
+        if (previousSelectedMachineId !== selectedMachineId && window.lastLoadedMachines) {
+            console.log("Actualizando marcadores del mapa con nueva selección");
+            // Recargar los marcadores para reflejar la nueva selección
+            addMachinesToMap(window.lastLoadedMachines);
+        }
         
         // Load machine details
         loadMachineDetails(machineId);

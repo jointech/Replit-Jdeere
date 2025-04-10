@@ -1,7 +1,6 @@
 // Map variables
 let map;
 let markers = {};
-let selectedMachineId = null; // ID de la máquina seleccionada actualmente
 
 // Definir íconos según el tipo de máquina
 const machineIcons = {
