@@ -2,76 +2,96 @@
 let map;
 let markers = {};
 
-// Definir íconos según el tipo de máquina
+// Definir íconos según el tipo de máquina utilizando marcadores de colores estándar de Leaflet
 const machineIcons = {
-    // Íconos por defecto para cada tipo usando FontAwesome
-    'default': L.divIcon({
-        html: '<i class="fas fa-tractor" style="font-size: 24px; color: #28a745;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Íconos por defecto para cada tipo
+    'default': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Tractores
-    'Tractor': L.divIcon({
-        html: '<i class="fas fa-tractor" style="font-size: 24px; color: #28a745;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Tractores - Verde
+    'Tractor': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Cosechadoras
-    'Harvester': L.divIcon({
-        html: '<i class="fas fa-truck" style="font-size: 24px; color: #dc3545;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Cosechadoras - Rojo
+    'Harvester': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    'Tracked Harvester': L.divIcon({
-        html: '<i class="fas fa-truck" style="font-size: 24px; color: #dc3545;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    'Tracked Harvester': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Cargadores forestales
-    'Forwarder': L.divIcon({
-        html: '<i class="fas fa-truck-pickup" style="font-size: 24px; color: #fd7e14;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Cargadores forestales - Naranja
+    'Forwarder': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Skidders
-    'Skidder': L.divIcon({
-        html: '<i class="fas fa-truck-moving" style="font-size: 24px; color: #6f42c1;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Skidders - Violeta
+    'Skidder': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Excavadoras
-    'Excavator': L.divIcon({
-        html: '<i class="fas fa-truck-loading" style="font-size: 24px; color: #ffc107;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Excavadoras - Amarillo
+    'Excavator': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Camiones
-    'Truck': L.divIcon({
-        html: '<i class="fas fa-truck" style="font-size: 24px; color: #17a2b8;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Camiones - Azul claro
+    'Truck': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Otros vehículos
-    'Vehicle': L.divIcon({
-        html: '<i class="fas fa-car" style="font-size: 24px; color: #007bff;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Otros vehículos - Azul
+    'Vehicle': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     }),
-    // Two-wheel Drive Tractors
-    'Two-wheel Drive Tractors - 140 Hp And Above': L.divIcon({
-        html: '<i class="fas fa-tractor" style="font-size: 24px; color: #28a745;"></i>',
-        className: 'machine-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+    // Two-wheel Drive Tractors - Verde
+    'Two-wheel Drive Tractors - 140 Hp And Above': L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
     })
 };
 
@@ -191,11 +211,17 @@ function addSingleMachineToMap(machine, bounds, markerGroup) {
     // Obtener el ícono personalizado según el tipo de máquina
     const icon = getMachineIcon(machine);
     
-    // Si está seleccionada, añadir la clase 'selected' al icono
+    // Para las máquinas seleccionadas, usamos un ícono especial de color gold
     if (isSelected) {
-        // Modificar el HTML del icono para incluir la clase selected
-        icon.options.html = icon.options.html.replace('class="', 'class="selected ');
-        icon.options.className = 'machine-icon selected';
+        // Usar un ícono especial para la máquina seleccionada
+        icon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [30, 45], // Hacerlo un poco más grande
+            iconAnchor: [15, 45],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
     }
     
     // Create a marker with popup and custom icon
