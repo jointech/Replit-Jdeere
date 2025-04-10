@@ -185,7 +185,13 @@ function loadMachines(organizationId) {
     resetMachineDetails();
     
     // Fetch machines from API
-    fetch(`/api/machines/${organizationId}`)
+    fetch(`/api/machines/${organizationId}`, {
+        credentials: 'same-origin', // Incluir cookies en la petición
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Error al cargar máquinas');
@@ -417,7 +423,13 @@ function loadMachineDetails(machineId) {
     machineDetailContent.classList.add('d-none');
     
     // Fetch machine details from API
-    fetch(`/api/machine/${machineId}`)
+    fetch(`/api/machine/${machineId}`, {
+        credentials: 'same-origin', // Incluir cookies en la petición
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Error al cargar detalles de la máquina');
@@ -486,7 +498,13 @@ function loadMachineAlerts(machineId) {
     emptyAlertMessage.classList.remove('d-none');
     
     // Fetch machine alerts from API
-    fetch(`/api/machine/${machineId}/alerts`)
+    fetch(`/api/machine/${machineId}/alerts`, {
+        credentials: 'same-origin', // Incluir cookies en la petición
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error('Error al cargar alertas');
