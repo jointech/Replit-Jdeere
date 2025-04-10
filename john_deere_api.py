@@ -5,33 +5,34 @@ from config import (
     JOHN_DEERE_CLIENT_ID, 
     JOHN_DEERE_CLIENT_SECRET, 
     JOHN_DEERE_API_BASE_URL, 
-    JOHN_DEERE_TOKEN_URL,
-    REDIRECT_URI
+    JOHN_DEERE_TOKEN_URL
 )
 
 logger = logging.getLogger(__name__)
 
-def get_oauth_session(token=None, state=None):
+def get_oauth_session(token=None, state=None, redirect_uri=None):
     """Creates an OAuth2Session for John Deere API."""
     from config import JOHN_DEERE_SCOPES
     return OAuth2Session(
         client_id=JOHN_DEERE_CLIENT_ID,
         token=token,
         state=state,
-        redirect_uri=REDIRECT_URI,
+        redirect_uri=redirect_uri,  # Ahora pasamos el redirect_uri como parámetro
         scope=JOHN_DEERE_SCOPES
     )
 
 def exchange_code_for_token(code, redirect_uri=None):
     """Exchange authorization code for access token."""
     try:
-        oauth = get_oauth_session()
-        
-        # Si no se proporciona un redirect_uri, usamos el configurado por defecto
+        # El redirect_uri debe ser proporcionado desde fuera, ya no tenemos un valor por defecto
         if redirect_uri is None:
-            redirect_uri = REDIRECT_URI
+            logger.error("Se requiere un redirect_uri para el intercambio de token")
+            raise ValueError("Se requiere un redirect_uri para el intercambio de token")
             
         logger.info(f"Intercambiando código por token con redirect_uri: {redirect_uri}")
+        
+        # Crear una sesión OAuth pasando el redirect_uri
+        oauth = get_oauth_session(redirect_uri=redirect_uri)
         
         token = oauth.fetch_token(
             JOHN_DEERE_TOKEN_URL,

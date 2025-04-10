@@ -81,8 +81,15 @@ document.addEventListener('DOMContentLoaded', function() {
             codeInput.value = code;
         }
         
+        // Determinar la URL base
+        let baseUrl = window.location.origin;
+        // Si estamos en un proxy HTTPS pero la URL es HTTP, corregirla
+        if (window.location.href.includes('https') && baseUrl.startsWith('http:')) {
+            baseUrl = baseUrl.replace('http:', 'https:');
+        }
+        
         // Intentar enviar el código automáticamente al servidor
-        fetch("{{ url_for('auth_complete') }}", {
+        fetch(`${baseUrl}/auth-complete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

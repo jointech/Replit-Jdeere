@@ -17,9 +17,7 @@ from config import (
     JOHN_DEERE_CLIENT_ID, 
     JOHN_DEERE_CLIENT_SECRET, 
     JOHN_DEERE_AUTHORIZE_URL, 
-    JOHN_DEERE_SCOPES, 
-    REDIRECT_URI,
-    AUTH_CAPTURE_URL
+    JOHN_DEERE_SCOPES
 )
 
 # Configure logging
@@ -583,15 +581,14 @@ def get_machine_alerts(machine_id):
 @app.route('/auth-setup')
 def auth_setup():
     """Página con instrucciones para configurar la autenticación automática."""
-    # Determinar la URL base de la aplicación
-    base_url = request.host_url.rstrip('/')
-    if request.headers.get('X-Forwarded-Proto') == 'https':
-        base_url = base_url.replace('http:', 'https:')
+    # Obtener la URL base mediante nuestra función de ayuda
+    base_url = get_base_url()
+    redirect_uri = get_full_redirect_uri()
     
     return render_template(
         'auth_setup.html', 
-        redirect_uri=REDIRECT_URI,
-        auth_capture_url=AUTH_CAPTURE_URL,
+        redirect_uri=redirect_uri,
+        auth_capture_url=redirect_uri,
         base_url=base_url
     )
 

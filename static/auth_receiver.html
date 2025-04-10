@@ -101,7 +101,12 @@
         const continueLink = document.getElementById('continueLink');
         
         // Establecer la URL base
-        const baseUrl = window.location.origin;
+        // Obtener la URL base real y asegurarse de que tenga el protocolo correcto
+        let baseUrl = window.location.origin;
+        // Si estamos en un proxy HTTPS pero la URL es HTTP, corregirla
+        if (window.location.href.includes('https') && baseUrl.startsWith('http:')) {
+            baseUrl = baseUrl.replace('http:', 'https:');
+        }
         
         if (code) {
             // Mostrar el código obtenido
