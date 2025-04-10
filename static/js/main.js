@@ -506,8 +506,8 @@ function loadMachineAlerts(machineId) {
     alertListContainer.classList.add('d-none');
     
     // Fetch machine alerts from API
-    // Agregamos parámetro para diagnóstico que nos dará alertas simuladas
-    fetch(`/api/machine/${machineId}/alerts?test_alerts=true`, {
+    // Usamos alertas reales en vez de simuladas
+    fetch(`/api/machine/${machineId}/alerts`, {
         credentials: 'same-origin', // Incluir cookies en la petición
         headers: {
             'Content-Type': 'application/json',

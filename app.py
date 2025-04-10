@@ -401,63 +401,8 @@ def get_machine_alerts(machine_id):
             
             if not alerts:
                 logger.warning(f"No se encontraron alertas para la máquina {machine_id}")
-                # Para propósitos de diagnóstico, agregar alertas de ejemplo si no hay reales
-                logger.info("Verificando si debemos usar alertas de prueba para diagnóstico")
-                
-                # Verificamos si estamos en modo de diagnóstico temporal
-                if 'test_alerts' in request.args:
-                    logger.info("Proporcionando alertas de muestra para diagnóstico")
-                    # Para probar la interfaz, podemos devolver datos de ejemplo
-                    alerts = [
-                        {
-                            'id': 'test-high',
-                            'title': 'PRUEBA: Alerta de alta severidad',
-                            'description': 'Esta es una alerta de prueba con severidad alta',
-                            'severity': 'high',
-                            'timestamp': '2025-04-10T18:00:00.000Z',
-                            'status': 'ACTIVE',
-                            'type': 'TEST'
-                        },
-                        {
-                            'id': 'test-medium',
-                            'title': 'PRUEBA: Alerta de severidad media',
-                            'description': 'Esta es una alerta de prueba con severidad media',
-                            'severity': 'medium',
-                            'timestamp': '2025-04-10T17:00:00.000Z',
-                            'status': 'ACTIVE',
-                            'type': 'TEST'
-                        },
-                        {
-                            'id': 'test-low',
-                            'title': 'PRUEBA: Alerta de baja severidad',
-                            'description': 'Esta es una alerta de prueba con severidad baja',
-                            'severity': 'low',
-                            'timestamp': '2025-04-10T16:00:00.000Z',
-                            'status': 'ACTIVE',
-                            'type': 'TEST'
-                        },
-                        {
-                            'id': 'test-info',
-                            'title': 'PRUEBA: Alerta informativa',
-                            'description': 'Esta es una alerta de prueba informativa',
-                            'severity': 'info',
-                            'timestamp': '2025-04-10T15:00:00.000Z',
-                            'status': 'ACTIVE',
-                            'type': 'TEST'
-                        },
-                        {
-                            'id': 'test-dtc',
-                            'title': 'PRUEBA: Alerta DTC',
-                            'description': 'Esta es una alerta de prueba tipo DTC',
-                            'severity': 'dtc',
-                            'timestamp': '2025-04-10T14:00:00.000Z',
-                            'status': 'ACTIVE',
-                            'type': 'TEST'
-                        }
-                    ]
-                else:
-                    # Retornar una lista vacía, no es un error que una máquina no tenga alertas
-                    return jsonify([])
+                # Retornar una lista vacía, no es un error que una máquina no tenga alertas
+                return jsonify([])
                 
         except Exception as ma_error:
             logger.error(f"Error fetching machine alerts from API: {str(ma_error)}")
