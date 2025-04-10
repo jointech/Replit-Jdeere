@@ -663,10 +663,71 @@ function toggleAlertDetails(button, definitionUri) {
     });
 }
 
+/**
+ * NUEVA FUNCIÓN: Muestra los detalles de alerta directamente en el elemento, 
+ * sin usar contenedores anidados ni clases especiales
+ */
+function showAlertDetailsInline(button, definitionUri, alertId) {
+    console.log(`Mostrando detalles para: ${definitionUri}`);
+    
+    // Extraer el ID de la alerta si no se pasó como argumento
+    if (!alertId) {
+        alertId = definitionUri.split('/').pop();
+    }
+    
+    // Encontrar el contenedor de detalles (hermano del botón)
+    const detailsContainer = button.nextElementSibling;
+    if (!detailsContainer) {
+        console.error("No se encontró contenedor para mostrar detalles");
+        return;
+    }
+    
+    // Verificar si el botón ya estaba expandido
+    const isExpanded = button.classList.contains('expanded');
+    
+    // Si ya está expandido, solo oculta el contenido
+    if (isExpanded) {
+        detailsContainer.style.display = 'none';
+        button.innerHTML = '<i class="fas fa-info-circle me-1"></i> Ver detalles adicionales';
+        button.classList.remove('expanded');
+        return;
+    }
+    
+    // Si no está expandido, mostrar el contenido
+    detailsContainer.style.display = 'block';
+    button.innerHTML = '<i class="fas fa-times-circle me-1"></i> Ocultar detalles';
+    button.classList.add('expanded');
+    
+    // Construir directamente el HTML con los detalles
+    detailsContainer.innerHTML = `
+        <h5 class="text-info mb-3">Alerta DTC ${alertId}</h5>
+        <p class="mb-3">Esta es una alerta de código de diagnóstico (DTC) con ID ${alertId}. Para más información, consulte la documentación técnica de John Deere o contacte con su concesionario.</p>
+        
+        <hr>
+        
+        <h6 class="text-warning mt-3">Posibles causas:</h6>
+        <ul class="mb-3">
+            <li>Esta información no está disponible actualmente a través de la API.</li>
+            <li>Es posible que se necesiten permisos adicionales para acceder a esta información.</li>
+        </ul>
+        
+        <h6 class="text-success mt-3">Soluciones recomendadas:</h6>
+        <ul class="mb-3">
+            <li>Para resolver este problema, consulte con un técnico autorizado de John Deere.</li>
+            <li>Puede encontrar más información en el manual técnico del equipo.</li>
+        </ul>
+        
+        <div class="mt-3 small text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            <em>Nota: Información generada a partir del ID de la alerta. No representa datos completos de la API de John Deere.</em>
+        </div>
+    `;
+}
+
 // Función antigua para compatibilidad (será llamada por los event listeners existentes)
 function loadAlertDetails(button, definitionUri) {
     // Simplemente redirige a la nueva implementación
-    toggleAlertDetails(button, definitionUri);
+    showAlertDetailsInline(button, definitionUri);
 }
 
 // Render the alert list
@@ -839,10 +900,10 @@ function renderAlertList(alerts) {
                     `<div class="mt-3 alert-container">
                         <button class="btn btn-sm btn-outline-info show-alert-details" 
                                 data-definition-uri="${definitionLink}" 
-                                onclick="toggleAlertDetails(this, '${definitionLink}'); return false;">
+                                onclick="showAlertDetailsInline(this, '${definitionLink}', '${alert.id || '0'}'); return false;">
                             <i class="fas fa-info-circle me-1"></i> Ver detalles adicionales
                         </button>
-                        <div class="alert-details-container d-none">
+                        <div class="alert-details-content" id="alert-details-${alert.id}" style="display:none; margin-top:10px; padding:10px; background-color:#212529; border-radius:5px; border:1px solid #495057;">
                             <!-- El contenido se llenará dinámicamente -->
                         </div>
                     </div>` : ''}
