@@ -251,15 +251,73 @@ def login_form():
 @app.route('/login')
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
+    # Verificar si estamos en modo desarrollo
+    from config import DEVELOPMENT_MODE, USE_ALTERNATE_OAUTH_FLOW, USE_PERSISTENCE_HEADER_REDIRECT
+    
+    if DEVELOPMENT_MODE:
+        # En modo desarrollo, simular un token de acceso y redirigir directamente al dashboard
+        logger.info("Modo DESARROLLO: Simulando autenticación con John Deere")
+        
+        # Crear un token de prueba
+        token = {
+            'access_token': 'simulated_token_manual',
+            'refresh_token': 'simulated_refresh_token',
+            'token_type': 'Bearer',
+            'expires_in': 3600,
+            'expires_at': time.time() + 3600
+        }
+        
+        # Guardar el token en la sesión
+        session['oauth_token'] = token
+        
+        # Si el usuario está autenticado, guardar el token en su perfil
+        if current_user.is_authenticated:
+            current_user.oauth_token = json.dumps(token)
+            current_user.oauth_token_expiry = datetime.utcnow() + timedelta(seconds=3600)
+            
+            # Buscar o crear organizaciones de prueba
+            try:
+                # Crear organizaciones de prueba para demo
+                test_orgs = [
+                    {'id': '123456', 'name': 'Organización de Prueba 1', 'type': 'Enterprise'},
+                    {'id': '789012', 'name': 'Organización de Prueba 2', 'type': 'Customer'},
+                    {'id': '345678', 'name': 'Organización de Prueba 3', 'type': 'Dealer'}
+                ]
+                
+                for org_data in test_orgs:
+                    org_id = org_data['id']
+                    org = Organization.query.filter_by(id=org_id).first()
+                    
+                    if not org:
+                        org = Organization(
+                            id=org_id,
+                            name=org_data['name'],
+                            type=org_data['type']
+                        )
+                        db.session.add(org)
+                        
+                    # Asignar al usuario si no la tiene ya
+                    if org not in current_user.organizations:
+                        current_user.organizations.append(org)
+                
+                # Guardar cambios en la base de datos
+                db.session.commit()
+                logger.info(f"Modo desarrollo: Asignadas {len(test_orgs)} organizaciones de prueba al usuario")
+                
+            except Exception as e:
+                logger.error(f"Error creando organizaciones de prueba: {str(e)}")
+                db.session.rollback()
+        
+        flash("Modo desarrollo: Autenticación simulada con John Deere API", "success")
+        return redirect(url_for('dashboard'))
+    
+    # En modo producción, continuar con el flujo normal de OAuth
     # Obtener el URI de redirección dinámico
     redirect_uri = get_full_redirect_uri()
     
     # Generar un estado para protección contra CSRF
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
-    
-    # Verificar si usamos la configuración alternativa del flujo OAuth
-    from config import USE_ALTERNATE_OAUTH_FLOW, USE_PERSISTENCE_HEADER_REDIRECT
     
     # Si usamos la redirección de persistent-header, cambiar el redirect_uri
     if USE_PERSISTENCE_HEADER_REDIRECT:
