@@ -135,8 +135,8 @@ def fetch_machine_location(token, machine_id):
         
         logger.info(f"Fetching location for machine {machine_id}")
         
-        # Intentar primero con el endpoint de localización de JDLink
-        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/location"
+        # Usando el endpoint de locationHistory según indicado
+        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/locationHistory"
         headers = {'x-deere-no-paging': 'true'}
         
         try:
@@ -146,10 +146,29 @@ def fetch_machine_location(token, machine_id):
             
             # Procesar la respuesta
             data = response.json()
-            logger.info(f"Received machine location response: {data}")
+            logger.info(f"Received machine location history response: {data}")
             
-            # Extraer la información de ubicación
-            if 'geometry' in data and 'coordinates' in data['geometry']:
+            # Si recibimos un array de valores, obtenemos la última ubicación (más reciente)
+            if 'values' in data and len(data['values']) > 0:
+                # Ordenar por timestamp en orden descendente
+                location_data = sorted(
+                    data['values'], 
+                    key=lambda x: x.get('timestamp', '0'), 
+                    reverse=True
+                )[0]
+                
+                timestamp = location_data.get('timestamp')
+                
+                # Extraer coordenadas según la estructura recibida
+                if 'geometry' in location_data and 'coordinates' in location_data['geometry']:
+                    coords = location_data['geometry']['coordinates']
+                    return {
+                        'longitude': coords[0],
+                        'latitude': coords[1],
+                        'timestamp': timestamp
+                    }
+            # Si los datos vienen directamente con geometry
+            elif 'geometry' in data and 'coordinates' in data['geometry']:
                 coords = data['geometry']['coordinates']
                 timestamp = data.get('timestamp')
                 
@@ -162,28 +181,30 @@ def fetch_machine_location(token, machine_id):
                 return location
             
         except Exception as e:
-            logger.warning(f"Error fetching location for machine {machine_id} from primary endpoint: {str(e)}")
+            logger.warning(f"Error fetching location for machine {machine_id} from locationHistory endpoint: {str(e)}")
             
-            # Intentar con endpoint alternativo
-            alt_endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/locations"
+            # Intentar con endpoint alternativo si el primero falla
+            # Usar explícitamente la URL con 'partnerapi' sin la 't' como fallback
+            alt_endpoint = f"https://partnerapi.deere.com/platform/machines/{machine_id}/location"
             try:
                 logger.info(f"Trying alternative location endpoint: {alt_endpoint}")
                 response = oauth.get(alt_endpoint, headers=headers)
                 response.raise_for_status()
                 
                 data = response.json()
-                if 'values' in data and len(data['values']) > 0:
-                    location_data = data['values'][0]
-                    timestamp = location_data.get('timestamp')
+                logger.info(f"Received machine location response: {data}")
+                
+                # Extraer la información de ubicación
+                if 'geometry' in data and 'coordinates' in data['geometry']:
+                    coords = data['geometry']['coordinates']
+                    timestamp = data.get('timestamp')
                     
-                    # Extraer coordenadas según la estructura recibida
-                    if 'geometry' in location_data and 'coordinates' in location_data['geometry']:
-                        coords = location_data['geometry']['coordinates']
-                        return {
-                            'longitude': coords[0],
-                            'latitude': coords[1],
-                            'timestamp': timestamp
-                        }
+                    location = {
+                        'longitude': coords[0],
+                        'latitude': coords[1],
+                        'timestamp': timestamp
+                    }
+                    return location
             except Exception as nested_e:
                 logger.warning(f"Error fetching location from alternative endpoint: {str(nested_e)}")
                 
