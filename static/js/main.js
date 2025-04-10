@@ -19,6 +19,9 @@ function setupOrganizationSelection() {
     // Añadir manejadores a los elementos existentes
     addOrganizationClickHandlers();
     
+    // Configurar buscador de organizaciones
+    setupOrganizationSearch();
+    
     // También agregar un controlador de eventos al elemento padre para manejar delegación de eventos
     // Esto ayudará si los elementos se recrean dinámicamente
     document.getElementById('organizationList').addEventListener('click', function(e) {
@@ -44,8 +47,75 @@ function setupOrganizationSelection() {
             
             // Load machines for this organization
             loadMachines(orgId);
+            
+            // Cerrar menú desplegable
+            const dropdown = bootstrap.Dropdown.getInstance(dropdownButton);
+            if (dropdown) {
+                dropdown.hide();
+            }
         }
     });
+}
+
+// Configurar el buscador de organizaciones
+function setupOrganizationSearch() {
+    const searchInput = document.getElementById('orgSearchInput');
+    if (!searchInput) {
+        console.error("No se encontró el elemento de búsqueda");
+        return;
+    }
+    
+    // Manejar el evento de entrada para filtrar la lista
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const organizationItems = document.querySelectorAll('.organization-item');
+        const noResultsMessage = document.getElementById('noResultsMessage');
+        let matchCount = 0;
+        
+        // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
+        organizationItems.forEach(item => {
+            const orgName = item.textContent.toLowerCase();
+            const orgId = item.getAttribute('data-org-id');
+            
+            // Verificar si el nombre o ID de la organización contiene el término de búsqueda
+            if (orgName.includes(searchTerm) || orgId.includes(searchTerm)) {
+                item.parentElement.style.display = ''; // Mostrar este elemento
+                matchCount++;
+            } else {
+                item.parentElement.style.display = 'none'; // Ocultar este elemento
+            }
+        });
+        
+        // Mostrar mensaje de "sin resultados" si no hay coincidencias
+        if (noResultsMessage) {
+            if (matchCount === 0 && searchTerm.length > 0) {
+                noResultsMessage.classList.remove('d-none');
+            } else {
+                noResultsMessage.classList.add('d-none');
+            }
+        }
+    });
+    
+    // Prevenir que el dropdown se cierre al hacer clic en el campo de búsqueda
+    searchInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Al abrir el dropdown, enfocar automáticamente el campo de búsqueda
+    const dropdownButton = document.getElementById('organizationDropdown');
+    if (dropdownButton) {
+        dropdownButton.addEventListener('shown.bs.dropdown', function() {
+            searchInput.focus();
+        });
+        
+        // Limpiar la búsqueda cuando se cierra el dropdown
+        dropdownButton.addEventListener('hidden.bs.dropdown', function() {
+            searchInput.value = '';
+            // Restaurar la visibilidad de todos los elementos
+            const event = new Event('input');
+            searchInput.dispatchEvent(event);
+        });
+    }
 }
 
 // Función auxiliar para añadir manejadores de clic a elementos de organización

@@ -53,11 +53,21 @@
             <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-building me-2"></i> Seleccionar Organización
             </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="organizationDropdown" id="organizationList">
-                {% for org in organizations %}
-                <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
-                {% endfor %}
-            </ul>
+            <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
+                <div class="mb-2">
+                    <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <ul class="list-unstyled mb-0" id="organizationList">
+                        {% for org in organizations %}
+                        <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    <div id="noResultsMessage" class="text-center p-2 d-none">
+                        <span class="text-muted">No se encontraron resultados</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
