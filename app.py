@@ -198,54 +198,38 @@ def dashboard():
         try:
             # Intenta obtener organizaciones reales desde la API de John Deere
             logger.info("Obteniendo organizaciones reales desde la API de John Deere")
+            
+            # Verificar si estamos usando un token simulado
+            if token.get('access_token') == 'simulated_token_manual':
+                raise ValueError("No se puede conectar a la API con un token simulado. Se requiere un token real.")
+                
             organizations = fetch_organizations(token)
             logger.info(f"Organizaciones obtenidas: {organizations}")
             
             if not organizations:
-                # Si no hay organizaciones reales, usar datos simulados como fallback
-                logger.warning("No se obtuvieron organizaciones reales, usando datos simulados")
-                organizations = [
-                    {
-                        'id': '463153',
-                        'name': 'Forestal Link',
-                        'type': 'CUSTOMER'
-                    },
-                    {
-                        'id': '123456',
-                        'name': 'Agrícola Santa Rosa',
-                        'type': 'CUSTOMER'
-                    },
-                    {
-                        'id': '789012',
-                        'name': 'Hacienda El Bosque',
-                        'type': 'CUSTOMER'
-                    }
-                ]
-                flash("No se pudieron obtener organizaciones reales. Usando datos de prueba.", "warning")
+                # Si no hay organizaciones reales, mostrar mensaje de error
+                logger.warning("No se obtuvieron organizaciones reales")
+                flash("No se encontraron organizaciones en la cuenta de John Deere. Verifique los permisos de su aplicación.", "warning")
+                organizations = []
             else:
                 # Mensaje de éxito si se obtuvieron datos reales
                 flash(f"Se obtuvieron {len(organizations)} organizaciones de John Deere.", "success")
         except Exception as org_error:
-            # En caso de error, usar datos simulados
+            # Mensaje de error específico según el tipo de error
             logger.error(f"Error obteniendo organizaciones: {str(org_error)}")
-            organizations = [
-                {
-                    'id': '463153',
-                    'name': 'Forestal Link',
-                    'type': 'CUSTOMER'
-                },
-                {
-                    'id': '123456',
-                    'name': 'Agrícola Santa Rosa',
-                    'type': 'CUSTOMER'
-                },
-                {
-                    'id': '789012',
-                    'name': 'Hacienda El Bosque',
-                    'type': 'CUSTOMER'
-                }
-            ]
-            flash(f"Error al obtener organizaciones: {str(org_error)}. Usando datos de prueba.", "warning")
+            
+            error_msg = str(org_error)
+            
+            # Personalizar mensajes de error comunes
+            if "401" in error_msg:
+                flash("Error de autenticación (401): No autorizado para acceder a la API de John Deere. Verifique las credenciales y permisos.", "danger")
+            elif "404" in error_msg:
+                flash("Error 404: El recurso solicitado no existe en la API de John Deere. Verifique los endpoints y parámetros.", "danger")
+            else:
+                flash(f"Error al obtener organizaciones: {error_msg}", "danger")
+                
+            # Crear una lista vacía para evitar errores, pero no usar datos simulados
+            organizations = []
         
         # Información del token (solo para desarrollo)
         token_access = token.get('access_token', '')
@@ -287,112 +271,33 @@ def get_machines(organization_id):
         token = session.get('oauth_token')
         
         try:
+            # Verificar si estamos usando un token simulado
+            if token.get('access_token') == 'simulated_token_manual':
+                return jsonify({'error': 'No se puede conectar a la API con un token simulado. Se requiere un token real.'}), 401
+                
             # Intentar obtener máquinas reales desde la API de John Deere
             logger.info(f"Obteniendo máquinas reales para la organización {organization_id}")
             machines = fetch_machines_by_organization(token, organization_id)
             logger.info(f"Máquinas obtenidas: {len(machines)}")
             
             if not machines:
-                logger.warning(f"No se obtuvieron máquinas reales para la organización {organization_id}, usando datos simulados")
-                # Generar datos de máquinas específicos para cada organización como fallback
-                if organization_id == '463153':  # Forestal Link
-                    machines = [
-                        {
-                            'id': 'M-1001',
-                            'name': 'Harvester JD-550',
-                            'model': '550G-LC',
-                            'type': 'HARVESTER',
-                            'category': 'HARVESTER',
-                            'location': {'latitude': -36.8282, 'longitude': -73.0514}
-                        },
-                        {
-                            'id': 'M-1002',
-                            'name': 'Forwarder JD-1710',
-                            'model': '1710D',
-                            'type': 'FORWARDER',
-                            'category': 'FORWARDER',
-                            'location': {'latitude': -36.8301, 'longitude': -73.0498}
-                        },
-                        {
-                            'id': 'M-1003',
-                            'name': 'Excavator JD-350',
-                            'model': '350G-LC',
-                            'type': 'EXCAVATOR',
-                            'category': 'EXCAVATOR',
-                            'location': {'latitude': -36.8325, 'longitude': -73.0532}
-                        }
-                    ]
-                elif organization_id == '123456':  # Agrícola Santa Rosa
-                    machines = [
-                        {
-                            'id': 'M-2001',
-                            'name': 'Tractor JD-6120M',
-                            'model': '6120M',
-                            'type': 'TRACTOR',
-                            'category': 'TRACTOR',
-                            'location': {'latitude': -35.4263, 'longitude': -71.6552}
-                        },
-                        {
-                            'id': 'M-2002',
-                            'name': 'Cosechadora JD-S760',
-                            'model': 'S760',
-                            'type': 'COMBINE',
-                            'category': 'COMBINE',
-                            'location': {'latitude': -35.4291, 'longitude': -71.6498}
-                        }
-                    ]
-                elif organization_id == '789012':  # Hacienda El Bosque
-                    machines = [
-                        {
-                            'id': 'M-3001',
-                            'name': 'Excavadora JD-470G LC',
-                            'model': '470G LC',
-                            'type': 'EXCAVATOR',
-                            'category': 'EXCAVATOR',
-                            'location': {'latitude': -33.4530, 'longitude': -70.6682}
-                        },
-                        {
-                            'id': 'M-3002',
-                            'name': 'Tractor Compacto 3033R',
-                            'model': '3033R',
-                            'type': 'COMPACT_TRACTOR',
-                            'category': 'COMPACT_TRACTOR',
-                            'location': {'latitude': -33.4514, 'longitude': -70.6710}
-                        },
-                        {
-                            'id': 'M-3003',
-                            'name': 'Cargadora 544L',
-                            'model': '544L',
-                            'type': 'LOADER',
-                            'category': 'LOADER',
-                            'location': {'latitude': -33.4492, 'longitude': -70.6653}
-                        }
-                    ]
-                else:
-                    # Para cualquier otra organización, generar una máquina por defecto
-                    machines = [
-                        {
-                            'id': f'M-{organization_id}-01',
-                            'name': f'Máquina {organization_id}',
-                            'model': 'Modelo Estándar',
-                            'type': 'UNDEFINED',
-                            'category': 'UNDEFINED',
-                            'location': {'latitude': -36.5, 'longitude': -72.0}
-                        }
-                    ]
+                logger.warning(f"No se obtuvieron máquinas para la organización {organization_id}")
+                # Retornar lista vacía pero con mensaje informativo
+                return jsonify([])
+                
         except Exception as m_error:
             logger.error(f"Error fetching machines from API: {str(m_error)}")
-            # En caso de error, usar datos simulados
-            machines = [
-                {
-                    'id': f'M-{organization_id}-01',
-                    'name': f'Máquina Simulada {organization_id}',
-                    'model': 'Modelo Simulado',
-                    'type': 'UNDEFINED',
-                    'category': 'UNDEFINED',
-                    'location': {'latitude': -36.5, 'longitude': -72.0}
-                }
-            ]
+            error_msg = str(m_error)
+            
+            # Personalizar respuesta según el tipo de error
+            if "401" in error_msg:
+                return jsonify({'error': 'Error de autenticación (401): No autorizado para acceder a la API de John Deere.'}), 401
+            elif "404" in error_msg:
+                return jsonify({'error': 'Error 404: El recurso solicitado no existe en la API de John Deere.'}), 404
+            else:
+                return jsonify({'error': f'Error al obtener máquinas: {error_msg}'}), 500
+                
+            # No usamos datos simulados, solo retornamos el error
         
         return jsonify(machines)
     except Exception as e:
@@ -409,94 +314,29 @@ def get_machine_details(machine_id):
         token = session.get('oauth_token')
         
         try:
+            # Verificar si estamos usando un token simulado
+            if token.get('access_token') == 'simulated_token_manual':
+                return jsonify({'error': 'No se puede conectar a la API con un token simulado. Se requiere un token real.'}), 401
+                
             # Intentar obtener detalles reales desde la API de John Deere
             logger.info(f"Obteniendo detalles reales para la máquina {machine_id}")
             machine_details = fetch_machine_details(token, machine_id)
             
             if not machine_details:
-                logger.warning(f"No se obtuvieron detalles reales para la máquina {machine_id}, usando datos simulados")
-                # Determinar el tipo, modelo y ubicación según el ID para datos simulados
-                machine_type = "UNDEFINED"
-                machine_model = "Unknown"
-                machine_name = f"Máquina {machine_id}"
-                machine_location = {'latitude': -36.0, 'longitude': -72.0, 'timestamp': '2025-04-08T14:30:00Z'}
+                logger.warning(f"No se obtuvieron detalles para la máquina {machine_id}")
+                return jsonify({'error': f'No se encontraron detalles para la máquina {machine_id}'}), 404
                 
-                # Forestal Link machines
-                if machine_id == 'M-1001':
-                    machine_type = "HARVESTER"
-                    machine_model = "550G-LC"
-                    machine_name = "Harvester JD-550"
-                    machine_location = {'latitude': -36.8282, 'longitude': -73.0514, 'timestamp': '2025-04-08T14:30:00Z'}
-                elif machine_id == 'M-1002':
-                    machine_type = "FORWARDER"
-                    machine_model = "1710D"
-                    machine_name = "Forwarder JD-1710"
-                    machine_location = {'latitude': -36.8301, 'longitude': -73.0498, 'timestamp': '2025-04-08T15:20:00Z'}
-                elif machine_id == 'M-1003':
-                    machine_type = "EXCAVATOR"
-                    machine_model = "350G-LC"
-                    machine_name = "Excavator JD-350"
-                    machine_location = {'latitude': -36.8325, 'longitude': -73.0532, 'timestamp': '2025-04-08T12:45:00Z'}
-                
-                # Agrícola Santa Rosa machines
-                elif machine_id == 'M-2001':
-                    machine_type = "TRACTOR"
-                    machine_model = "6120M"
-                    machine_name = "Tractor JD-6120M"
-                    machine_location = {'latitude': -35.4263, 'longitude': -71.6552, 'timestamp': '2025-04-08T16:10:00Z'}
-                elif machine_id == 'M-2002':
-                    machine_type = "COMBINE"
-                    machine_model = "S760"
-                    machine_name = "Cosechadora JD-S760"
-                    machine_location = {'latitude': -35.4291, 'longitude': -71.6498, 'timestamp': '2025-04-08T17:30:00Z'}
-                
-                # Hacienda El Bosque machines
-                elif machine_id == 'M-3001':
-                    machine_type = "EXCAVATOR"
-                    machine_model = "470G LC"
-                    machine_name = "Excavadora JD-470G LC"
-                    machine_location = {'latitude': -33.4530, 'longitude': -70.6682, 'timestamp': '2025-04-08T10:15:00Z'}
-                elif machine_id == 'M-3002':
-                    machine_type = "COMPACT_TRACTOR"
-                    machine_model = "3033R"
-                    machine_name = "Tractor Compacto 3033R"
-                    machine_location = {'latitude': -33.4514, 'longitude': -70.6710, 'timestamp': '2025-04-08T11:45:00Z'}
-                elif machine_id == 'M-3003':
-                    machine_type = "LOADER"
-                    machine_model = "544L"
-                    machine_name = "Cargadora 544L"
-                    machine_location = {'latitude': -33.4492, 'longitude': -70.6653, 'timestamp': '2025-04-08T13:20:00Z'}
-                
-                # Crear objeto de detalles simulados
-                machine_details = {
-                    'id': machine_id,
-                    'name': machine_name,
-                    'serialNumber': f'SN-{machine_id}',
-                    'model': machine_model,
-                    'type': machine_type,
-                    'category': machine_type,
-                    'status': 'ACTIVE',
-                    'location': machine_location,
-                    'hoursOfOperation': 1250,
-                    'fuelLevel': 78,
-                    'lastUpdated': '2025-04-08T14:30:00Z'
-                }
         except Exception as md_error:
             logger.error(f"Error fetching machine details from API: {str(md_error)}")
-            # En caso de error, usar datos simulados básicos
-            machine_details = {
-                'id': machine_id,
-                'name': f'Máquina Simulada {machine_id}',
-                'serialNumber': f'SN-{machine_id}',
-                'model': 'Modelo Simulado',
-                'type': 'UNDEFINED',
-                'category': 'UNDEFINED',
-                'status': 'UNKNOWN',
-                'location': {'latitude': -36.0, 'longitude': -72.0, 'timestamp': '2025-04-08T14:30:00Z'},
-                'hoursOfOperation': 0,
-                'fuelLevel': 0,
-                'lastUpdated': '2025-04-08T14:30:00Z'
-            }
+            error_msg = str(md_error)
+            
+            # Personalizar respuesta según el tipo de error
+            if "401" in error_msg:
+                return jsonify({'error': 'Error de autenticación (401): No autorizado para acceder a la API de John Deere.'}), 401
+            elif "404" in error_msg:
+                return jsonify({'error': f'Error 404: No se encontró la máquina con ID {machine_id} en la API de John Deere.'}), 404
+            else:
+                return jsonify({'error': f'Error al obtener detalles de la máquina: {error_msg}'}), 500
         
         return jsonify(machine_details)
     except Exception as e:
@@ -513,65 +353,30 @@ def get_machine_alerts(machine_id):
         token = session.get('oauth_token')
         
         try:
+            # Verificar si estamos usando un token simulado
+            if token.get('access_token') == 'simulated_token_manual':
+                return jsonify({'error': 'No se puede conectar a la API con un token simulado. Se requiere un token real.'}), 401
+                
             # Intentar obtener alertas reales desde la API de John Deere
             logger.info(f"Obteniendo alertas reales para la máquina {machine_id}")
             alerts = fetch_machine_alerts(token, machine_id)
             
             if not alerts:
-                logger.warning(f"No se obtuvieron alertas reales para la máquina {machine_id}, usando datos simulados")
-                # Generar alertas de ejemplo para simulación
-                alerts = [
-                    {
-                        'id': f'ALT-{machine_id}-001',
-                        'type': 'WARNING',
-                        'severity': 'warning',
-                        'title': 'Bajo nivel de combustible',
-                        'description': 'El nivel de combustible está por debajo del 25%',
-                        'timestamp': '2025-04-07T10:15:00Z',
-                        'status': 'ACTIVE'
-                    },
-                    {
-                        'id': f'ALT-{machine_id}-002',
-                        'type': 'CRITICAL',
-                        'severity': 'critical',
-                        'title': 'Temperatura del motor alta',
-                        'description': 'La temperatura del motor ha superado el nivel recomendado',
-                        'timestamp': '2025-04-08T14:22:00Z',
-                        'status': 'ACTIVE'
-                    },
-                    {
-                        'id': f'ALT-{machine_id}-003',
-                        'type': 'INFO',
-                        'severity': 'info',
-                        'title': 'Mantenimiento programado',
-                        'description': 'Mantenimiento de rutina requerido en las próximas 50 horas',
-                        'timestamp': '2025-04-05T08:30:00Z',
-                        'status': 'ACTIVE'
-                    }
-                ]
+                logger.warning(f"No se encontraron alertas para la máquina {machine_id}")
+                # Retornar una lista vacía, no es un error que una máquina no tenga alertas
+                return jsonify([])
+                
         except Exception as ma_error:
             logger.error(f"Error fetching machine alerts from API: {str(ma_error)}")
-            # En caso de error, generar alertas de ejemplo para simulación
-            alerts = [
-                {
-                    'id': f'ALT-SIM-{machine_id}-001',
-                    'type': 'WARNING',
-                    'severity': 'warning',
-                    'title': 'Alerta simulada - Bajo nivel de combustible',
-                    'description': 'Esta es una alerta simulada debido a un error de acceso a la API',
-                    'timestamp': '2025-04-07T10:15:00Z',
-                    'status': 'ACTIVE'
-                },
-                {
-                    'id': f'ALT-SIM-{machine_id}-002',
-                    'type': 'INFO',
-                    'severity': 'info',
-                    'title': 'Error de conexión',
-                    'description': f'No se pudieron obtener alertas reales: {str(ma_error)}',
-                    'timestamp': '2025-04-08T14:22:00Z',
-                    'status': 'ACTIVE'
-                }
-            ]
+            error_msg = str(ma_error)
+            
+            # Personalizar respuesta según el tipo de error
+            if "401" in error_msg:
+                return jsonify({'error': 'Error de autenticación (401): No autorizado para acceder a la API de John Deere.'}), 401
+            elif "404" in error_msg:
+                return jsonify({'error': f'Error 404: No se encontró la máquina con ID {machine_id} en la API de John Deere.'}), 404
+            else:
+                return jsonify({'error': f'Error al obtener alertas de la máquina: {error_msg}'}), 500
         
         return jsonify(alerts)
     except Exception as e:
