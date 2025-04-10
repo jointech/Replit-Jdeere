@@ -22,15 +22,23 @@ def get_oauth_session(token=None, state=None):
         scope=JOHN_DEERE_SCOPES
     )
 
-def exchange_code_for_token(code):
+def exchange_code_for_token(code, redirect_uri=None):
     """Exchange authorization code for access token."""
     try:
         oauth = get_oauth_session()
+        
+        # Si no se proporciona un redirect_uri, usamos el configurado por defecto
+        if redirect_uri is None:
+            redirect_uri = REDIRECT_URI
+            
+        logger.info(f"Intercambiando código por token con redirect_uri: {redirect_uri}")
+        
         token = oauth.fetch_token(
             JOHN_DEERE_TOKEN_URL,
             code=code,
             client_id=JOHN_DEERE_CLIENT_ID,
-            client_secret=JOHN_DEERE_CLIENT_SECRET
+            client_secret=JOHN_DEERE_CLIENT_SECRET,
+            redirect_uri=redirect_uri
         )
         return token
     except Exception as e:

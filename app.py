@@ -42,8 +42,14 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        # Construir la URL con el redirect_uri configurado
-        redirect_uri_encoded = quote(REDIRECT_URI)
+        # Determinar URL base y usar la del host actual
+        base_url = request.host_url.rstrip('/')
+        if request.headers.get('X-Forwarded-Proto') == 'https':
+            base_url = base_url.replace('http:', 'https:')
+        
+        # Usar nuestra propia URL de captura como redirect_uri
+        redirect_uri = f"{base_url}/auth-capture"
+        redirect_uri_encoded = quote(redirect_uri)
         
         # Generar un state único para seguridad
         state = os.urandom(16).hex()
@@ -56,7 +62,7 @@ def login():
         # Guardar información en la sesión para verificar después
         session['auth_flow_started'] = True
         
-        logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {REDIRECT_URI}")
+        logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {redirect_uri}")
         return redirect(auth_url)
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -85,9 +91,17 @@ def callback():
         if not code:
             return render_template('error.html', error="No authorization code received")
         
-        # Intercambiar el código por un token
+        # Determinar URL base y usar la del host actual
+        base_url = request.host_url.rstrip('/')
+        if request.headers.get('X-Forwarded-Proto') == 'https':
+            base_url = base_url.replace('http:', 'https:')
+        
+        # Usar nuestra propia URL de captura como redirect_uri
+        redirect_uri = f"{base_url}/auth-capture"
+        
+        # Intercambiar el código por un token usando la misma URL de redirección
         from john_deere_api import exchange_code_for_token
-        token = exchange_code_for_token(code)
+        token = exchange_code_for_token(code, redirect_uri=redirect_uri)
         logger.info(f"Token recibido: access_token válido por {token.get('expires_in', 0)/60/60} horas")
         
         # Guardar el token en la sesión
@@ -128,8 +142,16 @@ def auth_complete():
         
         # Intercambiar el código por un token
         try:
+            # Determinar URL base y usar la del host actual
+            base_url = request.host_url.rstrip('/')
+            if request.headers.get('X-Forwarded-Proto') == 'https':
+                base_url = base_url.replace('http:', 'https:')
+            
+            # Usar nuestra propia URL de captura como redirect_uri
+            redirect_uri = f"{base_url}/auth-capture"
+            
             from john_deere_api import exchange_code_for_token
-            token = exchange_code_for_token(code)
+            token = exchange_code_for_token(code, redirect_uri=redirect_uri)
             logger.info(f"Token recibido manualmente: access_token válido por {token.get('expires_in', 0)/60/60} horas")
             
             # Guardar el token en la sesión
