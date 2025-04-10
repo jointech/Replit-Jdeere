@@ -52,16 +52,34 @@ def exchange_code_for_token(code, redirect_uri=None):
             
         logger.info(f"Intercambiando código por token con redirect_uri: {redirect_uri}")
         
-        # Crear una sesión OAuth SIN pasar el redirect_uri (se pasará en fetch_token)
-        oauth = get_oauth_session()
+        # Crear una sesión OAuth SIN pasar el redirect_uri ni otros parámetros de OAuth
+        # Usamos una sesión nueva de requests directamente para evitar conflictos con redirect_uri
+        import requests
+        from requests.auth import HTTPBasicAuth
         
-        token = oauth.fetch_token(
+        logger.info(f"Usando solicitud directa para obtener token con codigo: {code[:5]}...")
+        
+        # Preparamos la solicitud directa a la API de token
+        token_data = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': redirect_uri
+        }
+        
+        # Hacemos la solicitud de token directamente sin usar OAuth2Session
+        token_response = requests.post(
             JOHN_DEERE_TOKEN_URL,
-            code=code,
-            client_id=JOHN_DEERE_CLIENT_ID,
-            client_secret=JOHN_DEERE_CLIENT_SECRET,
-            redirect_uri=redirect_uri
+            data=token_data,
+            auth=HTTPBasicAuth(JOHN_DEERE_CLIENT_ID, JOHN_DEERE_CLIENT_SECRET)
         )
+        
+        if token_response.status_code != 200:
+            error_message = f"Error obteniendo token: {token_response.status_code} - {token_response.text}"
+            logger.error(error_message)
+            raise ValueError(error_message)
+            
+        # Convertimos la respuesta JSON a un diccionario
+        token = token_response.json()
         return token
     except Exception as e:
         logger.error(f"Error exchanging code for token: {str(e)}")
