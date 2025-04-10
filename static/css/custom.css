@@ -221,53 +221,101 @@ body {
     justify-content: center;
 }
 
-/* Alert severity color classes */
+/* Alert severity color classes - Modern style */
 .alert-severity-high {
-    color: #dc3545;
+    color: #ff5252;
 }
 
 .alert-severity-medium {
-    color: #ffc107;
+    color: #ffab40;
 }
 
 .alert-severity-low {
-    color: #6c757d;
+    color: #8c9eff;
 }
 
 .alert-severity-info {
-    color: #0dcaf0;
+    color: #00e5ff;
 }
 
 .alert-severity-dtc, 
 .alert-severity-unknown {
-    color: #6c757d;
+    color: #9e9e9e;
 }
 
-/* Alert severity badges */
+/* Alert severity badges - Modern style with rounded corners */
 .bg-severity-high {
-    background-color: #dc3545;
+    background-color: #ff5252;
     color: white;
+    border-radius: 50px;
+    padding: 5px 10px;
+    font-weight: 500;
 }
 
 .bg-severity-medium {
-    background-color: #ffc107;
-    color: black;
+    background-color: #ffab40;
+    color: #333333;
+    border-radius: 50px;
+    padding: 5px 10px;
+    font-weight: 500;
 }
 
 .bg-severity-low {
-    background-color: #6c757d;
+    background-color: #8c9eff;
     color: white;
+    border-radius: 50px;
+    padding: 5px 10px;
+    font-weight: 500;
 }
 
 .bg-severity-info {
-    background-color: #0dcaf0;
-    color: black;
+    background-color: #00e5ff;
+    color: #333333;
+    border-radius: 50px;
+    padding: 5px 10px;
+    font-weight: 500;
 }
 
 .bg-severity-dtc, 
 .bg-severity-unknown {
-    background-color: #6c757d;
+    background-color: #9e9e9e;
     color: white;
+    border-radius: 50px;
+    padding: 5px 10px;
+    font-weight: 500;
+}
+
+/* Custom theme-specific alert colors for light theme */
+body.light-theme .alert-severity-high {
+    color: #ff5252;
+}
+
+body.light-theme .alert-severity-medium {
+    color: #ffab40;
+}
+
+body.light-theme .alert-severity-low {
+    color: #8c9eff;
+}
+
+body.light-theme .alert-severity-info {
+    color: #00e5ff;
+}
+
+body.light-theme .bg-severity-high {
+    background-color: #ff5252;
+}
+
+body.light-theme .bg-severity-medium {
+    background-color: #ffab40;
+}
+
+body.light-theme .bg-severity-low {
+    background-color: #8c9eff;
+}
+
+body.light-theme .bg-severity-info {
+    background-color: #00e5ff;
 }
 
 /* Fade animation for content loading */
@@ -280,137 +328,194 @@ body {
     to { opacity: 1; }
 }
 
-/* Light theme styles */
+/* Light theme styles - Modern dashboard style with turquoise and purple accents */
 body.light-theme {
-    --bs-body-bg: #f6f8fa;
-    --bs-body-color: #1f2328;
-    --bs-primary: #0969da;
-    --bs-info: #0969da;
-    --bs-link-color: #0969da;
-    background-color: #f6f8fa;
-    color: #1f2328;
+    --bs-body-bg: #0a1929;
+    --bs-body-color: #ffffff;
+    --bs-primary: #00e2ac;
+    --bs-info: #00d5e2;
+    --bs-link-color: #00e2ac;
+    --accent-purple: #8c54ff;
+    --accent-teal: #00e2ac;
+    --card-bg: #ffffff;
+    --card-text: #2c3e50;
+    background-color: #0a1929;
+    color: #ffffff;
 }
 
-/* Elegant card styling for light theme */
+/* Modern card styling with clean white background */
 body.light-theme .card {
     background-color: #ffffff;
-    border-color: #d0d7de;
-    border-radius: 8px;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
+    margin-bottom: 20px;
 }
 
 body.light-theme .card:hover {
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* Card header with subtle gradient */
+/* Modern card header */
 body.light-theme .card-header {
-    background: linear-gradient(to right, #f6f8fa, #ffffff);
-    border-bottom-color: #d0d7de;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    font-weight: 500;
+    background: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 15px 20px;
 }
 
 /* Info panel styling */
 body.light-theme .bg-dark {
-    background-color: #f0f5ff !important;
-    color: #1f2328 !important;
-    border: 1px solid #d0d7de;
-    border-radius: 6px;
+    background-color: rgba(0, 226, 172, 0.1) !important;
+    color: #2c3e50 !important;
+    border: 1px solid rgba(0, 226, 172, 0.2);
+    border-radius: 10px;
 }
 
 /* Improved text colors */
 body.light-theme .text-muted {
-    color: #6e7781 !important;
+    color: #7f8c9d !important;
 }
 
 /* Dropdown styling */
 body.light-theme .dropdown-menu {
     background-color: #ffffff;
-    color: #1f2328;
-    border-color: #d0d7de;
-    border-radius: 6px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    color: #2c3e50;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 body.light-theme .dropdown-item {
-    color: #1f2328;
+    color: #2c3e50;
     transition: all 0.2s ease;
+    padding: 8px 15px;
 }
 
 body.light-theme .dropdown-item:hover {
-    background-color: #f0f5ff;
-    color: #0969da;
+    background-color: rgba(0, 226, 172, 0.1);
+    color: #00e2ac;
 }
 
 /* Machine list items styling */
 body.light-theme .list-group-item {
     background-color: #ffffff;
-    color: #1f2328;
-    border-color: #d0d7de;
-    transition: background-color 0.2s ease;
+    color: #2c3e50;
+    border-color: rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+    padding: 12px 15px;
 }
 
 body.light-theme .list-group-item:hover {
-    background-color: #f6f8fa;
+    background-color: rgba(0, 226, 172, 0.05);
 }
 
 body.light-theme .list-group-item.active {
-    background-color: #f0f5ff;
-    color: #0969da;
-    border-left-color: #0969da;
+    background-color: rgba(0, 226, 172, 0.1);
+    color: #00e2ac;
+    border-left: 3px solid #00e2ac;
     font-weight: 500;
 }
 
 /* Sun icon for theme toggle */
 body.light-theme .theme-switch-wrapper .form-check-label {
-    color: #ff9800;
+    color: #ffbb00;
 }
 
-/* Button styling */
+/* Button styling - Primary (turquoise) */
 body.light-theme .btn-outline-primary {
-    border-color: #0969da;
-    color: #0969da;
+    border-color: #00e2ac;
+    color: #00e2ac;
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-weight: 500;
 }
 
 body.light-theme .btn-outline-primary:hover {
-    background-color: #0969da;
+    background-color: #00e2ac;
     color: #ffffff;
+    box-shadow: 0 4px 10px rgba(0, 226, 172, 0.3);
 }
 
+/* Button styling - Secondary (purple) */
 body.light-theme .btn-outline-secondary {
-    border-color: #6e7781;
-    color: #6e7781;
+    border-color: #8c54ff;
+    color: #8c54ff;
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-weight: 500;
 }
 
 body.light-theme .btn-outline-secondary:hover {
-    background-color: #6e7781;
+    background-color: #8c54ff;
     color: #ffffff;
+    box-shadow: 0 4px 10px rgba(140, 84, 255, 0.3);
 }
 
 /* Badge styling */
 body.light-theme .badge.bg-primary {
-    background-color: #0969da !important;
+    background-color: #00e2ac !important;
+    color: #ffffff;
+    border-radius: 50px;
+    padding: 5px 10px;
 }
 
-/* Form control styling */
+/* Modern form control styling */
 body.light-theme .form-control {
-    border-color: #d0d7de;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     background-color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 15px;
 }
 
 body.light-theme .form-control:focus {
-    border-color: #0969da;
-    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.2);
+    border-color: #00e2ac;
+    box-shadow: 0 0 0 3px rgba(0, 226, 172, 0.2);
 }
 
-/* Active card effect - enhanced for light mode */
+/* Active card effect with teal accent */
 body.light-theme .active-card {
-    border-color: #0969da;
-    box-shadow: 0 0 0 1px #0969da, 0 3px 10px rgba(9, 105, 218, 0.2);
-    background: linear-gradient(135deg, rgba(9, 105, 218, 0.05), transparent);
+    border-color: #00e2ac;
+    box-shadow: 0 0 0 2px #00e2ac, 0 8px 20px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, rgba(0, 226, 172, 0.05), transparent);
+}
+
+/* Status indicators and progress bars */
+body.light-theme .progress {
+    background-color: #e9ecef;
+    border-radius: 50px;
+    height: 10px;
+}
+
+body.light-theme .progress-bar {
+    background: linear-gradient(to right, #00e2ac, #00d5e2);
+    border-radius: 50px;
+}
+
+/* Custom styles for charts and data visualization areas */
+body.light-theme .chart-container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Number indicators and stats */
+body.light-theme .stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: #00e2ac;
+    margin-bottom: 5px;
+}
+
+body.light-theme .stat-label {
+    font-size: 14px;
+    color: #7f8c9d;
 }
 
 /* Responsive adjustments */
