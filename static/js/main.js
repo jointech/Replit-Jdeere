@@ -985,18 +985,7 @@ function renderAlertList(alerts) {
                     <small class="text-muted">Tipo: ${alert.type || 'Desconocido'}</small>
                 </div>
                 
-                <!-- Enlaces o información técnica adicional -->
-                ${definitionLink ? 
-                    `<div class="mt-3 alert-container">
-                        <button class="btn btn-sm btn-outline-info show-alert-details" 
-                                data-definition-uri="${definitionLink}" 
-                                onclick="showAlertDetailsInline(this, '${definitionLink}', '${alert.id || '0'}'); return false;">
-                            <i class="fas fa-info-circle me-1"></i> Ver detalles adicionales
-                        </button>
-                        <div class="alert-details-content" id="alert-details-${alert.id}" style="display:none; margin-top:10px; padding:10px; background-color:#212529; border-radius:5px; border:1px solid #495057;">
-                            <!-- El contenido se llenará dinámicamente -->
-                        </div>
-                    </div>` : ''}
+                <!-- Eliminado botón "Ver detalles adicionales" a petición del usuario -->
                     
                 <!-- ID de alerta para referencia -->
                 <div class="text-end">
@@ -1010,20 +999,7 @@ function renderAlertList(alerts) {
         }
     });
     
-    // Agregar manejador para los botones de "Ver detalles adicionales"
-    // Usamos event delegation para evitar añadir muchos event listeners
-    alertListContainer.addEventListener('click', function(e) {
-        // Verificar si el elemento clicado o alguno de sus padres es un botón de detalles
-        const detailsButton = e.target.closest('.show-alert-details');
-        if (detailsButton) {
-            e.preventDefault();
-            const definitionUri = detailsButton.getAttribute('data-definition-uri');
-            if (definitionUri) {
-                console.log('Cargando detalles para definición:', definitionUri);
-                loadAlertDetails(detailsButton, definitionUri);
-            }
-        }
-    });
+    // Eliminado el manejador de eventos para los botones "Ver detalles adicionales"
 }
 
 // Configurar la búsqueda de máquinas
