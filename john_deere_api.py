@@ -414,14 +414,21 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
         
         if 'values' in data:
             for alert in data['values']:
-                # Normalizar el tipo de severidad a uno de nuestros valores esperados
-                severity = 'info'  # valor por defecto
+                # Normalizar el tipo de severidad según la tabla proporcionada
+                # HIGH: rojo, MEDIUM: amarillo, LOW: gris, INFO: azul, DTC/UNKNOWN: gris
+                severity = 'unknown'  # valor por defecto
                 if alert.get('severity'):
-                    sev_lower = str(alert.get('severity')).lower()
-                    if 'critical' in sev_lower or 'error' in sev_lower:
-                        severity = 'critical'
-                    elif 'warning' in sev_lower or 'warn' in sev_lower:
-                        severity = 'warning'
+                    sev_upper = str(alert.get('severity')).upper()
+                    if 'HIGH' in sev_upper or 'CRITICAL' in sev_upper or 'ERROR' in sev_upper:
+                        severity = 'high'
+                    elif 'MEDIUM' in sev_upper or 'WARNING' in sev_upper or 'WARN' in sev_upper:
+                        severity = 'medium'
+                    elif 'LOW' in sev_upper:
+                        severity = 'low'
+                    elif 'INFO' in sev_upper:
+                        severity = 'info'
+                    elif 'DTC' in sev_upper:
+                        severity = 'dtc'
                 
                 # Extraer datos del contenido si disponibles
                 description = 'Sin descripción'

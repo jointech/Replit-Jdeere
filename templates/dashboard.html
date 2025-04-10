@@ -29,16 +29,43 @@
         font-size: 0.7rem;
     }
     
-    .alert-severity-critical {
-        color: var(--bs-danger);
+    /* Estilos de severidad de alertas */
+    .alert-severity-high {
+        color: var(--bs-danger); /* ROJO para HIGH */
     }
     
-    .alert-severity-warning {
-        color: var(--bs-warning);
+    .alert-severity-medium {
+        color: var(--bs-warning); /* AMARILLO para MEDIUM */
+    }
+    
+    .alert-severity-low, 
+    .alert-severity-dtc,
+    .alert-severity-unknown {
+        color: var(--bs-secondary); /* GRIS para LOW, DTC, UNKNOWN */
     }
     
     .alert-severity-info {
-        color: var(--bs-info);
+        color: var(--bs-info); /* AZUL para INFO */
+    }
+    
+    /* Clases de fondo para badges */
+    .bg-severity-high {
+        background-color: var(--bs-danger) !important;
+    }
+    
+    .bg-severity-medium {
+        background-color: var(--bs-warning) !important;
+        color: var(--bs-dark) !important;
+    }
+    
+    .bg-severity-low,
+    .bg-severity-dtc,
+    .bg-severity-unknown {
+        background-color: var(--bs-secondary) !important;
+    }
+    
+    .bg-severity-info {
+        background-color: var(--bs-info) !important;
     }
 </style>
 {% endblock %}

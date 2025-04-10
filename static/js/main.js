@@ -532,20 +532,45 @@ function renderAlertList(alerts) {
             const alertItem = document.createElement('div');
             alertItem.className = 'list-group-item';
             
-            // Determine severity class
-            let severityClass = 'text-info';
+            // Determine severity class based on the John Deere severity levels
+            // HIGH: rojo, MEDIUM: amarillo, LOW/DTC/UNKNOWN: gris, INFO: azul
+            let severityClass = 'alert-severity-info';
+            let severityBgClass = 'bg-severity-info';
             let severityIcon = 'info-circle';
+            let severityText = 'Info';
             
             if (alert.severity) {
                 const severityLower = String(alert.severity).toLowerCase();
                 switch (severityLower) {
-                    case 'critical':
-                        severityClass = 'text-danger';
+                    case 'high':
+                        severityClass = 'alert-severity-high';
+                        severityBgClass = 'bg-severity-high';
                         severityIcon = 'exclamation-circle';
+                        severityText = 'Alto';
                         break;
-                    case 'warning':
-                        severityClass = 'text-warning';
+                    case 'medium':
+                        severityClass = 'alert-severity-medium';
+                        severityBgClass = 'bg-severity-medium';
                         severityIcon = 'exclamation-triangle';
+                        severityText = 'Medio';
+                        break;
+                    case 'low':
+                        severityClass = 'alert-severity-low';
+                        severityBgClass = 'bg-severity-low';
+                        severityIcon = 'exclamation';
+                        severityText = 'Bajo';
+                        break;
+                    case 'dtc':
+                        severityClass = 'alert-severity-dtc';
+                        severityBgClass = 'bg-severity-dtc';
+                        severityIcon = 'cog';
+                        severityText = 'DTC';
+                        break;
+                    case 'unknown':
+                        severityClass = 'alert-severity-unknown';
+                        severityBgClass = 'bg-severity-unknown';
+                        severityIcon = 'question-circle';
+                        severityText = 'Desconocido';
                         break;
                 }
             }
@@ -566,11 +591,15 @@ function renderAlertList(alerts) {
                     <h6 class="mb-1 ${severityClass}">
                         <i class="fas fa-${severityIcon} me-2"></i>
                         ${alert.title || 'Alerta sin título'}
+                        <span class="badge ${severityBgClass} ms-2">${severityText}</span>
                     </h6>
-                    <small>${alert.status || 'Estado desconocido'}</small>
+                    <small class="text-muted">${alert.status || 'Estado desconocido'}</small>
                 </div>
                 <p class="mb-1 small">${alert.description || 'Sin descripción'}</p>
-                <small class="text-muted">${timestamp}</small>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">${timestamp}</small>
+                    <small class="text-muted">Tipo: ${alert.type || 'Desconocido'}</small>
+                </div>
             `;
             
             alertListContainer.appendChild(alertItem);
