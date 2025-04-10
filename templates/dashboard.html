@@ -73,22 +73,43 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-2">
                             <strong>Access Token:</strong> <span>{{ token_info.access_token }}</span>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-2">
                             <strong>Refresh Token:</strong> <span>{{ token_info.refresh_token }}</span>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-2">
                             <strong>Expira en:</strong> <span>{{ token_info.expires_in }}</span>
                         </div>
                     </div>
+                    <div class="col-md-3 text-end">
+                        <a href="{{ url_for('auth_setup') }}" class="btn btn-sm btn-outline-light">
+                            <i class="fas fa-cog me-1"></i> Configurar autenticación
+                        </a>
+                    </div>
                 </div>
+                
+                {% if auth_code_info %}
+                <hr class="border-secondary">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <strong>Último código de autorización:</strong> 
+                            <span class="user-select-all">{{ auth_code_info.code }}</span>
+                            <span class="badge bg-info ms-1">{{ auth_code_info.full_length }} caracteres</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <small class="text-muted">Este código fue utilizado para obtener el token actual. Guárdelo como referencia.</small>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

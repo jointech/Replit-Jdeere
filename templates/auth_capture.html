@@ -1,24 +1,50 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card shadow mt-5">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Capturando Código de Autorización</h4>
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-check-circle me-2"></i> Código de Autorización Capturado</h4>
                 </div>
-                <div class="card-body text-center">
-                    <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">Cargando...</span>
+                <div class="card-body">
+                    <div class="alert alert-success" id="captureSuccess">
+                        <i class="fas fa-info-circle me-2"></i> Procesando su código de autorización...
                     </div>
-                    <h5 id="status-message">Procesando el código de autorización...</h5>
-                    <p class="text-muted">Por favor espere, será redirigido automáticamente.</p>
-                    
-                    <div id="error-container" class="alert alert-danger d-none mt-3">
-                        <h5><i class="fas fa-exclamation-triangle me-2"></i> Error</h5>
-                        <p id="error-message"></p>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-danger">Volver al inicio</a>
+                    <div class="alert alert-danger d-none" id="captureError">
+                        <i class="fas fa-exclamation-triangle me-2"></i> <span id="errorMessage">Error al procesar el código de autorización.</span>
+                    </div>
+
+                    <h5 class="mb-3">Su código de autorización:</h5>
+                    <div class="bg-dark p-3 rounded mb-3" style="font-family: monospace; word-break: break-all;">
+                        <div class="spinner-border spinner-border-sm text-secondary" role="status" id="codeSpinner">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <span id="authCode">Extrayendo código...</span>
+                    </div>
+
+                    <div id="manualForm" class="d-none">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Procesamiento automático fallido. Por favor, envíe el código manualmente.
+                        </div>
+                        <form id="codeForm" method="post" action="{{ url_for('auth_complete') }}">
+                            <div class="mb-3">
+                                <input type="hidden" name="code" id="codeInput">
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i> Enviar código
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="text-center mt-4" id="redirectMessage">
+                        <div class="spinner-border text-secondary" role="status">
+                            <span class="visually-hidden">Redireccionando...</span>
+                        </div>
+                        <p class="mt-2">Será redireccionado automáticamente al dashboard en <span id="countdown">5</span> segundos...</p>
                     </div>
                 </div>
             </div>
@@ -28,62 +54,81 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Función para obtener parámetros de la URL
-    function getUrlParameter(name) {
-        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-        var results = regex.exec(location.search);
-        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    }
+    // Extraer el código de autorización de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    const authCodeEl = document.getElementById('authCode');
+    const codeSpinner = document.getElementById('codeSpinner');
+    const captureSuccess = document.getElementById('captureSuccess');
+    const captureError = document.getElementById('captureError');
+    const errorMessage = document.getElementById('errorMessage');
+    const manualForm = document.getElementById('manualForm');
+    const codeInput = document.getElementById('codeInput');
+    const redirectMessage = document.getElementById('redirectMessage');
+    const countdown = document.getElementById('countdown');
     
-    // Obtener el código de autorización y el estado de la URL
-    const code = getUrlParameter('code');
-    const state = getUrlParameter('state');
-    const error = getUrlParameter('error');
-    const errorDescription = getUrlParameter('error_description');
+    // Ocultar el mensaje de redirección inicialmente
+    redirectMessage.classList.add('d-none');
     
-    if (error) {
-        // Mostrar el error si existe
-        document.getElementById('status-message').textContent = 'Se produjo un error en la autenticación';
-        document.getElementById('error-container').classList.remove('d-none');
-        document.getElementById('error-message').textContent = errorDescription || error;
-    } else if (code) {
-        // Si tenemos un código, enviarlo al servidor
+    if (code) {
+        // Mostrar el código obtenido
+        codeSpinner.classList.add('d-none');
+        authCodeEl.textContent = code;
+        
+        // Establecer el código en el formulario manual (por si acaso)
+        if (codeInput) {
+            codeInput.value = code;
+        }
+        
+        // Intentar enviar el código automáticamente al servidor
         fetch("{{ url_for('auth_complete') }}", {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json'
             },
-            body: `code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`
+            body: JSON.stringify({ code: code, state: state })
         })
-        .then(response => {
-            if (response.redirected) {
-                // Si el servidor responde con una redirección, seguirla
-                window.location.href = response.url;
-            } else if (response.ok) {
-                return response.json();
-            } else {
-                throw new Error('Error en la respuesta del servidor');
-            }
-        })
+        .then(response => response.json())
         .then(data => {
-            if (data && data.redirect) {
-                window.location.href = data.redirect;
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                captureSuccess.innerHTML = '<i class="fas fa-check-circle me-2"></i> Código de autorización procesado con éxito.';
+                
+                // Iniciar cuenta regresiva para la redirección
+                redirectMessage.classList.remove('d-none');
+                let count = 5;
+                countdown.textContent = count;
+                
+                const interval = setInterval(() => {
+                    count--;
+                    countdown.textContent = count;
+                    if (count <= 0) {
+                        clearInterval(interval);
+                        window.location.href = data.redirect;
+                    }
+                }, 1000);
             } else {
-                window.location.href = "{{ url_for('dashboard') }}";
+                // Mostrar advertencia
+                captureSuccess.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i> ' + (data.warning || 'Advertencia: Procesamiento automático con problemas.');
+                // Mostrar formulario manual
+                manualForm.classList.remove('d-none');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('status-message').textContent = 'Error procesando el código de autorización';
-            document.getElementById('error-container').classList.remove('d-none');
-            document.getElementById('error-message').textContent = 'Se produjo un error al procesar el código. Por favor, intente nuevamente.';
+            console.error('Error al enviar código automáticamente:', error);
+            captureSuccess.classList.add('d-none');
+            captureError.classList.remove('d-none');
+            errorMessage.textContent = 'Error al procesar el código: ' + error.message;
+            manualForm.classList.remove('d-none');
         });
     } else {
-        // Si no hay código ni error, mostrar un mensaje de error genérico
-        document.getElementById('status-message').textContent = 'No se encontró un código de autorización';
-        document.getElementById('error-container').classList.remove('d-none');
-        document.getElementById('error-message').textContent = 'No se pudo obtener el código de autorización. Por favor, intente nuevamente.';
+        // No se encontró código
+        codeSpinner.classList.add('d-none');
+        authCodeEl.textContent = 'No se encontró un código de autorización en la URL.';
+        captureSuccess.classList.add('d-none');
+        captureError.classList.remove('d-none');
+        errorMessage.textContent = 'No se encontró un código de autorización en la URL.';
     }
 });
 </script>
