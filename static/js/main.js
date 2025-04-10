@@ -301,7 +301,11 @@ function renderMachineList(machines) {
                     <h6 class="mb-1">${machine.name || 'Sin nombre'}</h6>
                     <small>${machine.category || 'Sin categoría'}</small>
                 </div>
-                <small class="d-block">Modelo: ${machine.model || 'Desconocido'}</small>
+                <small class="d-block">Modelo: ${
+                    typeof machine.model === 'object' && machine.model && machine.model.name ? 
+                    machine.model.name : 
+                    (machine.model || 'Desconocido')
+                }</small>
                 <small class="d-block ${hasLocation ? 'text-success' : 'text-muted'}">
                     <i class="fas fa-${hasLocation ? 'map-marker-alt' : 'times-circle'}"></i>
                     ${hasLocation ? 'Ubicación disponible' : 'Sin ubicación'}
@@ -449,7 +453,18 @@ function loadMachineDetails(machineId) {
             
             // Actualizar elementos solo si existen
             if (machineName) machineName.textContent = machine.name || 'Sin nombre';
-            if (machineModel) machineModel.textContent = machine.model || 'Modelo desconocido';
+            
+            // Manejar el caso donde model puede ser un objeto
+            let modelText = 'Modelo desconocido';
+            if (machine.model) {
+                if (typeof machine.model === 'object' && machine.model.name) {
+                    modelText = machine.model.name;
+                } else if (typeof machine.model === 'string') {
+                    modelText = machine.model;
+                }
+            }
+            if (machineModel) machineModel.textContent = modelText;
+            
             if (machineCategory) machineCategory.textContent = machine.category || 'Sin categoría';
             
             // Update location info
