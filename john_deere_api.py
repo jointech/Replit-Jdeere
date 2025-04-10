@@ -135,16 +135,14 @@ def fetch_machines_by_organization(token, organization_id):
         
         logger.info(f"Fetching machines for organization {organization_id}")
         
-        # Endpoint para equipos
-        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/equipment"
-        # Los parámetros deben incluir el ID de la organización y el filtro para máquinas
-        params = {"organizationId": organization_id, "categories": "machine"}
+        # Endpoint actualizado para obtener máquinas
+        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/organizations/{organization_id}/machines"
         
         # Agregar encabezado para desactivar paginación
         headers = {'x-deere-no-paging': 'true'}
         
-        # Realizar la petición con paginación desactivada
-        response = oauth.get(endpoint, params=params, headers=headers)
+        # Realizar la petición con paginación desactivada (sin parámetros en la URL)
+        response = oauth.get(endpoint, headers=headers)
         response.raise_for_status()
         
         # Process the response to extract machine data
