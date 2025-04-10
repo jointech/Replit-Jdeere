@@ -26,6 +26,17 @@ from config import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+def get_base_url():
+    """Obtiene la URL base de la aplicación actual, con el protocolo correcto."""
+    base_url = request.host_url.rstrip('/')
+    if request.headers.get('X-Forwarded-Proto') == 'https':
+        base_url = base_url.replace('http:', 'https:')
+    return base_url
+
+def get_full_redirect_uri():
+    """Obtiene la URL de redirección completa para la autenticación OAuth."""
+    return f"{get_base_url()}/auth-capture"
+
 # Create Flask application
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
@@ -42,13 +53,8 @@ def index():
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
     try:
-        # Determinar URL base y usar la del host actual
-        base_url = request.host_url.rstrip('/')
-        if request.headers.get('X-Forwarded-Proto') == 'https':
-            base_url = base_url.replace('http:', 'https:')
-        
-        # Usar nuestra propia URL de captura como redirect_uri
-        redirect_uri = f"{base_url}/auth-capture"
+        # Obtener la URL de redirección completa mediante nuestra función de ayuda
+        redirect_uri = get_full_redirect_uri()
         redirect_uri_encoded = quote(redirect_uri)
         
         # Generar un state único para seguridad
@@ -91,13 +97,8 @@ def callback():
         if not code:
             return render_template('error.html', error="No authorization code received")
         
-        # Determinar URL base y usar la del host actual
-        base_url = request.host_url.rstrip('/')
-        if request.headers.get('X-Forwarded-Proto') == 'https':
-            base_url = base_url.replace('http:', 'https:')
-        
-        # Usar nuestra propia URL de captura como redirect_uri
-        redirect_uri = f"{base_url}/auth-capture"
+        # Usar la función de ayuda para obtener la URL de redirección
+        redirect_uri = get_full_redirect_uri()
         
         # Intercambiar el código por un token usando la misma URL de redirección
         from john_deere_api import exchange_code_for_token
@@ -142,13 +143,8 @@ def auth_complete():
         
         # Intercambiar el código por un token
         try:
-            # Determinar URL base y usar la del host actual
-            base_url = request.host_url.rstrip('/')
-            if request.headers.get('X-Forwarded-Proto') == 'https':
-                base_url = base_url.replace('http:', 'https:')
-            
-            # Usar nuestra propia URL de captura como redirect_uri
-            redirect_uri = f"{base_url}/auth-capture"
+            # Usar la función de ayuda para obtener la URL de redirección
+            redirect_uri = get_full_redirect_uri()
             
             from john_deere_api import exchange_code_for_token
             token = exchange_code_for_token(code, redirect_uri=redirect_uri)

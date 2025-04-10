@@ -20,9 +20,10 @@ DEBUG = True
 SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 
 # Application Configuration
-# Usar URL de la aplicación actual en Replit
-REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://workspace.replit.app/auth-capture')
+# Estos valores son solo los predeterminados, serán reemplazados dinámicamente
+# en tiempo de ejecución con la URL real de la aplicación
+REDIRECT_URI = os.environ.get('REDIRECT_URI', '/auth-capture')
 
 # URL del captador de autenticación
 # Esta es la URL que mostramos al usuario para capturar el código
-AUTH_CAPTURE_URL = os.environ.get('AUTH_CAPTURE_URL', 'https://workspace.replit.app/auth-capture')
+AUTH_CAPTURE_URL = os.environ.get('AUTH_CAPTURE_URL', '/auth-capture')
