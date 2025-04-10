@@ -78,6 +78,12 @@ with app.app_context():
         db.session.commit()
         logger.info("Usuario administrador creado exitosamente")
 
+def is_admin_user():
+    """Función de ayuda para verificar si el usuario actual es administrador."""
+    if current_user.is_authenticated:
+        return current_user.is_admin
+    return False
+
 def get_base_url():
     """Obtiene la URL base de la aplicación actual, con el protocolo correcto."""
     # Intentar usar X-Forwarded-Proto/Host en entornos como Replit
