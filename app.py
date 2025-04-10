@@ -199,9 +199,10 @@ def dashboard():
             # Intenta obtener organizaciones reales desde la API de John Deere
             logger.info("Obteniendo organizaciones reales desde la API de John Deere")
             
-            # Verificar si estamos usando un token simulado
-            if token.get('access_token') == 'simulated_token_manual':
-                raise ValueError("No se puede conectar a la API con un token simulado. Se requiere un token real.")
+            # Verificar si estamos usando un token simulado o de prueba
+            if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                # El mensaje de error será más específico para entornos de desarrollo
+                raise ValueError("Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.")
                 
             organizations = fetch_organizations(token)
             logger.info(f"Organizaciones obtenidas: {organizations}")
