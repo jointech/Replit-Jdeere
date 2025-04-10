@@ -761,20 +761,88 @@ function renderAlertList(alerts) {
                 }
             }
             
+            // Añadir más detalles de depuración para el usuario
+            console.log("Contenido completo de la alerta:", alert);
+            
+            // Extraer información adicional si está disponible
+            let alertContent = '';
+            if (alert.content) {
+                try {
+                    if (typeof alert.content === 'string') {
+                        alertContent = alert.content;
+                    } else if (typeof alert.content === 'object') {
+                        alertContent = JSON.stringify(alert.content);
+                    }
+                } catch (e) {}
+            }
+            
+            // Crear un objeto con toda la información disponible, para mostrar al usuario
+            let alertDetails = {};
+            for (const [key, value] of Object.entries(alert)) {
+                // Excluir propiedades específicas que ya mostramos o que son complejas
+                if (!['links', 'id', 'title', 'description', 'severity', 'timestamp', 'status', 'type'].includes(key)) {
+                    if (typeof value !== 'object' || value === null) {
+                        alertDetails[key] = value;
+                    } else if (Array.isArray(value)) {
+                        alertDetails[key] = `Array con ${value.length} elementos`;
+                    } else {
+                        try {
+                            alertDetails[key] = JSON.stringify(value);
+                        } catch (e) {
+                            alertDetails[key] = 'Objeto complejo';
+                        }
+                    }
+                }
+            }
+            
+            // Convertir a string para mostrar en la interfaz
+            let additionalDetailsHtml = '';
+            if (Object.keys(alertDetails).length > 0) {
+                additionalDetailsHtml = '<dl class="row small mt-2 mb-1">';
+                for (const [key, value] of Object.entries(alertDetails)) {
+                    if (value !== undefined && value !== null && value !== '') {
+                        additionalDetailsHtml += `
+                            <dt class="col-sm-3 text-truncate">${key}</dt>
+                            <dd class="col-sm-9">${value}</dd>
+                        `;
+                    }
+                }
+                additionalDetailsHtml += '</dl>';
+            }
+            
+            // Incluir el contenido raw de la alerta (puede contener información importante)
+            let rawContent = '';
+            if (alert.raw) {
+                try {
+                    if (typeof alert.raw === 'string') {
+                        rawContent = alert.raw;
+                    } else {
+                        rawContent = JSON.stringify(alert.raw);
+                    }
+                } catch (e) {}
+            }
+            
+            // Generar el HTML mejorado
             alertItem.innerHTML = `
                 <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1 ${severityClass}">
                         <i class="fas fa-${severityIcon} me-2"></i>
-                        ${alert.title || 'Alerta sin título'}
+                        ${alert.title || 'Alerta sin título'} 
                         <span class="badge ${severityBgClass} ms-2">${severityText}</span>
                     </h6>
                     <small class="text-muted">${alert.status || 'Estado desconocido'}</small>
                 </div>
                 <p class="mb-1 small">${alert.description || 'Sin descripción'}</p>
+                
+                <!-- Información técnica adicional, si está disponible -->
+                ${additionalDetailsHtml}
+                
                 <div class="d-flex justify-content-between align-items-center mt-2">
                     <small class="text-muted">${timestamp}</small>
                     <small class="text-muted">Tipo: ${alert.type || 'Desconocido'}</small>
                 </div>
+                
+                <!-- Enlaces o información técnica adicional -->
                 ${definitionLink ? 
                     `<div class="mt-2">
                         <button class="btn btn-sm btn-outline-info show-alert-details" 
@@ -783,7 +851,12 @@ function renderAlertList(alerts) {
                         </button>
                         <div class="alert-details-container mt-2 d-none"></div>
                     </div>` : ''}
-            `;
+                    
+                <!-- ID de alerta para referencia -->
+                <div class="text-end">
+                    <small class="text-muted">ID: ${alert.id || 'No disponible'}</small>
+                </div>
+                `;
             
             alertListContainer.appendChild(alertItem);
         } catch (error) {
