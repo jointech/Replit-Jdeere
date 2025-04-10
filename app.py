@@ -21,6 +21,7 @@ from john_deere_api import (
     fetch_machine_details,
     fetch_machines_by_organization,
     fetch_organizations,
+    fetch_user_info,
     get_oauth_session
 )
 from models import db, User, Organization, Machine, LoginLog
@@ -110,7 +111,7 @@ def get_full_redirect_uri():
 
 @app.route('/')
 def index():
-    """Landing page that checks if user is authenticated and redirects accordingly."""
+    """Landing page that shows login options or redirects to dashboard if already authenticated."""
     # Si el usuario está logueado y tiene un token OAuth válido, redirigir al dashboard
     if current_user.is_authenticated and 'oauth_token' in session:
         return redirect(url_for('dashboard'))
@@ -119,8 +120,9 @@ def index():
     if current_user.is_authenticated and 'oauth_token' not in session:
         return redirect(url_for('login'))
     
-    # De lo contrario, redirigir a la página de login de usuario
-    return redirect(url_for('login_form'))
+    # Si no está autenticado, mostrar opciones de inicio de sesión
+    # Esta página mostrará tanto la opción de inicio de sesión local como con John Deere
+    return render_template('login_options.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
@@ -245,9 +247,20 @@ def login():
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     
+    # Verificar si usamos la configuración alternativa del flujo OAuth
+    from config import USE_ALTERNATE_OAUTH_FLOW, USE_PERSISTENCE_HEADER_REDIRECT
+    
+    # Si usamos la redirección de persistent-header, cambiar el redirect_uri
+    if USE_PERSISTENCE_HEADER_REDIRECT:
+        redirect_uri = "https://persistent-header.deere.com/login"
+    
     # Iniciar sesión OAuth2 con John Deere y obtener URL de autorización
     oauth = get_oauth_session(state=state, redirect_uri=redirect_uri)
     auth_url, state = oauth.authorization_url(JOHN_DEERE_AUTHORIZE_URL)
+    
+    # Si estamos usando el flujo alternativo, modificamos la URL de autorización directamente
+    if USE_ALTERNATE_OAUTH_FLOW:
+        logger.info("Usando el flujo OAuth alternativo con los nuevos scopes")
     
     logger.info(f"Redirigiendo a URL de autorización de John Deere: {auth_url} con redirect_uri {redirect_uri}")
     
