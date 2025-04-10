@@ -380,32 +380,55 @@ def auth_complete():
                 
                 # Actualizar las organizaciones asociadas al usuario
                 try:
+                    # Primero guardamos la información del token actual
+                    db.session.commit()
+                    
+                    # Ahora procedemos a obtener y asociar organizaciones
                     orgs = fetch_organizations(token)
                     
                     # Buscar o crear organizaciones en la base de datos
                     for org_data in orgs:
-                        org_id = org_data.get('id')
-                        org = Organization.query.get(org_id)
-                        
-                        if not org:
-                            # Crear nueva organización
-                            org = Organization(
-                                id=org_id,
-                                name=org_data.get('name', 'Sin nombre'),
-                                type=org_data.get('type', 'Unknown')
-                            )
-                            db.session.add(org)
-                        
-                        # Asignar organización al usuario si no la tiene ya
-                        if org not in current_user.organizations:
-                            current_user.organizations.append(org)
+                        try:
+                            org_id = org_data.get('id')
+                            if not org_id:
+                                logger.warning(f"Organización sin ID válido: {org_data}")
+                                continue
+                                
+                            # Uso de get_or_404 puede causar un error 404, usar filtro en su lugar
+                            org = Organization.query.filter_by(id=org_id).first()
+                            
+                            if not org:
+                                # Crear nueva organización
+                                org = Organization(
+                                    id=org_id,
+                                    name=org_data.get('name', 'Sin nombre'),
+                                    type=org_data.get('type', 'Unknown')
+                                )
+                                db.session.add(org)
+                                db.session.flush()  # Asegurar que la organización se crea antes de asignar
+                            
+                            # Asignar organización al usuario si no la tiene ya
+                            if org not in current_user.organizations:
+                                current_user.organizations.append(org)
+                        except Exception as single_org_error:
+                            logger.error(f"Error procesando organización {org_data.get('id', 'unknown')}: {str(single_org_error)}")
+                            # Continuar con las siguientes organizaciones
+                            continue
                     
+                    # Guardar los cambios de organizaciones
+                    db.session.commit()
                     logger.info(f"Asociadas {len(orgs)} organizaciones al usuario {current_user.username}")
                 except Exception as org_error:
                     logger.error(f"Error al procesar organizaciones para el usuario: {str(org_error)}")
-                
-                # Guardar los cambios
-                db.session.commit()
+                    # Revertir cambios en caso de error
+                    db.session.rollback()
+                    
+                    # Asegurar que al menos guardamos la información del token
+                    try:
+                        db.session.commit()
+                    except Exception as final_error:
+                        logger.error(f"Error crítico al guardar token: {str(final_error)}")
+                        db.session.rollback()
                 logger.info(f"Token OAuth guardado para el usuario {current_user.username}")
         
         success_msg = "Autenticación exitosa con John Deere API."
@@ -473,22 +496,32 @@ def dashboard():
                 # Convertir las organizaciones de la API a objetos de la base de datos
                 organizations = []
                 for org_data in api_organizations:
-                    org_id = org_data.get('id')
-                    org_name = org_data.get('name', 'Sin nombre')
-                    org_type = org_data.get('type', 'Desconocido')
-                    
-                    # Buscar o crear la organización en la base de datos
-                    org = Organization.query.get(org_id)
-                    if not org:
-                        org = Organization(id=org_id, name=org_name, type=org_type)
-                        db.session.add(org)
+                    try:
+                        org_id = org_data.get('id')
+                        if not org_id:
+                            logger.warning(f"Organización sin ID válido: {org_data}")
+                            continue
+                            
+                        org_name = org_data.get('name', 'Sin nombre')
+                        org_type = org_data.get('type', 'Desconocido')
                         
-                        # Asignar al usuario actual si no es administrador
-                        if current_user.is_authenticated and not current_user.is_admin:
-                            if org not in current_user.organizations:
-                                current_user.organizations.append(org)
-                    
-                    organizations.append(org)
+                        # Buscar o crear la organización en la base de datos usando filter_by en lugar de get
+                        org = Organization.query.filter_by(id=org_id).first()
+                        if not org:
+                            org = Organization(id=org_id, name=org_name, type=org_type)
+                            db.session.add(org)
+                            db.session.flush()  # Asegurar que la organización está creada antes de asignarla
+                            
+                            # Asignar al usuario actual si no es administrador
+                            if current_user.is_authenticated and not current_user.is_admin:
+                                if org not in current_user.organizations:
+                                    current_user.organizations.append(org)
+                        
+                        organizations.append(org)
+                    except Exception as single_org_error:
+                        logger.error(f"Error procesando organización {org_data.get('id', 'unknown')}: {str(single_org_error)}")
+                        # Continuar con las siguientes organizaciones
+                        continue
                 
                 # Guardar cambios en la base de datos
                 db.session.commit()
