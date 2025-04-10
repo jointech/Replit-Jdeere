@@ -136,6 +136,9 @@
                 <span class="badge bg-primary" id="machineCount">0</span>
             </div>
             <div class="card-body p-0">
+                <div id="machineSearchContainer" class="p-2 border-bottom d-none">
+                    <input type="text" class="form-control form-control-sm" id="machineSearchInput" placeholder="Buscar máquina..." autocomplete="off">
+                </div>
                 <div id="machineListContainer" class="list-group list-group-flush machine-list" style="max-height: 400px; overflow-y: auto;">
                     <div class="text-center py-5">
                         <div class="spinner-border text-secondary d-none" id="machineLoader" role="status">
@@ -143,6 +146,9 @@
                         </div>
                         <p class="text-muted mt-3" id="emptyMachineMessage">Seleccione una organización para ver sus máquinas</p>
                     </div>
+                </div>
+                <div id="noMachineResultsMessage" class="text-center py-3 d-none">
+                    <span class="text-muted">No se encontraron máquinas con ese criterio</span>
                 </div>
             </div>
         </div>

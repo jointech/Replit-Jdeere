@@ -160,6 +160,24 @@ function loadMachines(organizationId) {
         emptyMachineMessage.classList.add('d-none');
     }
     
+    // Ocultar campo de búsqueda y mensaje de no resultados
+    const machineSearchContainer = document.getElementById('machineSearchContainer');
+    const noMachineResultsMessage = document.getElementById('noMachineResultsMessage');
+    const machineSearchInput = document.getElementById('machineSearchInput');
+    
+    if (machineSearchContainer) {
+        machineSearchContainer.classList.add('d-none');
+    }
+    
+    if (noMachineResultsMessage) {
+        noMachineResultsMessage.classList.add('d-none');
+    }
+    
+    // Limpiar el campo de búsqueda
+    if (machineSearchInput) {
+        machineSearchInput.value = '';
+    }
+    
     // Clear map markers
     clearMapMarkers();
     
@@ -196,6 +214,15 @@ function loadMachines(organizationId) {
             // Update machine count
             if (machineCountElement) {
                 machineCountElement.textContent = machines.length;
+            }
+            
+            // Mostrar campo de búsqueda si hay máquinas
+            const machineSearchContainer = document.getElementById('machineSearchContainer');
+            if (machineSearchContainer) {
+                machineSearchContainer.classList.remove('d-none');
+                
+                // Configurar la búsqueda de máquinas
+                setupMachineSearch(machines);
             }
             
             // Render machines in the list
@@ -470,6 +497,57 @@ function renderAlertList(alerts) {
             alertListContainer.appendChild(alertItem);
         } catch (error) {
             console.error("Error al renderizar alerta:", error);
+        }
+    });
+}
+
+// Configurar la búsqueda de máquinas
+function setupMachineSearch(allMachines) {
+    const searchInput = document.getElementById('machineSearchInput');
+    const noResultsMessage = document.getElementById('noMachineResultsMessage');
+    if (!searchInput) {
+        console.error('No se encontró el elemento de búsqueda de máquinas');
+        return;
+    }
+    
+    // Guardar todas las máquinas para filtrarlas
+    window.allMachines = allMachines;
+    
+    // Manejar el evento de entrada para filtrar la lista
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        const machineListContainer = document.getElementById('machineListContainer');
+        
+        // Si no hay término de búsqueda, mostrar todas las máquinas
+        if (searchTerm === '') {
+            // Limpiar y volver a renderizar todas las máquinas
+            machineListContainer.innerHTML = '';
+            renderMachineList(allMachines);
+            noResultsMessage.classList.add('d-none');
+            return;
+        }
+        
+        // Filtrar máquinas que coincidan con el término de búsqueda
+        const filteredMachines = allMachines.filter(machine => {
+            const name = (machine.name || '').toLowerCase();
+            const model = (machine.model || '').toLowerCase();
+            const category = (machine.category || '').toLowerCase();
+            const id = machine.id.toString().toLowerCase();
+            
+            return name.includes(searchTerm) || 
+                   model.includes(searchTerm) || 
+                   category.includes(searchTerm) ||
+                   id.includes(searchTerm);
+        });
+        
+        // Actualizar la lista con las máquinas filtradas
+        machineListContainer.innerHTML = '';
+        
+        if (filteredMachines.length > 0) {
+            renderMachineList(filteredMachines);
+            noResultsMessage.classList.add('d-none');
+        } else {
+            noResultsMessage.classList.remove('d-none');
         }
     });
 }
