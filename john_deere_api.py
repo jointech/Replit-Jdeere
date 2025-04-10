@@ -266,9 +266,9 @@ def fetch_machines_by_organization(token, organization_id):
             total_machines = len(data['values'])
             logger.info(f"Procesando {total_machines} máquinas para la organización {organization_id}")
             
-            # Si hay muchas máquinas (más de 10), limitamos la obtención de ubicaciones
+            # Si hay muchas máquinas (más de 50), limitamos la obtención de ubicaciones
             # para mejorar el rendimiento y evitar demasiadas peticiones a la API
-            limit_location_fetching = total_machines > 10
+            limit_location_fetching = total_machines > 50
             
             for machine in data['values']:
                 machine_id = machine.get('id')
@@ -277,9 +277,10 @@ def fetch_machines_by_organization(token, organization_id):
                 # Inicializar location como None
                 location = None
                 
-                # Para organizaciones con muchas máquinas, solo buscamos ubicación para 
-                # algunas máquinas (las primeras 5) para mejorar el rendimiento
-                if machine_id and (not limit_location_fetching or len(machines) < 5):
+                # Para organizaciones con muchas máquinas, buscamos ubicación para
+                # una cantidad razonable (las primeras 15) para un mejor balance entre
+                # rendimiento y experiencia de usuario
+                if machine_id and (not limit_location_fetching or len(machines) < 15):
                     location = fetch_machine_location(token, machine_id)
                     
                     # Si encontramos una ubicación, registrar el éxito
