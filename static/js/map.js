@@ -115,7 +115,7 @@ function initMapImpl() {
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
             zoom: 5,
-            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeId: google.maps.MapTypeId.SATELLITE, // Usar vista de satélite por defecto
             mapTypeControl: true,
             fullscreenControl: true,
             streetViewControl: false,
@@ -336,18 +336,7 @@ function createMachinePopupContent(machine) {
         }
     }
     
-    // Crear un enlace a Google Maps si tenemos coordenadas
-    let mapsLink = '';
-    if (machine.location && machine.location.latitude && machine.location.longitude) {
-        const googleMapsUrl = `https://www.google.com/maps?q=${machine.location.latitude},${machine.location.longitude}`;
-        mapsLink = `
-            <div class="mt-1">
-                <a href="${googleMapsUrl}" target="_blank" class="btn btn-sm btn-outline-info">
-                    <i class="fas fa-external-link-alt me-1"></i> Ver en Google Maps
-                </a>
-            </div>
-        `;
-    }
+    // No necesitamos enlace a Google Maps ya que estamos usando el mapa directamente
     
     // Añadir información de horas de operación si está disponible
     const hoursInfo = machine.hoursOfOperation ? 
@@ -375,11 +364,10 @@ function createMachinePopupContent(machine) {
                 <div><strong>Última actualización:</strong> ${timestamp}</div>
             </div>
             
-            <div class="d-flex justify-content-between mt-3">
+            <div class="d-flex justify-content-center mt-3">
                 <button class="btn btn-sm btn-primary" onclick="selectMachine('${machine.id}')">
                     <i class="fas fa-info-circle me-1"></i> Ver detalles
                 </button>
-                ${mapsLink}
             </div>
         </div>
     `;
@@ -433,6 +421,7 @@ function focusMapOnMachine(machineId) {
                 // Centrar el mapa en la ubicación de la máquina
                 map.setCenter(position);
                 map.setZoom(15); // Establecer un zoom más cercano
+                map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Mantener siempre en vista satélite
                 
                 // Si ya existe un marcador para esta máquina, usar ese
                 if (markers[machineId]) {
@@ -497,6 +486,7 @@ function focusMapOnMachine(machineId) {
                 if (marker) {
                     map.setCenter(marker.getPosition());
                     map.setZoom(14);
+                    map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Mantener siempre en vista satélite
                     infoWindow.setContent(createMachinePopupContent(machine));
                     infoWindow.open(map, marker);
                 } else {
@@ -514,6 +504,7 @@ function focusMapOnMachine(machineId) {
             if (marker) {
                 map.setCenter(marker.getPosition());
                 map.setZoom(14);
+                map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Mantener siempre en vista satélite
                 
                 // Buscar los datos de la máquina en la memoria local
                 const localMachineData = window.lastLoadedMachines?.find(m => m.id === machineId);
