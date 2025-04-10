@@ -544,26 +544,45 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
                     description = 'Sin descripción'
                     title = 'Alerta sin título'
                     
+                    logger.info(f"Procesando alerta con datos: {str(alert)[:300]}...")
+                    
+                    # Intentar obtener descripción y título directamente del mensaje
+                    if 'description' in alert:
+                        logger.info(f"Descripción encontrada directamente: {alert['description']}")
+                        description = alert['description']
+                    
+                    if 'title' in alert:
+                        logger.info(f"Título encontrado directamente: {alert['title']}")
+                        title = alert['title']
+                    
+                    # Intentar obtener desde content si existe
                     if 'content' in alert:
                         content = alert.get('content', {})
-                        logger.info(f"Contenido de alerta: {str(content)[:100]}...")
+                        logger.info(f"Contenido de alerta: {str(content)[:150]}...")
                         if isinstance(content, dict):
                             # Si content es un diccionario, intentar extraer la descripción y el título
-                            description = content.get('description') or alert.get('description', 'Sin descripción')
-                            title = content.get('title') or alert.get('title', 'Alerta sin título')
+                            if content.get('description'):
+                                logger.info(f"Descripción encontrada en content: {content['description']}")
+                                description = content['description']
+                            if content.get('title'):
+                                logger.info(f"Título encontrado en content: {content['title']}")
+                                title = content['title']
                     
-                    # Usar título directo de la alerta si está disponible
-                    if not title or title == 'Alerta sin título':
-                        title = alert.get('title', 'Alerta sin título')
-                        
-                    # Usar descripción directa de la alerta si está disponible
-                    if not description or description == 'Sin descripción':
-                        description = alert.get('description', 'Sin descripción')
+                    # Si tenemos un timestamp como 'time', usarlo
+                    timestamp = alert.get('timestamp') or alert.get('time')
+                    logger.info(f"Timestamp: {timestamp}")
+                    
+                    # Si no hay description, buscar también en message
+                    if description == 'Sin descripción' and alert.get('message'):
+                        logger.info(f"Usando message como descripción: {alert['message']}")
+                        description = alert['message']
                     
                     # Extraer enlaces si están disponibles
                     links = []
                     if 'links' in alert and isinstance(alert['links'], list):
-                        links = alert['links']
+                        for link in alert['links']:
+                            logger.info(f"Enlace encontrado: {link}")
+                            links.append(link)
                     
                     # Crear objeto de alerta normalizado
                     alert_obj = {
@@ -571,7 +590,7 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
                         'title': title,
                         'description': description,
                         'severity': severity,
-                        'timestamp': alert.get('timestamp'),
+                        'timestamp': timestamp,  # Usar el timestamp ya procesado
                         'status': alert.get('status', 'ACTIVE'),
                         'type': alert.get('type', 'UNDEFINED'),
                         'links': links

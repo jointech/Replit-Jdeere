@@ -720,8 +720,10 @@ function renderAlertList(alerts) {
             // Verificar si tiene links y extraer una posible definición
             let definitionLink = null;
             if (alert.links && Array.isArray(alert.links)) {
+                console.log("Procesando enlaces para alerta:", alert.id, alert.links);
                 for (const link of alert.links) {
-                    if (link.rel === 'definition' && link.uri) {
+                    if ((link.rel === 'definition' || link.rel === 'alertDefinition') && link.uri) {
+                        console.log("Encontrado enlace de definición:", link.uri);
                         definitionLink = link.uri;
                         break;
                     }
