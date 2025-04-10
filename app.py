@@ -1,195 +1,189 @@
-import os
 import logging
+import os
 import time
-from flask import Flask, redirect, url_for, session, request, render_template, flash, jsonify
+from urllib.parse import urlparse, urlunparse
+import secrets
+
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask_login import LoginManager, current_user
+from requests_oauthlib import OAuth2Session
 from werkzeug.middleware.proxy_fix import ProxyFix
-import json
-from urllib.parse import quote
 
+from config import JOHN_DEERE_AUTHORIZE_URL
 from john_deere_api import (
-    get_oauth_session, 
-    fetch_organizations, 
-    fetch_machines_by_organization, 
+    JOHN_DEERE_CLIENT_ID,
+    exchange_code_for_token,
+    fetch_machine_alerts,
     fetch_machine_details,
-    fetch_machine_alerts
-)
-from config import (
-    JOHN_DEERE_CLIENT_ID, 
-    JOHN_DEERE_CLIENT_SECRET, 
-    JOHN_DEERE_AUTHORIZE_URL, 
-    JOHN_DEERE_SCOPES
+    fetch_machines_by_organization,
+    fetch_organizations,
+    get_oauth_session
 )
 
-# Configure logging
+app = Flask(__name__)
+app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # necesario para url_for con https
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def get_base_url():
     """Obtiene la URL base de la aplicación actual, con el protocolo correcto."""
-    base_url = request.host_url.rstrip('/')
-    if request.headers.get('X-Forwarded-Proto') == 'https':
-        base_url = base_url.replace('http:', 'https:')
+    # Intentar usar X-Forwarded-Proto/Host en entornos como Replit
+    host = request.headers.get('X-Forwarded-Host') or request.headers.get('Host') or request.host
+    proto = request.headers.get('X-Forwarded-Proto') or request.scheme
+    
+    # Si estamos detrás de un proxy, asegurar que usamos https
+    if host and 'replit.dev' in host:
+        proto = 'https'
+    
+    # Construir y retornar la URL base
+    base_url = f"{proto}://{host}"
+    logger.info(f"URL base calculada: {base_url}")
     return base_url
 
 def get_full_redirect_uri():
     """Obtiene la URL de redirección completa para la autenticación OAuth."""
-    return f"{get_base_url()}/auth-capture"
-
-# Create Flask application
-app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    # Usamos la función de URL base y añadimos la ruta de redirección
+    base_url = get_base_url()
+    redirect_path = "/auth-capture"
+    redirect_uri = f"{base_url}{redirect_path}"
+    logger.info(f"URL de redirección calculada: {redirect_uri}")
+    return redirect_uri
 
 @app.route('/')
 def index():
     """Landing page that checks if user is authenticated and redirects accordingly."""
+    # Si ya estamos autenticados, redirigir al dashboard
     if 'oauth_token' in session:
         return redirect(url_for('dashboard'))
+    
+    # De lo contrario, mostrar la página de inicio
     return render_template('login.html')
 
 @app.route('/login')
 def login():
     """Initiates the OAuth2 authentication flow with John Deere."""
-    try:
-        # Obtener la URL de redirección completa mediante nuestra función de ayuda
-        redirect_uri = get_full_redirect_uri()
-        redirect_uri_encoded = quote(redirect_uri)
-        
-        # Generar un state único para seguridad
-        state = os.urandom(16).hex()
-        session['oauth_state'] = state
-        
-        # Construir la URL exacta según lo proporcionado
-        scopes = '+'.join(JOHN_DEERE_SCOPES)
-        auth_url = f"https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/authorize?response_type=code&client_id={JOHN_DEERE_CLIENT_ID}&redirect_uri={redirect_uri_encoded}&scope={scopes}&state={state}"
-        
-        # Guardar información en la sesión para verificar después
-        session['auth_flow_started'] = True
-        
-        logger.info(f"Redireccionando a John Deere para autenticación con redirect_uri: {redirect_uri}")
-        return redirect(auth_url)
-    except Exception as e:
-        logger.error(f"Login error: {str(e)}")
-        return render_template('error.html', error=str(e))
+    # Obtener el URI de redirección dinámico
+    redirect_uri = get_full_redirect_uri()
+    
+    # Generar un estado para protección contra CSRF
+    state = secrets.token_urlsafe(32)
+    session['oauth_state'] = state
+    
+    # Iniciar sesión OAuth2 con John Deere y obtener URL de autorización
+    oauth = get_oauth_session(state=state, redirect_uri=redirect_uri)
+    auth_url, state = oauth.authorization_url(JOHN_DEERE_AUTHORIZE_URL)
+    
+    logger.info(f"Redirigiendo a URL de autorización de John Deere: {auth_url} con redirect_uri {redirect_uri}")
+    
+    # Redirigir al usuario a la página de inicio de sesión/autorización de John Deere
+    return redirect(auth_url)
 
 @app.route('/auth-capture')
 def auth_capture():
     """Página que captura el código de autorización de la URL y lo envía automáticamente a auth_complete."""
-    return render_template('auth_capture.html')
-
-@app.route('/callback')
-def callback():
-    """Handles the OAuth2 callback from John Deere."""
-    if 'error' in request.args:
-        error = request.args['error']
-        return render_template('error.html', error=f"OAuth error: {error}")
+    # Obtener parámetros de la URL, incluyendo código y estado
+    code = request.args.get('code')
+    state = request.args.get('state')
+    error = request.args.get('error')
     
-    try:
-        # Verificar el state para prevenir CSRF
-        state = request.args.get('state')
-        if state and state != session.get('oauth_state'):
-            logger.warning("Estado OAuth no coincide, posible ataque CSRF")
-            return render_template('error.html', error="Verificación de estado fallida, intente nuevamente")
-        
-        code = request.args.get('code')
-        if not code:
-            return render_template('error.html', error="No authorization code received")
-        
-        # Usar la función de ayuda para obtener la URL de redirección
-        redirect_uri = get_full_redirect_uri()
-        
-        # Intercambiar el código por un token usando la misma URL de redirección
-        from john_deere_api import exchange_code_for_token
-        token = exchange_code_for_token(code, redirect_uri=redirect_uri)
-        logger.info(f"Token recibido: access_token válido por {token.get('expires_in', 0)/60/60} horas")
-        
-        # Guardar el token en la sesión
-        session['oauth_token'] = token
-        
-        # Guardar el código de autorización utilizado exitosamente
-        session['last_auth_code'] = code
-        
-        # Redireccionar al dashboard
-        return redirect(url_for('dashboard'))
-    except Exception as e:
-        logger.error(f"Callback error: {str(e)}")
-        return render_template('error.html', error=str(e))
-
-@app.route('/auth-complete', methods=['GET', 'POST'])
-def auth_complete():
-    """Captura la autenticación después de la redirección de John Deere o código manual."""
-    try:
-        logger.info("Capturando código de autorización")
-        
-        # Obtener el código de autorización
-        code = None
-        if request.method == 'POST':
-            # Comprobar si es una solicitud de formulario o JSON
-            if request.is_json:
-                data = request.get_json()
-                code = data.get('code')
-            else:
-                code = request.form.get('code')
-        else:
-            code = request.args.get('code')
-        
-        if not code:
-            if request.is_json:
-                return jsonify({'error': 'No se proporcionó un código de autorización válido.'}), 400
-            flash("No se proporcionó un código de autorización válido.", "danger")
+    # URL base para la redirección que se usó en el flujo OAuth
+    redirect_uri = get_full_redirect_uri()
+    
+    # Verificar si hay un código y estado válidos
+    if code and state:
+        if state != session.get('oauth_state'):
+            logger.error("Estado inválido en la respuesta de autorización OAuth")
+            flash("Error de seguridad: el estado de la respuesta no coincide con el estado esperado.", "danger")
             return redirect(url_for('index'))
         
-        # Intercambiar el código por un token
+        # Log para depuración
+        logger.info(f"Código de autorización recibido: {code[:10]}...")
+        
+        # Renderizar la plantilla que enviará automáticamente el código
+        return render_template(
+            'auth_capture.html', 
+            code=code, 
+            state=state, 
+            redirect_uri=redirect_uri
+        )
+    
+    # Manejar errores específicos de OAuth
+    if error:
+        logger.error(f"Error en la autorización OAuth: {error}")
+        flash(f"Error de autorización: {error}", "danger")
+    else:
+        logger.error("No se recibió código o token en la redirección de autorización OAuth")
+        flash("No se pudo completar la autenticación. No se recibió código de autorización.", "danger")
+    
+    return redirect(url_for('index'))
+
+@app.route('/callback', methods=['GET', 'POST'])
+def callback():
+    """Handles the OAuth2 callback from John Deere."""
+    code = request.args.get('code')
+    state = request.args.get('state')
+    
+    # URL de redirección que se usó en el flujo OAuth
+    redirect_uri = get_full_redirect_uri()
+    
+    if code and state:
+        logger.info(f"Intentando intercambiar código por token con redirect_uri {redirect_uri}")
         try:
-            # Usar la función de ayuda para obtener la URL de redirección
-            redirect_uri = get_full_redirect_uri()
-            
-            from john_deere_api import exchange_code_for_token
+            # Intercambiar código por token de acceso
             token = exchange_code_for_token(code, redirect_uri=redirect_uri)
-            logger.info(f"Token recibido manualmente: access_token válido por {token.get('expires_in', 0)/60/60} horas")
             
             # Guardar el token en la sesión
             session['oauth_token'] = token
-            
-            # Guardar el código de autorización utilizado exitosamente
+            # Guardar el código para referencia (solo para depuración)
             session['last_auth_code'] = code
             
-            # Responder según el tipo de solicitud
-            if request.is_json:
-                return jsonify({'success': True, 'redirect': url_for('dashboard')})
-            
-            flash("Autenticación exitosa con código proporcionado", "success")
-        except Exception as token_error:
-            logger.error(f"Error intercambiando código por token: {str(token_error)}")
-            # En caso de error, usar un token simulado para desarrollo
-            session['oauth_token'] = {
-                'access_token': 'simulated_token_manual',
-                'refresh_token': 'simulated_refresh_token_manual',
-                'expires_in': 3600,
-                'expires_at': time.time() + 3600
-            }
-            
-            if request.is_json:
-                return jsonify({
-                    'success': False, 
-                    'warning': 'No se pudo obtener un token real. Usando token simulado para desarrollo.',
-                    'redirect': url_for('dashboard')
-                })
-            
-            flash("No se pudo obtener un token real. Usando token simulado para desarrollo.", "warning")
+            flash("Autenticación exitosa con John Deere API.", "success")
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            logger.error(f"Error intercambiando código por token: {str(e)}")
+            flash(f"Error intercambiando código por token: {str(e)}", "danger")
+    else:
+        logger.error("No se recibió código o estado en callback OAuth")
+        flash("No se recibió código de autorización o estado.", "danger")
+    
+    return redirect(url_for('index'))
+
+@app.route('/auth-complete', methods=['POST'])
+def auth_complete():
+    """Captura la autenticación después de la redirección de John Deere o código manual."""
+    logger.info("Capturando código de autorización")
+    
+    # Obtener código y URL de redirección del formulario
+    code = request.form.get('code')
+    redirect_uri = request.form.get('redirect_uri')
+    
+    if not code:
+        flash("No se proporcionó un código de autorización.", "danger")
+        return redirect(url_for('index'))
+    
+    try:
+        # Intercambiar código por token de acceso
+        token = exchange_code_for_token(code, redirect_uri=redirect_uri)
         
-        # Redirigir al dashboard
+        # Guardar el token en la sesión
+        session['oauth_token'] = token
+        # Guardar el código para referencia (solo para depuración)
+        session['last_auth_code'] = code
+        
+        flash("Autenticación exitosa con John Deere API.", "success")
         return redirect(url_for('dashboard'))
     except Exception as e:
-        logger.error(f"Error en auth-complete: {str(e)}")
-        if request.is_json:
-            return jsonify({'error': str(e)}), 500
-        return render_template('error.html', error=str(e))
+        logger.error(f"Error intercambiando código por token: {str(e)}")
+        flash(f"Error intercambiando código por token: {str(e)}", "danger")
+        return redirect(url_for('auth_setup'))
 
 @app.route('/dashboard')
 def dashboard():
     """Main dashboard view for authenticated users."""
     if 'oauth_token' not in session:
+        flash("Debe iniciar sesión para acceder al dashboard.", "warning")
         return redirect(url_for('index'))
     
     try:
@@ -272,9 +266,9 @@ def get_machines(organization_id):
         token = session.get('oauth_token')
         
         try:
-            # Verificar si estamos usando un token simulado
-            if token.get('access_token') == 'simulated_token_manual':
-                return jsonify({'error': 'No se puede conectar a la API con un token simulado. Se requiere un token real.'}), 401
+            # Verificar si estamos usando un token simulado o de prueba
+            if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                return jsonify({'error': 'Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.'}), 401
                 
             # Intentar obtener máquinas reales desde la API de John Deere
             logger.info(f"Obteniendo máquinas reales para la organización {organization_id}")
@@ -315,9 +309,9 @@ def get_machine_details(machine_id):
         token = session.get('oauth_token')
         
         try:
-            # Verificar si estamos usando un token simulado
-            if token.get('access_token') == 'simulated_token_manual':
-                return jsonify({'error': 'No se puede conectar a la API con un token simulado. Se requiere un token real.'}), 401
+            # Verificar si estamos usando un token simulado o de prueba
+            if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                return jsonify({'error': 'Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.'}), 401
                 
             # Intentar obtener detalles reales desde la API de John Deere
             logger.info(f"Obteniendo detalles reales para la máquina {machine_id}")
@@ -354,9 +348,9 @@ def get_machine_alerts(machine_id):
         token = session.get('oauth_token')
         
         try:
-            # Verificar si estamos usando un token simulado
-            if token.get('access_token') == 'simulated_token_manual':
-                return jsonify({'error': 'No se puede conectar a la API con un token simulado. Se requiere un token real.'}), 401
+            # Verificar si estamos usando un token simulado o de prueba
+            if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                return jsonify({'error': 'Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.'}), 401
                 
             # Intentar obtener alertas reales desde la API de John Deere
             logger.info(f"Obteniendo alertas reales para la máquina {machine_id}")
