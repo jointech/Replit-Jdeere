@@ -340,7 +340,7 @@
                 </div>
                 
                 <!-- Contenedor para la lista de alertas -->
-                <div id="alert-list-container" class="list-group list-group-flush alert-list" style="max-height: 300px; overflow-y: auto;">
+                <div id="alert-list-container" class="list-group list-group-flush alert-list" style="max-height: 300px; overflow-y: auto;" data-original-id="alertListContainer">
                     <!-- Las alertas se insertarán aquí dinámicamente -->
                 </div>
             </div>
@@ -359,7 +359,7 @@
             </div>
         </div>
         
-        <div class="card shadow" id="machine-details-card">
+        <div class="card shadow" id="machine-details-card" data-original-id="machineDetailCard">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-info-circle me-2"></i> Detalles de la Máquina
@@ -369,7 +369,7 @@
                 <div class="text-center py-4" id="machineDetailEmpty">
                     <p class="text-muted">Seleccione una máquina para ver sus detalles</p>
                 </div>
-                <div id="machine-details-content" class="d-none">
+                <div id="machine-details-content" class="d-none" data-original-id="machineDetailContent">
                     <div class="row">
                         <div class="col-md-6">
                             <h3 id="machineName">-</h3>
@@ -405,4 +405,29 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+// Script para compatibilidad de IDs entre CSS y JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Mapeo de IDs originales a nuevos IDs
+    const idMap = {
+        'machineDetailCard': 'machine-details-card',
+        'machineDetailContent': 'machine-details-content',
+        'alertListContainer': 'alert-list-container'
+    };
+    
+    // Reemplazar el método getElementById original
+    const originalGetElementById = document.getElementById;
+    document.getElementById = function(id) {
+        // Si el ID está en nuestro mapeo, intenta obtener el elemento con el nuevo ID
+        if (idMap[id]) {
+            const element = originalGetElementById.call(document, idMap[id]);
+            if (element) {
+                return element;
+            }
+        }
+        // Si no está en el mapeo o no se encontró con el nuevo ID, usa el método original
+        return originalGetElementById.call(document, id);
+    };
+});
+</script>
 {% endblock %}
