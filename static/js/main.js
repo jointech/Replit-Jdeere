@@ -368,12 +368,18 @@ function selectMachine(machineId) {
         // Guardar el ID anterior de la máquina seleccionada para comparar si cambió
         const previousSelectedMachineId = selectedMachineId;
         
+        // Quitar clases activas de todos los elementos
+        document.querySelectorAll('.active-card').forEach(card => {
+            card.classList.remove('active-card');
+        });
+        
         // Remove active class from all machine items in the list
         const machineItems = document.querySelectorAll('.machine-item');
         if (machineItems && machineItems.length > 0) {
             machineItems.forEach(item => {
                 if (item && item.classList) {
                     item.classList.remove('active');
+                    item.classList.remove('fade-in');
                 }
             });
         }
@@ -382,9 +388,16 @@ function selectMachine(machineId) {
         const selectedItem = document.querySelector(`.machine-item[data-machine-id="${machineId}"]`);
         if (selectedItem && selectedItem.classList) {
             selectedItem.classList.add('active');
+            selectedItem.classList.add('fade-in');
+            
+            // Asegurar que el elemento seleccionado es visible (scroll into view)
+            selectedItem.scrollIntoView({behavior: 'smooth', block: 'nearest'});
         } else {
             console.warn(`No se encontró elemento para la máquina con ID: ${machineId}`);
         }
+        
+        // Añadir clase activa a los paneles relacionados
+        document.getElementById('machineDetailCard').classList.add('active-card');
         
         // Save selected machine
         selectedMachineId = machineId;
@@ -549,7 +562,13 @@ function loadMachineAlerts(machineId) {
             alertListContainer.classList.remove('d-none');
             emptyAlertContainer.classList.add('d-none');
             
-            // Render alerts in the list
+            // Añadir efecto de destaque al panel de alertas
+            const alertsPanel = document.querySelector('.card .card-header h5 i.fa-bell')?.closest('.card');
+            if (alertsPanel) {
+                alertsPanel.classList.add('active-card');
+            }
+            
+            // Render alerts in the list with animation
             renderAlertList(alerts);
         })
         .catch(error => {

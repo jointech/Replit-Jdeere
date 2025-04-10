@@ -2,40 +2,133 @@
 
 {% block extra_css %}
 <style>
+    :root {
+        --gradient-primary: linear-gradient(135deg, #0d6efd, #0a58ca);
+        --gradient-secondary: linear-gradient(135deg, #495057, #343a40);
+        --gradient-dark: linear-gradient(135deg, #212529, #1a1d20);
+        --gradient-info: linear-gradient(135deg, #0dcaf0, #0aa2c0);
+        --gradient-danger: linear-gradient(135deg, #dc3545, #b02a37);
+        --gradient-warning: linear-gradient(135deg, #ffc107, #ca9a0b);
+        --card-border-radius: 0.5rem;
+        --box-shadow-color: rgba(0, 0, 0, 0.5);
+    }
+
+    /* Mejoras para los paneles/cards */
+    .card {
+        border-radius: var(--card-border-radius) !important;
+        border: none !important;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+        transition: all 0.3s ease !important;
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25) !important;
+        transform: translateY(-2px);
+    }
+    
+    .card .card-header {
+        background: var(--gradient-dark) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        padding: 0.8rem 1.25rem !important;
+    }
+    
+    /* Contenedor de máquinas con degradado */
+    #machineListContainer {
+        background: var(--gradient-secondary);
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Contenedor de alertas con degradado */
+    #alertListContainer {
+        background: var(--gradient-secondary);
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Mapa con borde personalizado */
     #map {
         height: 500px;
         width: 100%;
-        border-radius: 5px;
+        border-radius: 8px;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
     
+    /* Efecto de brillo en los bordes para paneles importantes */
+    .card.shadow {
+        position: relative;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    .card.shadow.active-card {
+        border: 1px solid rgba(13, 110, 253, 0.5) !important;
+        box-shadow: 0 0 20px rgba(13, 110, 253, 0.2) !important;
+    }
+    
+    /* Mejoras para los items de máquina */
     .machine-item {
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+        margin-bottom: 1px;
     }
     
     .machine-item:hover {
-        background-color: var(--bs-gray-800);
+        background-color: rgba(255, 255, 255, 0.05);
+        border-left-color: rgba(13, 110, 253, 0.5);
     }
     
     .machine-item.active {
-        background-color: var(--bs-primary) !important;
+        background: var(--gradient-primary) !important;
         color: white;
+        border-left-color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
     
+    /* Badge de alertas con efecto elevado */
     .alert-badge {
         position: absolute;
         top: -5px;
         right: -5px;
         font-size: 0.7rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Botones con efecto de brillo */
+    .btn {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+        transform: rotate(30deg);
+        opacity: 0;
+        transition: all 0.8s ease;
+    }
+    
+    .btn:hover:after {
+        opacity: 1;
+        transform: rotate(30deg) translate(20%, -20%);
     }
     
     /* Estilos de severidad de alertas */
     .alert-severity-high {
         color: var(--bs-danger); /* ROJO para HIGH */
+        text-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
     }
     
     .alert-severity-medium {
         color: var(--bs-warning); /* AMARILLO para MEDIUM */
+        text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
     }
     
     .alert-severity-low, 
@@ -46,26 +139,50 @@
     
     .alert-severity-info {
         color: var(--bs-info); /* AZUL para INFO */
+        text-shadow: 0 0 5px rgba(13, 202, 240, 0.3);
     }
     
-    /* Clases de fondo para badges */
+    /* Clases de fondo para badges con degradados */
     .bg-severity-high {
-        background-color: var(--bs-danger) !important;
+        background: var(--gradient-danger) !important;
+        box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
     }
     
     .bg-severity-medium {
-        background-color: var(--bs-warning) !important;
+        background: var(--gradient-warning) !important;
         color: var(--bs-dark) !important;
+        box-shadow: 0 2px 5px rgba(255, 193, 7, 0.3);
     }
     
     .bg-severity-low,
     .bg-severity-dtc,
     .bg-severity-unknown {
-        background-color: var(--bs-secondary) !important;
+        background: var(--gradient-secondary) !important;
     }
     
     .bg-severity-info {
-        background-color: var(--bs-info) !important;
+        background: var(--gradient-info) !important;
+        box-shadow: 0 2px 5px rgba(13, 202, 240, 0.3);
+    }
+    
+    /* Efecto de iluminación para elementos importantes */
+    .card-header h5 i {
+        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
+    }
+    
+    /* Spinner personalizado */
+    .spinner-border {
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Animación para transiciones suaves */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.3s ease forwards;
     }
 </style>
 {% endblock %}
