@@ -218,11 +218,16 @@ function loadMachines(organizationId) {
             
             // Mostrar campo de búsqueda si hay máquinas
             const machineSearchContainer = document.getElementById('machineSearchContainer');
+            console.log("Elemento buscador de máquinas:", machineSearchContainer);
+            
             if (machineSearchContainer) {
+                console.log("Mostrando campo de búsqueda de máquinas");
                 machineSearchContainer.classList.remove('d-none');
                 
                 // Configurar la búsqueda de máquinas
                 setupMachineSearch(machines);
+            } else {
+                console.error("No se encontró el contenedor de búsqueda de máquinas (machineSearchContainer)");
             }
             
             // Render machines in the list
@@ -503,8 +508,15 @@ function renderAlertList(alerts) {
 
 // Configurar la búsqueda de máquinas
 function setupMachineSearch(allMachines) {
+    console.log("Configurando búsqueda para", allMachines.length, "máquinas");
     const searchInput = document.getElementById('machineSearchInput');
     const noResultsMessage = document.getElementById('noMachineResultsMessage');
+    
+    console.log("Elementos de búsqueda:", {
+        searchInput: searchInput,
+        noResultsMessage: noResultsMessage
+    });
+    
     if (!searchInput) {
         console.error('No se encontró el elemento de búsqueda de máquinas');
         return;
@@ -513,10 +525,18 @@ function setupMachineSearch(allMachines) {
     // Guardar todas las máquinas para filtrarlas
     window.allMachines = allMachines;
     
+    // Eliminar listeners anteriores para evitar duplicación
+    searchInput.removeEventListener('input', handleMachineSearch);
+    
     // Manejar el evento de entrada para filtrar la lista
-    searchInput.addEventListener('input', function() {
+    searchInput.addEventListener('input', handleMachineSearch);
+    
+    // Función para manejar la búsqueda (definida fuera para poder eliminarla)
+    function handleMachineSearch() {
         const searchTerm = this.value.toLowerCase().trim();
         const machineListContainer = document.getElementById('machineListContainer');
+        
+        console.log("Buscando máquinas con término:", searchTerm);
         
         // Si no hay término de búsqueda, mostrar todas las máquinas
         if (searchTerm === '') {
@@ -540,6 +560,8 @@ function setupMachineSearch(allMachines) {
                    id.includes(searchTerm);
         });
         
+        console.log("Máquinas filtradas:", filteredMachines.length);
+        
         // Actualizar la lista con las máquinas filtradas
         machineListContainer.innerHTML = '';
         
@@ -549,7 +571,7 @@ function setupMachineSearch(allMachines) {
         } else {
             noResultsMessage.classList.remove('d-none');
         }
-    });
+    }
 }
 
 // Reset machine details
