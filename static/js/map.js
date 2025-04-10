@@ -66,8 +66,8 @@ function withGoogleMaps(callback) {
     }
 }
 
-// Función para obtener el color según el tipo de máquina
-function getMachineColor(machine) {
+// Función para obtener el tipo de máquina como string
+function getMachineType(machine) {
     // Intentar conseguir el tipo desde la propiedad type (que puede ser un objeto o string)
     let machineType = '';
     
@@ -78,6 +78,14 @@ function getMachineColor(machine) {
             machineType = machine.type;
         }
     }
+    
+    return machineType;
+}
+
+// Función para obtener el color según el tipo de máquina
+function getMachineColor(machine) {
+    // Usar la función auxiliar para obtener el tipo
+    const machineType = getMachineType(machine);
     
     // Si no hay un color específico para este tipo, usar el color predeterminado
     return machineColors[machineType] || machineColors['default'];
@@ -230,18 +238,52 @@ function addSingleMachineToMap(machine, bounds) {
     const scale = isSelected ? 1.3 : 1.0;
     const fillColor = isSelected ? '#FFD700' : color; // Dorado para seleccionadas
     
+    // Seleccionar ícono personalizado según el tipo de máquina
+    let iconUrl;
+    
+    // Seleccionar ícono según el tipo
+    switch (getMachineType(machine)) {
+        case 'Tractor':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+            break;
+        case 'Harvester':
+        case 'Tracked Harvester':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+            break;
+        case 'Backhoes':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+            break;
+        case 'Excavator':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png';
+            break;
+        case 'Skidder':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png';
+            break;
+        case 'Truck':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+            break;
+        case 'Vehicle':
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/lightblue-dot.png';
+            break;
+        default:
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    }
+    
+    // Si está seleccionada, usar ícono dorado
+    if (isSelected) {
+        iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+    }
+    
     // Crear un marcador con ícono personalizado
     const marker = new google.maps.Marker({
         position: position,
         map: map,
         title: machine.name || `Máquina ${machine.id}`,
         icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: fillColor,
-            fillOpacity: 0.9,
-            strokeWeight: 2,
-            strokeColor: '#FFFFFF',
-            scale: 8 * scale // Tamaño base * factor de escala
+            url: iconUrl,
+            scaledSize: new google.maps.Size(isSelected ? 42 : 35, isSelected ? 42 : 35), // Tamaño más grande para seleccionadas
+            origin: new google.maps.Point(0, 0),
+            anchor: new google.maps.Point(isSelected ? 21 : 17.5, isSelected ? 42 : 35)
         },
         zIndex: isSelected ? 1000 : 1 // Mayor zIndex para máquinas seleccionadas
     });
