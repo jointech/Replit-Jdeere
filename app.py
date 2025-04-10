@@ -13,6 +13,7 @@ from config import JOHN_DEERE_AUTHORIZE_URL
 from john_deere_api import (
     JOHN_DEERE_CLIENT_ID,
     exchange_code_for_token,
+    fetch_alert_definition,
     fetch_machine_alerts,
     fetch_machine_details,
     fetch_machines_by_organization,
@@ -421,6 +422,29 @@ def get_machine_alerts(machine_id):
     except Exception as e:
         logger.error(f"Error general en get_machine_alerts: {str(e)}")
         return jsonify({'error': str(e)}), 500
+        
+@app.route('/api/alert/definition')
+def get_alert_definition():
+    """API endpoint to get detailed definition for a specific alert."""
+    if 'oauth_token' not in session:
+        return jsonify({"error": "No estás autenticado"}), 401
+    
+    # Obtener la URI de la definición desde los parámetros de consulta
+    definition_uri = request.args.get('uri')
+    if not definition_uri:
+        return jsonify({"error": "Se requiere el parámetro 'uri'"}), 400
+    
+    try:
+        # Obtener la definición de la alerta
+        token = session.get('oauth_token')
+        definition = john_deere_api.fetch_alert_definition(token, definition_uri)
+        if definition:
+            return jsonify(definition)
+        else:
+            return jsonify({"error": "No se pudo obtener la definición de la alerta"}), 404
+    except Exception as e:
+        logger.error(f"Error al obtener definición de alerta {definition_uri}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/auth-setup')
 def auth_setup():

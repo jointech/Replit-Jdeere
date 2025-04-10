@@ -368,6 +368,42 @@ def fetch_machine_details(token, machine_id):
         logger.error(f"Error fetching details for machine {machine_id}: {str(e)}")
         raise
 
+def fetch_alert_definition(token, definition_uri):
+    """Fetches detailed definition for a specific alert.
+    
+    Args:
+        token: OAuth token
+        definition_uri: URI for the alert definition, either a full URL or just the path
+    
+    Returns:
+        Dictionary with alert definition details or None if there was an error
+    """
+    try:
+        token = refresh_token_if_needed(token)
+        oauth = get_oauth_session(token=token)
+        
+        # Handle both full URLs and relative paths
+        if definition_uri.startswith('http'):
+            endpoint = definition_uri
+        else:
+            # Add the base URL if only the path was provided
+            endpoint = f"{JOHN_DEERE_API_BASE_URL}/{definition_uri.lstrip('/')}"
+        
+        logger.info(f"Fetching alert definition from: {endpoint}")
+        
+        # Make the request
+        response = oauth.get(endpoint)
+        response.raise_for_status()
+        
+        # Get the data from the response
+        data = response.json()
+        logger.info(f"Received alert definition response: {str(data)[:300]}...")
+        
+        return data
+    except Exception as e:
+        logger.error(f"Error fetching alert definition for {definition_uri}: {str(e)}")
+        return None
+
 def fetch_machine_alerts(token, machine_id, days_back=30):
     """Fetches alerts for a specific machine within a date range.
     

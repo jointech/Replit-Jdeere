@@ -560,6 +560,92 @@ function loadMachineAlerts(machineId) {
         });
 }
 
+// Obtener y mostrar los detalles de una alerta
+function loadAlertDetails(button, definitionUri) {
+    console.log(`Cargando definición de alerta desde: ${definitionUri}`);
+    
+    // Obtener el contenedor para los detalles (siguiente elemento después del botón)
+    const detailsContainer = button.nextElementSibling;
+    if (!detailsContainer) {
+        console.error("No se encontró el contenedor para los detalles de la alerta");
+        return;
+    }
+    
+    // Mostrar un indicador de carga
+    detailsContainer.classList.remove('d-none');
+    detailsContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando detalles...</div>';
+    
+    // Realizar la solicitud para obtener los detalles
+    fetch(`/api/alert/definition?uri=${encodeURIComponent(definitionUri)}`, {
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al cargar la definición de la alerta');
+            }
+            return response.json();
+        })
+        .then(definition => {
+            console.log("Definición de alerta recibida:", definition);
+            
+            // Formatear los detalles de manera legible
+            let detailsHtml = '<div class="card card-body bg-light">';
+            
+            // Título de la definición si está disponible
+            if (definition.title) {
+                detailsHtml += `<h6 class="card-title">${definition.title}</h6>`;
+            }
+            
+            // Descripción
+            if (definition.description) {
+                detailsHtml += `<p class="small">${definition.description}</p>`;
+            }
+            
+            // Causas
+            if (definition.causes && definition.causes.length > 0) {
+                detailsHtml += '<h6 class="mt-2">Posibles causas:</h6>';
+                detailsHtml += '<ul class="small">';
+                definition.causes.forEach(cause => {
+                    detailsHtml += `<li>${cause}</li>`;
+                });
+                detailsHtml += '</ul>';
+            }
+            
+            // Soluciones
+            if (definition.resolutions && definition.resolutions.length > 0) {
+                detailsHtml += '<h6 class="mt-2">Soluciones recomendadas:</h6>';
+                detailsHtml += '<ul class="small">';
+                definition.resolutions.forEach(resolution => {
+                    detailsHtml += `<li>${resolution}</li>`;
+                });
+                detailsHtml += '</ul>';
+            }
+            
+            // Información adicional
+            if (definition.additionalInfo) {
+                detailsHtml += `<div class="mt-2 small"><strong>Información adicional:</strong> ${definition.additionalInfo}</div>`;
+            }
+            
+            // Si no hay datos específicos, mostrar los datos brutos
+            if (detailsHtml === '<div class="card card-body bg-light">') {
+                detailsHtml += '<p class="small">No hay detalles específicos disponibles para esta alerta.</p>';
+            }
+            
+            detailsHtml += '</div>';
+            
+            // Mostrar los detalles
+            detailsContainer.innerHTML = detailsHtml;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            detailsContainer.innerHTML = `<div class="alert alert-danger small">Error al cargar detalles: ${error.message}</div>`;
+        });
+}
+
 // Render the alert list
 function renderAlertList(alerts) {
     console.log(`Renderizando lista de ${alerts.length} alertas`);
@@ -631,6 +717,17 @@ function renderAlertList(alerts) {
             }
             
             // Create the HTML content for the alert
+            // Verificar si tiene links y extraer una posible definición
+            let definitionLink = null;
+            if (alert.links && Array.isArray(alert.links)) {
+                for (const link of alert.links) {
+                    if (link.rel === 'definition' && link.uri) {
+                        definitionLink = link.uri;
+                        break;
+                    }
+                }
+            }
+            
             alertItem.innerHTML = `
                 <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1 ${severityClass}">
@@ -645,6 +742,14 @@ function renderAlertList(alerts) {
                     <small class="text-muted">${timestamp}</small>
                     <small class="text-muted">Tipo: ${alert.type || 'Desconocido'}</small>
                 </div>
+                ${definitionLink ? 
+                    `<div class="mt-2">
+                        <button class="btn btn-sm btn-outline-info show-alert-details" 
+                                data-definition-uri="${definitionLink}">
+                            <i class="fas fa-info-circle me-1"></i> Ver detalles adicionales
+                        </button>
+                        <div class="alert-details-container mt-2 d-none"></div>
+                    </div>` : ''}
             `;
             
             alertListContainer.appendChild(alertItem);
