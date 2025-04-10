@@ -184,8 +184,8 @@ def fetch_machine_location(token, machine_id):
             logger.warning(f"Error fetching location for machine {machine_id} from locationHistory endpoint: {str(e)}")
             
             # Intentar con endpoint alternativo si el primero falla
-            # Usar explícitamente la URL con 'partnerapi' sin la 't' como fallback
-            alt_endpoint = f"https://partnerapi.deere.com/platform/machines/{machine_id}/location"
+            # Usar explícitamente la URL base correcta para el endpoint alternativo
+            alt_endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/location"
             try:
                 logger.info(f"Trying alternative location endpoint: {alt_endpoint}")
                 response = oauth.get(alt_endpoint, headers=headers)
