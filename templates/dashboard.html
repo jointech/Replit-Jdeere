@@ -327,7 +327,7 @@
             </div>
         </div>
         
-        <div class="card shadow mb-4">
+        <div class="card shadow mb-4" id="machine-alerts-card">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-bell me-2"></i> Alertas
@@ -340,7 +340,7 @@
                 </div>
                 
                 <!-- Contenedor para la lista de alertas -->
-                <div id="alertListContainer" class="list-group list-group-flush alert-list" style="max-height: 300px; overflow-y: auto;">
+                <div id="alert-list-container" class="list-group list-group-flush alert-list" style="max-height: 300px; overflow-y: auto;">
                     <!-- Las alertas se insertarán aquí dinámicamente -->
                 </div>
             </div>
@@ -359,7 +359,7 @@
             </div>
         </div>
         
-        <div class="card shadow" id="machineDetailCard">
+        <div class="card shadow" id="machine-details-card">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-info-circle me-2"></i> Detalles de la Máquina
@@ -369,7 +369,7 @@
                 <div class="text-center py-4" id="machineDetailEmpty">
                     <p class="text-muted">Seleccione una máquina para ver sus detalles</p>
                 </div>
-                <div id="machineDetailContent" class="d-none">
+                <div id="machine-details-content" class="d-none">
                     <div class="row">
                         <div class="col-md-6">
                             <h3 id="machineName">-</h3>

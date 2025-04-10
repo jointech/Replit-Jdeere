@@ -339,6 +339,7 @@ body.light-theme {
     --accent-teal: #00e2ac;
     --card-bg: #ffffff;
     --card-text: #2c3e50;
+    --winter-white: #f0f8ff; /* Blanco invierno para fondos especiales */
     background-color: #0a1929;
     color: #ffffff;
 }
@@ -516,6 +517,65 @@ body.light-theme .stat-number {
 body.light-theme .stat-label {
     font-size: 14px;
     color: #7f8c9d;
+}
+
+/* Detalle de máquina y Alertas con fondo blanco invierno */
+body.light-theme #machine-details-card,
+body.light-theme #machine-alerts-card {
+    background-color: var(--winter-white);
+    border: 1px solid rgba(0, 226, 172, 0.1);
+}
+
+body.light-theme #machine-details-card .card-header,
+body.light-theme #machine-alerts-card .card-header {
+    background: linear-gradient(to right, var(--winter-white), #ffffff);
+    color: #2c3e50;
+    border-bottom: 1px solid rgba(0, 226, 172, 0.1);
+}
+
+body.light-theme #machine-details-content,
+body.light-theme #alert-list-container {
+    background-color: var(--winter-white);
+    color: #2c3e50;
+    border-radius: 0 0 12px 12px;
+    padding: 15px;
+}
+
+/* Estilos para las alertas en tema claro */
+body.light-theme .alert-item {
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-left: 3px solid var(--accent-teal);
+    transition: all 0.2s ease;
+}
+
+body.light-theme .alert-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .alert-description {
+    color: #5a6268;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+body.light-theme .alert-timestamp {
+    color: #7f8c9d;
+    font-size: 0.8rem;
+    text-align: right;
 }
 
 /* Responsive adjustments */
