@@ -1,102 +1,24 @@
 // Map variables
 let map;
 let markers = {};
+let infoWindow;
 
-// Definir íconos según el tipo de máquina utilizando marcadores de colores estándar de Leaflet
-const machineIcons = {
-    // Íconos por defecto para cada tipo
-    'default': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Tractores - Verde
-    'Tractor': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Cosechadoras - Rojo
-    'Harvester': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    'Tracked Harvester': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Cargadores forestales - Naranja
-    'Forwarder': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Skidders - Violeta
-    'Skidder': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Excavadoras - Amarillo
-    'Excavator': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Camiones - Azul claro
-    'Truck': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Otros vehículos - Azul
-    'Vehicle': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    }),
-    // Two-wheel Drive Tractors - Verde
-    'Two-wheel Drive Tractors - 140 Hp And Above': L.icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    })
+// Definir colores según el tipo de máquina para Google Maps
+const machineColors = {
+    'default': '#28a745', // Verde por defecto
+    'Tractor': '#28a745', // Verde
+    'Harvester': '#dc3545', // Rojo
+    'Tracked Harvester': '#dc3545', // Rojo
+    'Forwarder': '#fd7e14', // Naranja
+    'Skidder': '#6f42c1', // Violeta
+    'Excavator': '#ffc107', // Amarillo
+    'Truck': '#17a2b8', // Azul claro
+    'Vehicle': '#007bff', // Azul
+    'Two-wheel Drive Tractors - 140 Hp And Above': '#28a745' // Verde
 };
 
-// Función para obtener el ícono según el tipo de máquina
-function getMachineIcon(machine) {
+// Función para obtener el color según el tipo de máquina
+function getMachineColor(machine) {
     // Intentar conseguir el tipo desde la propiedad type (que puede ser un objeto o string)
     let machineType = '';
     
@@ -108,23 +30,27 @@ function getMachineIcon(machine) {
         }
     }
     
-    // Si no hay un ícono específico para este tipo, usar el ícono predeterminado
-    return machineIcons[machineType] || machineIcons['default'];
+    // Si no hay un color específico para este tipo, usar el color predeterminado
+    return machineColors[machineType] || machineColors['default'];
 }
 
 // Initialize the map
 function initMap() {
-    // Create map centered on a default location (center of USA if no data)
-    map = L.map('map').setView([40.0, -95.0], 4);
+    // Info window compartida para todos los marcadores
+    infoWindow = new google.maps.InfoWindow();
     
-    // Add the OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(map);
-    
-    // Add a scale control
-    L.control.scale().addTo(map);
+    // Crear mapa centrado en una ubicación predeterminada (centro de Chile si no hay datos)
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
+        zoom: 5,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        streetViewControl: false,
+        mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+        }
+    });
 }
 
 // Add machines to the map
@@ -135,7 +61,7 @@ function addMachinesToMap(machines) {
     clearMapMarkers();
     
     // Bounds to fit all markers
-    const bounds = L.latLngBounds();
+    const bounds = new google.maps.LatLngBounds();
     let validLocations = 0;
     
     // Para grandes cantidades de máquinas, mostrar solo las primeras 50 con localización
@@ -144,15 +70,12 @@ function addMachinesToMap(machines) {
     let markersAdded = 0;
     let hasLimitedMarkers = false;
     
-    // Crear un grupo de marcadores para añadirlos de una vez y mejorar rendimiento
-    const markerGroup = L.layerGroup();
-    
     // Primero, añadir máquina seleccionada si existe
     if (selectedMachineId) {
         const selectedMachine = machines.find(m => m.id === selectedMachineId);
         if (selectedMachine && selectedMachine.location && 
             selectedMachine.location.latitude && selectedMachine.location.longitude) {
-            addSingleMachineToMap(selectedMachine, bounds, markerGroup);
+            addSingleMachineToMap(selectedMachine, bounds);
             validLocations++;
             markersAdded++;
         }
@@ -172,89 +95,100 @@ function addMachinesToMap(machines) {
                 break;
             }
             
-            addSingleMachineToMap(machine, bounds, markerGroup);
+            addSingleMachineToMap(machine, bounds);
             validLocations++;
             markersAdded++;
         }
     }
     
-    // Añadir todos los marcadores al mapa de una vez para mejor rendimiento
-    markerGroup.addTo(map);
+    // Si tenemos ubicaciones válidas, ajustar el mapa a esos límites
+    if (validLocations > 0) {
+        map.fitBounds(bounds);
+        
+        // Limitar el zoom máximo para no acercarse demasiado si solo hay un marcador
+        if (validLocations === 1) {
+            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                if (map.getZoom() > 15) map.setZoom(15);
+            });
+        }
+    }
     
     // Si hemos limitado los marcadores, mostrar un mensaje
     if (hasLimitedMarkers) {
-        // Crear un control personalizado para mostrar un mensaje
-        const limitMessage = L.control({position: 'bottomleft'});
-        limitMessage.onAdd = function(map) {
-            const div = L.DomUtil.create('div', 'info');
-            div.innerHTML = `
-                <div class="alert alert-info p-2 m-0" style="font-size: 0.8rem; opacity: 0.9;">
-                    <i class="fas fa-info-circle"></i> 
-                    Mostrando ${markersAdded} de ${machines.filter(m => m.location && 
-                    m.location.latitude && m.location.longitude).length} ubicaciones.
-                </div>`;
-            return div;
-        };
-        limitMessage.addTo(map);
+        // Crear un control de información personalizado
+        const limitInfoDiv = document.createElement('div');
+        limitInfoDiv.className = 'map-info-control';
+        limitInfoDiv.innerHTML = `
+            <div class="alert alert-info p-2 m-0" style="font-size: 0.8rem; opacity: 0.9;">
+                <i class="fas fa-info-circle"></i> 
+                Mostrando ${markersAdded} de ${machines.filter(m => m.location && 
+                m.location.latitude && m.location.longitude).length} ubicaciones.
+            </div>`;
+        
+        // Estilos CSS para el control personalizado
+        limitInfoDiv.style.margin = '10px';
+        limitInfoDiv.style.padding = '5px';
+        limitInfoDiv.style.backgroundColor = 'white';
+        limitInfoDiv.style.border = '1px solid #ccc';
+        limitInfoDiv.style.borderRadius = '4px';
+        limitInfoDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+        
+        // Añadir el control al mapa
+        map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(limitInfoDiv);
     }
     
     console.log(`Añadidos ${markersAdded} marcadores al mapa`);
 }
 
 // Función auxiliar para añadir una máquina al mapa
-function addSingleMachineToMap(machine, bounds, markerGroup) {
-    const position = [machine.location.latitude, machine.location.longitude];
+function addSingleMachineToMap(machine, bounds) {
+    // Crear posición para Google Maps
+    const position = {
+        lat: parseFloat(machine.location.latitude),
+        lng: parseFloat(machine.location.longitude)
+    };
     
     // Determinar si esta máquina está seleccionada
     const isSelected = selectedMachineId && machine.id === selectedMachineId;
     
-    // Obtener el ícono personalizado según el tipo de máquina
-    const icon = getMachineIcon(machine);
+    // Obtener el color según el tipo de máquina
+    const color = getMachineColor(machine);
     
-    // Para las máquinas seleccionadas, usamos un ícono especial de color gold
-    if (isSelected) {
-        // Usar un ícono especial para la máquina seleccionada
-        icon = L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [30, 45], // Hacerlo un poco más grande
-            iconAnchor: [15, 45],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-        });
-    }
+    // Para máquinas seleccionadas, usar un tamaño más grande y color dorado
+    const scale = isSelected ? 1.3 : 1.0;
+    const fillColor = isSelected ? '#FFD700' : color; // Dorado para seleccionadas
     
-    // Create a marker with popup and custom icon
-    const marker = L.marker(position, { icon: icon })
-        .bindPopup(createMachinePopupContent(machine));
-        
-    // Para máquinas seleccionadas, destacar el ícono
-    if (isSelected) {
-        // Asegurarse que esté por encima de otros marcadores
-        marker.setZIndexOffset(1000);
-    }
+    // Crear un marcador con ícono personalizado
+    const marker = new google.maps.Marker({
+        position: position,
+        map: map,
+        title: machine.name || `Máquina ${machine.id}`,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: fillColor,
+            fillOpacity: 0.9,
+            strokeWeight: 2,
+            strokeColor: '#FFFFFF',
+            scale: 8 * scale // Tamaño base * factor de escala
+        },
+        zIndex: isSelected ? 1000 : 1 // Mayor zIndex para máquinas seleccionadas
+    });
     
-    // Store marker with machine ID as key
-    markers[machine.id] = marker;
+    // Añadir información de ventana emergente (InfoWindow)
+    const popupContent = createMachinePopupContent(machine);
     
-    // Add marker to the marker group (not directly to map for performance)
-    marker.addTo(markerGroup);
-    
-    // Add click event to select machine when marker is clicked
-    marker.on('click', function() {
+    marker.addListener('click', function() {
+        infoWindow.setContent(popupContent);
+        infoWindow.open(map, marker);
+        // Seleccionar la máquina cuando se hace clic en el marcador
         selectMachine(machine.id);
     });
     
-    // Extend bounds to include this marker
-    bounds.extend(position);
+    // Almacenar el marcador con el ID de máquina como clave
+    markers[machine.id] = marker;
     
-    // If we have valid locations, fit the map to bounds
-    if (validLocations > 0) {
-        map.fitBounds(bounds, {
-            padding: [50, 50],
-            maxZoom: 12
-        });
-    }
+    // Extender los límites para incluir este marcador
+    bounds.extend(position);
 }
 
 // Create popup content for machine marker
@@ -280,7 +214,7 @@ function createMachinePopupContent(machine) {
 // Clear all markers from the map
 function clearMapMarkers() {
     Object.values(markers).forEach(marker => {
-        map.removeLayer(marker);
+        marker.setMap(null);
     });
     markers = {};
 }
@@ -289,7 +223,11 @@ function clearMapMarkers() {
 function focusMapOnMachine(machineId) {
     const marker = markers[machineId];
     if (marker) {
-        map.setView(marker.getLatLng(), 14);
-        marker.openPopup();
+        map.setCenter(marker.getPosition());
+        map.setZoom(14);
+        infoWindow.setContent(createMachinePopupContent(
+            window.lastLoadedMachines.find(m => m.id === machineId)
+        ));
+        infoWindow.open(map, marker);
     }
 }
