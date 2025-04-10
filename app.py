@@ -1,12 +1,15 @@
 import logging
 import os
 import time
+import json
 from urllib.parse import urlparse, urlunparse
 import secrets
+from datetime import datetime, timedelta
 
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from requests_oauthlib import OAuth2Session
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import JOHN_DEERE_AUTHORIZE_URL
@@ -20,13 +23,33 @@ from john_deere_api import (
     fetch_organizations,
     get_oauth_session
 )
+from models import db, User, Organization, Machine, LoginLog
 
+# Inicialización de la aplicación
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # necesario para url_for con https
 
+# Configurar SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", 'sqlite:///deere_dashboard.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+
+# Inicializar LoginManager para Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login_form'
+login_manager.login_message = 'Por favor inicie sesión para acceder a esta página.'
+login_manager.login_message_category = 'warning'
+
+# Configurar logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Función requerida por Flask-Login para cargar un usuario."""
+    return User.query.get(int(user_id))
 
 def get_base_url():
     """Obtiene la URL base de la aplicación actual, con el protocolo correcto."""
