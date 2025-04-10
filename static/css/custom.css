@@ -97,6 +97,55 @@
     justify-content: center;
 }
 
+/* Alert severity color classes */
+.alert-severity-high {
+    color: #dc3545;
+}
+
+.alert-severity-medium {
+    color: #ffc107;
+}
+
+.alert-severity-low {
+    color: #6c757d;
+}
+
+.alert-severity-info {
+    color: #0dcaf0;
+}
+
+.alert-severity-dtc, 
+.alert-severity-unknown {
+    color: #6c757d;
+}
+
+/* Alert severity badges */
+.bg-severity-high {
+    background-color: #dc3545;
+    color: white;
+}
+
+.bg-severity-medium {
+    background-color: #ffc107;
+    color: black;
+}
+
+.bg-severity-low {
+    background-color: #6c757d;
+    color: white;
+}
+
+.bg-severity-info {
+    background-color: #0dcaf0;
+    color: black;
+}
+
+.bg-severity-dtc, 
+.bg-severity-unknown {
+    background-color: #6c757d;
+    color: white;
+}
+
 /* Fade animation for content loading */
 .fade-in {
     animation: fadeIn 0.3s ease-in;
