@@ -137,7 +137,14 @@
             </div>
             <div class="card-body p-0">
                 <div id="machineSearchContainer" class="p-2 border-bottom d-none">
-                    <input type="text" class="form-control form-control-sm" id="machineSearchInput" placeholder="Buscar máquina..." autocomplete="off">
+                    <div class="position-relative">
+                        <input type="text" class="form-control form-control-sm" id="machineSearchInput" placeholder="Buscar máquina..." autocomplete="off">
+                        <div id="machineSearchLoading" class="position-absolute d-none" style="right: 10px; top: 5px;">
+                            <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                                <span class="visually-hidden">Buscando...</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div id="machineListContainer" class="list-group list-group-flush machine-list" style="max-height: 400px; overflow-y: auto;">
                     <div class="text-center py-5">

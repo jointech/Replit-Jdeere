@@ -252,38 +252,99 @@ function loadMachines(organizationId) {
 
 // Render the machine list
 function renderMachineList(machines) {
+    console.log(`Renderizando lista de ${machines.length} máquinas`);
     const machineListContainer = document.getElementById('machineListContainer');
     machineListContainer.innerHTML = '';
     
-    machines.forEach(machine => {
-        const machineItem = document.createElement('a');
-        machineItem.href = '#';
-        machineItem.className = 'list-group-item list-group-item-action machine-item';
-        machineItem.setAttribute('data-machine-id', machine.id);
-        
-        const hasLocation = machine.location && machine.location.latitude && machine.location.longitude;
-        
-        // Create the HTML content for the item
-        machineItem.innerHTML = `
-            <div class="d-flex w-100 justify-content-between">
-                <h6 class="mb-1">${machine.name || 'Sin nombre'}</h6>
-                <small>${machine.category || 'Sin categoría'}</small>
-            </div>
-            <small class="d-block">Modelo: ${machine.model || 'Desconocido'}</small>
-            <small class="d-block ${hasLocation ? 'text-success' : 'text-muted'}">
-                <i class="fas fa-${hasLocation ? 'map-marker-alt' : 'map-marker-slash'}"></i>
-                ${hasLocation ? 'Ubicación disponible' : 'Sin ubicación'}
-            </small>
-        `;
-        
-        // Add click event to select this machine
-        machineItem.addEventListener('click', function(e) {
-            e.preventDefault();
-            selectMachine(machine.id);
+    // Optimización para rendimiento: crear un fragmento de documento
+    // para evitar múltiples repaints en grandes cantidades de máquinas
+    const fragment = document.createDocumentFragment();
+    
+    // Limitar número de máquinas mostradas inicialmente si hay muchas
+    // y agregar un botón para cargar más si es necesario
+    const CHUNK_SIZE = 50; // Cantidad máxima inicial
+    const totalMachines = machines.length;
+    let initialMachines = machines;
+    let remainingMachines = [];
+    
+    if (totalMachines > CHUNK_SIZE) {
+        console.log(`Optimizando renderizado para ${totalMachines} máquinas`);
+        initialMachines = machines.slice(0, CHUNK_SIZE);
+        remainingMachines = machines.slice(CHUNK_SIZE);
+    }
+    
+    // Función para renderizar un conjunto de máquinas
+    const renderMachinesChunk = (machinesList, container) => {
+        machinesList.forEach(machine => {
+            const machineItem = document.createElement('a');
+            machineItem.href = '#';
+            machineItem.className = 'list-group-item list-group-item-action machine-item';
+            machineItem.setAttribute('data-machine-id', machine.id);
+            machineItem.setAttribute('data-category', machine.category || '');
+            machineItem.setAttribute('data-model', machine.model || '');
+            machineItem.setAttribute('data-name', machine.name || '');
+            
+            const hasLocation = machine.location && machine.location.latitude && machine.location.longitude;
+            
+            // Create the HTML content for the item
+            machineItem.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${machine.name || 'Sin nombre'}</h6>
+                    <small>${machine.category || 'Sin categoría'}</small>
+                </div>
+                <small class="d-block">Modelo: ${machine.model || 'Desconocido'}</small>
+                <small class="d-block ${hasLocation ? 'text-success' : 'text-muted'}">
+                    <i class="fas fa-${hasLocation ? 'map-marker-alt' : 'map-marker-slash'}"></i>
+                    ${hasLocation ? 'Ubicación disponible' : 'Sin ubicación'}
+                </small>
+            `;
+            
+            // Add click event to select this machine
+            machineItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                selectMachine(machine.id);
+            });
+            
+            container.appendChild(machineItem);
+        });
+    };
+    
+    // Renderizar el primer conjunto de máquinas
+    renderMachinesChunk(initialMachines, fragment);
+    
+    // Si hay más máquinas por cargar, agregar botón "Cargar más"
+    if (remainingMachines.length > 0) {
+        const loadMoreButton = document.createElement('button');
+        loadMoreButton.className = 'btn btn-outline-primary btn-sm w-100 mt-2';
+        loadMoreButton.textContent = `Cargar más máquinas (${remainingMachines.length} restantes)`;
+        loadMoreButton.addEventListener('click', function() {
+            this.textContent = 'Cargando...';
+            this.disabled = true;
+            
+            // Simular una pequeña demora para que la UI pueda actualizarse
+            setTimeout(() => {
+                // Eliminar el botón "Cargar más"
+                this.remove();
+                
+                // Renderizar el siguiente conjunto de máquinas
+                renderMachinesChunk(remainingMachines, machineListContainer);
+                
+                console.log('Máquinas adicionales cargadas');
+                
+                // Actualizar búsqueda si hay un término activo
+                const searchInput = document.getElementById('machineSearchInput');
+                if (searchInput && searchInput.value.trim()) {
+                    const event = new Event('input');
+                    searchInput.dispatchEvent(event);
+                }
+            }, 50);
         });
         
-        machineListContainer.appendChild(machineItem);
-    });
+        fragment.appendChild(loadMoreButton);
+    }
+    
+    // Agregar todos los elementos al contenedor
+    machineListContainer.appendChild(fragment);
 }
 
 // Select a machine to show details and alerts
@@ -512,11 +573,6 @@ function setupMachineSearch(allMachines) {
     const searchInput = document.getElementById('machineSearchInput');
     const noResultsMessage = document.getElementById('noMachineResultsMessage');
     
-    console.log("Elementos de búsqueda:", {
-        searchInput: searchInput,
-        noResultsMessage: noResultsMessage
-    });
-    
     if (!searchInput) {
         console.error('No se encontró el elemento de búsqueda de máquinas');
         return;
@@ -528,8 +584,31 @@ function setupMachineSearch(allMachines) {
     // Eliminar listeners anteriores para evitar duplicación
     searchInput.removeEventListener('input', handleMachineSearch);
     
-    // Manejar el evento de entrada para filtrar la lista
-    searchInput.addEventListener('input', handleMachineSearch);
+    // Variables para optimización
+    let debounceTimer;
+    const DEBOUNCE_DELAY = 300; // ms
+    
+    // Manejar el evento de entrada para filtrar la lista con debounce
+    searchInput.addEventListener('input', function() {
+        // Cancelar el timer anterior
+        clearTimeout(debounceTimer);
+        
+        // Mostrar un indicador de búsqueda en progreso
+        const loadingIndicator = document.getElementById('machineSearchLoading');
+        if (loadingIndicator) {
+            loadingIndicator.classList.remove('d-none');
+        }
+        
+        // Establecer un nuevo timer
+        debounceTimer = setTimeout(() => {
+            handleMachineSearch.call(this);
+            
+            // Ocultar el indicador de búsqueda
+            if (loadingIndicator) {
+                loadingIndicator.classList.add('d-none');
+            }
+        }, DEBOUNCE_DELAY);
+    });
     
     // Función para manejar la búsqueda (definida fuera para poder eliminarla)
     function handleMachineSearch() {
@@ -547,8 +626,30 @@ function setupMachineSearch(allMachines) {
             return;
         }
         
-        // Filtrar máquinas que coincidan con el término de búsqueda
-        const filteredMachines = allMachines.filter(machine => {
+        // Optimización: Si hay demasiadas máquinas, usar un algoritmo de búsqueda más eficiente
+        // que priorice coincidencias exactas primero
+        let filteredMachines = [];
+        
+        // Prioridad 1: Coincidencias exactas en ID
+        const exactIdMatches = allMachines.filter(machine => 
+            machine.id.toString().toLowerCase() === searchTerm);
+        filteredMachines.push(...exactIdMatches);
+        
+        // Prioridad 2: Coincidencias exactas en nombre
+        if (searchTerm.length > 2) {  // Solo para términos de búsqueda significativos
+            const exactNameMatches = allMachines.filter(machine => 
+                !exactIdMatches.includes(machine) && 
+                (machine.name || '').toLowerCase() === searchTerm);
+            filteredMachines.push(...exactNameMatches);
+        }
+        
+        // Prioridad 3: Coincidencias parciales
+        const partialMatches = allMachines.filter(machine => {
+            // Saltamos las máquinas que ya están incluidas por coincidencias exactas
+            if (filteredMachines.includes(machine)) {
+                return false;
+            }
+            
             const name = (machine.name || '').toLowerCase();
             const model = (machine.model || '').toLowerCase();
             const category = (machine.category || '').toLowerCase();
@@ -560,12 +661,29 @@ function setupMachineSearch(allMachines) {
                    id.includes(searchTerm);
         });
         
+        // Si hay demasiadas coincidencias parciales, limitamos para evitar problemas de rendimiento
+        const MAX_RESULTS = 100;
+        if (partialMatches.length > MAX_RESULTS) {
+            console.log(`Limitando resultados parciales de ${partialMatches.length} a ${MAX_RESULTS}`);
+            filteredMachines.push(...partialMatches.slice(0, MAX_RESULTS));
+        } else {
+            filteredMachines.push(...partialMatches);
+        }
+        
         console.log("Máquinas filtradas:", filteredMachines.length);
         
         // Actualizar la lista con las máquinas filtradas
         machineListContainer.innerHTML = '';
         
         if (filteredMachines.length > 0) {
+            // Mostrar mensaje si se limitaron los resultados
+            if (partialMatches.length > MAX_RESULTS) {
+                const limitMessage = document.createElement('div');
+                limitMessage.className = 'alert alert-info small mb-2';
+                limitMessage.innerHTML = `<i class="fas fa-info-circle"></i> Mostrando ${filteredMachines.length} resultados. Refine su búsqueda para ver más máquinas.`;
+                machineListContainer.appendChild(limitMessage);
+            }
+            
             renderMachineList(filteredMachines);
             noResultsMessage.classList.add('d-none');
         } else {
