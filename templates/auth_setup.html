@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Configuración de Autenticación John Deere</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i> Instrucciones para desarrolladores</h5>
+                        <p>Para que la autenticación automática funcione correctamente, debe configurar las URLs de redirección en su perfil de desarrollador de John Deere.</p>
+                    </div>
+                    
+                    <h5 class="mt-4">Pasos para configurar la redirección:</h5>
+                    <ol class="list-group list-group-numbered mb-4">
+                        <li class="list-group-item">Inicie sesión en la <a href="https://johndeerecustomer-admin.okta.com/" target="_blank">consola de administración de John Deere</a></li>
+                        <li class="list-group-item">Vaya a "Applications" y seleccione su cliente OAuth con ID: <code>0oaaob0zcwLvdRZhw5d7</code></li>
+                        <li class="list-group-item">En la pestaña "General", busque la sección "Login"</li>
+                        <li class="list-group-item">Agregue las siguientes URLs de redirección (una por línea):
+                            <div class="mt-2">
+                                <ul class="list-group">
+                                    <li class="list-group-item bg-dark text-light">
+                                        <code class="user-select-all">{{ auth_capture_url }}</code>
+                                        <span class="badge bg-success float-end">Nueva</span>
+                                    </li>
+                                    <li class="list-group-item bg-dark text-light">
+                                        <code class="user-select-all">{{ base_url }}/auth-capture</code>
+                                        <span class="badge bg-success float-end">Nueva</span>
+                                    </li>
+                                    <li class="list-group-item bg-dark text-light">
+                                        <code class="user-select-all">{{ base_url }}/callback</code>
+                                        <span class="badge bg-success float-end">Nueva</span>
+                                    </li>
+                                    <li class="list-group-item bg-dark text-light">
+                                        <code class="user-select-all">{{ redirect_uri }}</code>
+                                        <span class="badge bg-secondary float-end">Existente</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="list-group-item">Haga clic en "Save" para guardar los cambios</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i> Importante</h5>
+                        <p>Hasta que no configure estas URLs de redirección, deberá utilizar el método manual de autenticación.</p>
+                    </div>
+                    
+                    <h5 class="mt-4">Página receptora HTML alternativa</h5>
+                    <p>Si no puede modificar la configuración de su aplicación John Deere, puede usar nuestro archivo HTML receptor estático:</p>
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-dark text-light" value="{{ base_url }}/static/auth_receiver.html" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ base_url }}/static/auth_receiver.html')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Comparta esta URL con sus usuarios para facilitar la autenticación.</small>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i> Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        alert('URL copiada al portapapeles');
+    }, function(err) {
+        console.error('Error al copiar texto: ', err);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow mt-5">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Capturando Código de Autorización</h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <h5 id="status-message">Procesando el código de autorización...</h5>
+                    <p class="text-muted">Por favor espere, será redirigido automáticamente.</p>
+                    
+                    <div id="error-container" class="alert alert-danger d-none mt-3">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i> Error</h5>
+                        <p id="error-message"></p>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-danger">Volver al inicio</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para obtener parámetros de la URL
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+    
+    // Obtener el código de autorización y el estado de la URL
+    const code = getUrlParameter('code');
+    const state = getUrlParameter('state');
+    const error = getUrlParameter('error');
+    const errorDescription = getUrlParameter('error_description');
+    
+    if (error) {
+        // Mostrar el error si existe
+        document.getElementById('status-message').textContent = 'Se produjo un error en la autenticación';
+        document.getElementById('error-container').classList.remove('d-none');
+        document.getElementById('error-message').textContent = errorDescription || error;
+    } else if (code) {
+        // Si tenemos un código, enviarlo al servidor
+        fetch("{{ url_for('auth_complete') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || '')}`
+        })
+        .then(response => {
+            if (response.redirected) {
+                // Si el servidor responde con una redirección, seguirla
+                window.location.href = response.url;
+            } else if (response.ok) {
+                return response.json();
+            } else {
+                throw new Error('Error en la respuesta del servidor');
+            }
+        })
+        .then(data => {
+            if (data && data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                window.location.href = "{{ url_for('dashboard') }}";
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('status-message').textContent = 'Error procesando el código de autorización';
+            document.getElementById('error-container').classList.remove('d-none');
+            document.getElementById('error-message').textContent = 'Se produjo un error al procesar el código. Por favor, intente nuevamente.';
+        });
+    } else {
+        // Si no hay código ni error, mostrar un mensaje de error genérico
+        document.getElementById('status-message').textContent = 'No se encontró un código de autorización';
+        document.getElementById('error-container').classList.remove('d-none');
+        document.getElementById('error-message').textContent = 'No se pudo obtener el código de autorización. Por favor, intente nuevamente.';
+    }
+});
+</script>
+{% endblock %}

@@ -13,7 +13,14 @@ from john_deere_api import (
     fetch_machine_details,
     fetch_machine_alerts
 )
-from config import JOHN_DEERE_CLIENT_ID, JOHN_DEERE_CLIENT_SECRET, JOHN_DEERE_AUTHORIZE_URL, JOHN_DEERE_SCOPES, REDIRECT_URI
+from config import (
+    JOHN_DEERE_CLIENT_ID, 
+    JOHN_DEERE_CLIENT_SECRET, 
+    JOHN_DEERE_AUTHORIZE_URL, 
+    JOHN_DEERE_SCOPES, 
+    REDIRECT_URI,
+    AUTH_CAPTURE_URL
+)
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -54,6 +61,11 @@ def login():
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         return render_template('error.html', error=str(e))
+
+@app.route('/auth-capture')
+def auth_capture():
+    """Página que captura el código de autorización de la URL y lo envía automáticamente a auth_complete."""
+    return render_template('auth_capture.html')
 
 @app.route('/callback')
 def callback():
@@ -96,11 +108,18 @@ def auth_complete():
         # Obtener el código de autorización
         code = None
         if request.method == 'POST':
-            code = request.form.get('code')
+            # Comprobar si es una solicitud de formulario o JSON
+            if request.is_json:
+                data = request.get_json()
+                code = data.get('code')
+            else:
+                code = request.form.get('code')
         else:
             code = request.args.get('code')
         
         if not code:
+            if request.is_json:
+                return jsonify({'error': 'No se proporcionó un código de autorización válido.'}), 400
             flash("No se proporcionó un código de autorización válido.", "danger")
             return redirect(url_for('index'))
         
@@ -113,6 +132,10 @@ def auth_complete():
             # Guardar el token en la sesión
             session['oauth_token'] = token
             
+            # Responder según el tipo de solicitud
+            if request.is_json:
+                return jsonify({'success': True, 'redirect': url_for('dashboard')})
+            
             flash("Autenticación exitosa con código proporcionado", "success")
         except Exception as token_error:
             logger.error(f"Error intercambiando código por token: {str(token_error)}")
@@ -123,12 +146,22 @@ def auth_complete():
                 'expires_in': 3600,
                 'expires_at': time.time() + 3600
             }
+            
+            if request.is_json:
+                return jsonify({
+                    'success': False, 
+                    'warning': 'No se pudo obtener un token real. Usando token simulado para desarrollo.',
+                    'redirect': url_for('dashboard')
+                })
+            
             flash("No se pudo obtener un token real. Usando token simulado para desarrollo.", "warning")
         
         # Redirigir al dashboard
         return redirect(url_for('dashboard'))
     except Exception as e:
         logger.error(f"Error en auth-complete: {str(e)}")
+        if request.is_json:
+            return jsonify({'error': str(e)}), 500
         return render_template('error.html', error=str(e))
 
 @app.route('/dashboard')

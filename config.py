@@ -22,3 +22,7 @@ SECRET_KEY = os.environ.get('SESSION_SECRET', 'dev-secret-key')
 # Application Configuration
 # Usar URL registrada en el cliente OAuth de John Deere (original)
 REDIRECT_URI = os.environ.get('REDIRECT_URI', 'https://www.forestlink.cl')
+
+# URL del captador de autenticación
+# Esta es la URL que mostramos al usuario para capturar el código
+AUTH_CAPTURE_URL = os.environ.get('AUTH_CAPTURE_URL', 'https://workspace.replit.app/auth-capture')

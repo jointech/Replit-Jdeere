@@ -29,14 +29,24 @@
                 
                 <div class="alert alert-info mt-4">
                     <h5><i class="fas fa-info-circle me-2"></i> Autenticación con John Deere</h5>
-                    <p>Al hacer clic en "Iniciar sesión con John Deere", será redirigido al portal de autenticación de John Deere. <strong>Importante</strong>: Después de autorizar, es posible que vea un error de redirección a www.forestlink.cl.</p>
-                    <p class="text-danger"><strong>Si esto ocurre:</strong> Copie el código de autorización que aparece en la URL (después de "code=") y utilice el formulario de ingreso manual que aparece abajo.</p>
+                    <p>Al hacer clic en "Iniciar sesión con John Deere", será redirigido al portal de autenticación de John Deere.</p>
+                    <p>Después de autenticar, se capturará automáticamente el código de autorización y regresará a la aplicación.</p>
                     <p class="small mb-0">Se requiere acceso a una cuenta de John Deere con permisos en Operations Center.</p>
+                </div>
+
+                <div class="alert alert-warning mt-4">
+                    <h5><i class="fas fa-tools me-2"></i> Autenticación Manual (alternativa)</h5>
+                    <p>Si la autenticación automática no funciona, puede usar el método manual:</p>
+                    <ol>
+                        <li>Inicie sesión en John Deere</li>
+                        <li>Cuando vea la redirección a forestlink.cl, copie el código de autorización de la URL (después de "code=")</li>
+                        <li>Pegue el código en el formulario de abajo</li>
+                    </ol>
                 </div>
 
                 <div class="mt-4">
                     <h5>Ingreso manual de código de autorización</h5>
-                    <p class="text-muted small">Si la redirección automática no funciona, puede ingresar manualmente el código de autorización recibido después de autenticarse con John Deere.</p>
+                    <p class="text-muted small">Utilice este formulario solo si la autenticación automática no funciona.</p>
                     <form action="{{ url_for('auth_complete') }}" method="POST">
                         <div class="mb-3">
                             <label for="authCode" class="form-label">Código de Autorización</label>
