@@ -135,14 +135,21 @@ def fetch_machines_by_organization(token, organization_id):
         
         logger.info(f"Fetching machines for organization {organization_id}")
         
-        # Endpoint actualizado para obtener máquinas
-        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/organizations/{organization_id}/machines"
+        # Usando el endpoint específico para equipos con el formato exacto proporcionado
+        endpoint = "https://equipmentapi.deere.com/isg/equipment"
+        
+        # Parámetros específicos para el endpoint de equipos
+        params = {
+            "organizationIds": organization_id,
+            "categories": "machine"
+        }
         
         # Agregar encabezado para desactivar paginación
         headers = {'x-deere-no-paging': 'true'}
         
-        # Realizar la petición con paginación desactivada (sin parámetros en la URL)
-        response = oauth.get(endpoint, headers=headers)
+        # Realizar la petición con los parámetros específicos
+        logger.info(f"Requesting URL: {endpoint} with params: {params}")
+        response = oauth.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
         
         # Process the response to extract machine data
@@ -194,38 +201,53 @@ def fetch_machine_details(token, machine_id):
         
         logger.info(f"Fetching details for machine {machine_id}")
         
-        # No es necesario el encabezado de paginación para una petición de elemento único,
-        # pero lo incluimos por consistencia
+        # Usando el endpoint específico para equipos
+        endpoint = "https://equipmentapi.deere.com/isg/equipment"
+        
+        # Parámetro para obtener un equipo específico por ID
+        params = {"ids": machine_id}
+        
+        # Agregar encabezado para desactivar paginación
         headers = {'x-deere-no-paging': 'true'}
         
-        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}", headers=headers)
+        logger.info(f"Requesting machine details from: {endpoint} with params: {params}")
+        response = oauth.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
         
         # Obtener los datos de la respuesta
         data = response.json()
         logger.info(f"Received machine details response: {data}")
         
+        # La respuesta contiene un array de valores, tenemos que obtener la primera máquina
+        machine_data = None
+        if 'values' in data and len(data['values']) > 0:
+            machine_data = data['values'][0]
+        else:
+            logger.error(f"No machine data found for ID: {machine_id}")
+            raise ValueError(f"No se encontraron detalles para la máquina con ID: {machine_id}")
+        
         # Crear un objeto con la estructura esperada por nuestro frontend
         location = None
-        if 'lastKnownLocation' in data:
+        if 'lastKnownLocation' in machine_data:
             location = {
-                'latitude': data['lastKnownLocation'].get('latitude'),
-                'longitude': data['lastKnownLocation'].get('longitude'),
-                'timestamp': data['lastKnownLocation'].get('timestamp')
+                'latitude': machine_data['lastKnownLocation'].get('latitude'),
+                'longitude': machine_data['lastKnownLocation'].get('longitude'),
+                'timestamp': machine_data['lastKnownLocation'].get('timestamp')
             }
         
+        # Extraer detalles adicionales si están disponibles
         machine_details = {
-            'id': data.get('id'),
-            'name': data.get('name', f"Máquina {machine_id}"),
-            'serialNumber': data.get('serialNumber', f"SN-{machine_id}"),
-            'model': data.get('model', 'Desconocido'),
-            'type': data.get('type') or data.get('category', 'UNKNOWN'),
-            'category': data.get('category', 'UNKNOWN'),
-            'status': data.get('status', 'ACTIVE'),
+            'id': machine_data.get('id'),
+            'name': machine_data.get('name', f"Máquina {machine_id}"),
+            'serialNumber': machine_data.get('serialNumber', f"SN-{machine_id}"),
+            'model': machine_data.get('model', 'Desconocido'),
+            'type': machine_data.get('type') or machine_data.get('category', 'UNKNOWN'),
+            'category': machine_data.get('category', 'UNKNOWN'),
+            'status': machine_data.get('status', 'ACTIVE'),
             'location': location,
-            'hoursOfOperation': data.get('hoursOfOperation', 0),
-            'fuelLevel': data.get('fuelLevel', 0),
-            'lastUpdated': data.get('lastUpdated') or data.get('timestamp')
+            'hoursOfOperation': machine_data.get('hoursOfOperation', 0),
+            'fuelLevel': machine_data.get('fuelLevel', 0),
+            'lastUpdated': machine_data.get('lastUpdated') or machine_data.get('timestamp')
         }
         
         return machine_details
@@ -241,10 +263,14 @@ def fetch_machine_alerts(token, machine_id):
         
         logger.info(f"Fetching alerts for machine {machine_id}")
         
+        # Usando el endpoint específico para alertas de máquinas
+        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/alerts"
+        
         # Agregar encabezado para desactivar paginación
         headers = {'x-deere-no-paging': 'true'}
         
-        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/alerts", headers=headers)
+        logger.info(f"Requesting machine alerts from: {endpoint}")
+        response = oauth.get(endpoint, headers=headers)
         response.raise_for_status()
         
         # Process the response to extract alert data
