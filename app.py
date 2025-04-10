@@ -501,10 +501,10 @@ def logout():
 @app.route('/test-location/<machine_id>')
 def test_location(machine_id):
     """Endpoint de prueba para obtener ubicación directamente."""
-    if 'token' not in session:
+    if 'oauth_token' not in session:
         return jsonify({'error': 'No hay token en sesión. Inicie sesión primero.'}), 401
     
-    token = session['token']
+    token = session['oauth_token']
     
     try:
         # Importamos aquí para no interferir con las importaciones principales
