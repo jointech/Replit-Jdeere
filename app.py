@@ -437,6 +437,81 @@ def logout():
     flash("You have been logged out successfully.", "success")
     return redirect(url_for('index'))
 
+@app.route('/test-location/<machine_id>')
+def test_location(machine_id):
+    """Endpoint de prueba para obtener ubicación directamente."""
+    if 'token' not in session:
+        return jsonify({'error': 'No hay token en sesión. Inicie sesión primero.'}), 401
+    
+    token = session['token']
+    
+    try:
+        # Importamos aquí para no interferir con las importaciones principales
+        from requests_oauthlib import OAuth2Session
+        from john_deere_api import refresh_token_if_needed
+        
+        # Refrescar token si es necesario
+        token = refresh_token_if_needed(token)
+        
+        # Crear sesión OAuth
+        oauth = OAuth2Session(JOHN_DEERE_CLIENT_ID, token=token)
+        
+        # Probar el endpoint locationHistory
+        history_endpoint = f"https://partnerapi.deere.com/platform/machines/{machine_id}/locationHistory"
+        logger.info(f"Probando endpoint locationHistory: {history_endpoint}")
+        
+        # Agregar header para desactivar paginación
+        headers = {'x-deere-no-paging': 'true'}
+        
+        history_response = oauth.get(history_endpoint, headers=headers)
+        history_data = None
+        history_status = history_response.status_code
+        history_error = None
+        
+        try:
+            history_response.raise_for_status()
+            history_data = history_response.json()
+        except Exception as e:
+            history_error = str(e)
+        
+        # Probar endpoint location directo
+        location_endpoint = f"https://partnerapi.deere.com/platform/machines/{machine_id}/location"
+        logger.info(f"Probando endpoint location: {location_endpoint}")
+        
+        location_response = oauth.get(location_endpoint, headers=headers)
+        location_data = None
+        location_status = location_response.status_code
+        location_error = None
+        
+        try:
+            location_response.raise_for_status()
+            location_data = location_response.json()
+        except Exception as e:
+            location_error = str(e)
+        
+        # Resultado de ambas pruebas
+        result = {
+            'machine_id': machine_id,
+            'locationHistory': {
+                'endpoint': history_endpoint,
+                'status': history_status,
+                'data': history_data,
+                'error': history_error
+            },
+            'location': {
+                'endpoint': location_endpoint,
+                'status': location_status,
+                'data': location_data,
+                'error': location_error
+            }
+        }
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        logger.error(f"Error en prueba de ubicación: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('error.html', error="Page not found."), 404
