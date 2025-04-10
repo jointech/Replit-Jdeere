@@ -64,22 +64,6 @@
                         </button>
                     </form>
                     
-                    <div class="alert alert-warning mt-4">
-                        <h5><i class="fas fa-wrench me-2"></i> Modo de Desarrollo</h5>
-                        <p>Puede usar un código de prueba para desarrollo y verificación del sistema sin necesidad de autenticarse con John Deere.</p>
-                        <form action="{{ url_for('auth_complete') }}" method="post" class="mb-3">
-                            <input type="hidden" name="_is_form" value="true">
-                            <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
-                            <input type="hidden" name="code" value="test_code">
-                            <button type="submit" class="btn btn-warning">
-                                <i class="fas fa-code me-2"></i> Usar código de prueba (modo desarrollo)
-                            </button>
-                        </form>
-                        <small class="text-muted">
-                            <strong>Nota:</strong> Esto generará datos simulados para pruebas. No utilice esta opción en un entorno de producción.
-                        </small>
-                    </div>
-                    
                     <h5 class="mt-4">Página receptora HTML alternativa</h5>
                     <p>Si no puede modificar la configuración de su aplicación John Deere, puede usar nuestro archivo HTML receptor estático:</p>
                     <div class="mb-3">

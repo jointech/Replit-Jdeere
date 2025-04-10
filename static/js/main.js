@@ -663,9 +663,162 @@ function toggleAlertDetails(button, definitionUri) {
     });
 }
 
-// Funciones relacionadas con "Ver detalles adicionales" eliminadas - Ya no son necesarias
+/**
+ * NUEVA FUNCIÓN: Muestra los detalles de alerta directamente en el elemento, 
+ * sin usar contenedores anidados ni clases especiales
+ */
+function showAlertDetailsInline(button, definitionUri, alertId) {
+    console.log(`Mostrando detalles para: ${definitionUri}`);
+    
+    // Extraer el ID de la alerta si no se pasó como argumento
+    if (!alertId) {
+        alertId = definitionUri.split('/').pop();
+    }
+    
+    // Encontrar el contenedor de detalles (hermano del botón)
+    const detailsContainer = button.nextElementSibling;
+    if (!detailsContainer) {
+        console.error("No se encontró contenedor para mostrar detalles");
+        return;
+    }
+    
+    // Verificar si el botón ya estaba expandido
+    const isExpanded = button.classList.contains('expanded');
+    
+    // Si ya está expandido, solo oculta el contenido
+    if (isExpanded) {
+        detailsContainer.style.display = 'none';
+        button.innerHTML = '<i class="fas fa-info-circle me-1"></i> Ver detalles adicionales';
+        button.classList.remove('expanded');
+        return;
+    }
+    
+    // Si no está expandido, mostrar el contenido
+    detailsContainer.style.display = 'block';
+    button.innerHTML = '<i class="fas fa-times-circle me-1"></i> Ocultar detalles';
+    button.classList.add('expanded');
+    
+    // Indicador de carga mientras esperamos datos de la API
+    detailsContainer.innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando detalles de la alerta...</p>
+        </div>
+    `;
+    
+    // Intentar obtener datos reales de la API
+    fetch(`/api/alert/definition?uri=${encodeURIComponent(definitionUri)}`, {
+        credentials: 'same-origin',
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Respuesta de la API recibida:", data);
+        
+        // Procesar la respuesta de la API para mostrar datos relevantes
+        let detailsHtml = '';
+        
+        if (data && data.success) {
+            // Usar los datos de la API para mostrar información detallada
+            detailsHtml = `
+                <h5 class="text-info mb-3">${data.title || `Alerta DTC ${alertId}`}</h5>
+                <p class="mb-3">${data.description || `Esta es una alerta de código de diagnóstico (DTC) con ID ${alertId}. Para más información, consulte la documentación técnica de John Deere.`}</p>
+                
+                <hr>
+            `;
+            
+            // Añadir causas si están disponibles
+            if (data.causes && data.causes.length > 0) {
+                detailsHtml += `
+                    <h6 class="text-warning mt-3">Posibles causas:</h6>
+                    <ul class="mb-3">
+                `;
+                
+                data.causes.forEach(cause => {
+                    detailsHtml += `<li>${cause}</li>`;
+                });
+                
+                detailsHtml += '</ul>';
+            }
+            
+            // Añadir soluciones si están disponibles
+            if (data.resolutions && data.resolutions.length > 0) {
+                detailsHtml += `
+                    <h6 class="text-success mt-3">Soluciones recomendadas:</h6>
+                    <ul class="mb-3">
+                `;
+                
+                data.resolutions.forEach(resolution => {
+                    detailsHtml += `<li>${resolution}</li>`;
+                });
+                
+                detailsHtml += '</ul>';
+            }
+            
+            // Información adicional y nota
+            if (data.additionalInfo) {
+                detailsHtml += `
+                    <div class="mt-3">
+                        <strong>Información adicional:</strong> ${data.additionalInfo}
+                    </div>
+                `;
+            }
+            
+            if (data.note) {
+                detailsHtml += `
+                    <div class="mt-3 small text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <em>${data.note}</em>
+                    </div>
+                `;
+            }
+        } else {
+            // Mostrar mensaje de error o información por defecto
+            detailsHtml = `
+                <h5 class="text-info mb-3">Alerta DTC ${alertId}</h5>
+                <p class="mb-3">Esta es una alerta de código de diagnóstico (DTC). Para más información, consulte la documentación técnica de John Deere o contacte con su concesionario.</p>
+                
+                <hr>
+                
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No se pudo obtener información detallada para esta alerta. Es posible que se requieran permisos adicionales para acceder a los detalles completos.
+                </div>
+                
+                <h6 class="text-warning mt-3">Recomendaciones generales:</h6>
+                <ul class="mb-3">
+                    <li>Consulte con un técnico autorizado de John Deere.</li>
+                    <li>Revise el manual técnico del equipo para más información.</li>
+                </ul>
+            `;
+        }
+        
+        // Actualizar el contenedor con los detalles
+        detailsContainer.innerHTML = detailsHtml;
+    })
+    .catch(error => {
+        console.error("Error al comunicarse con la API:", error);
+        
+        // Mostrar un mensaje de error
+        detailsContainer.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No se pudo obtener información para esta alerta debido a un error de comunicación.
+            </div>
+            
+            <h5 class="text-info mt-3">Alerta DTC ${alertId}</h5>
+            <p>Esta es una alerta de código de diagnóstico (DTC). Para más información, consulte la documentación técnica de John Deere.</p>
+        `;
+    });
+}
 
-// Función loadAlertDetails eliminada - Ya no es necesaria
+// Función antigua para compatibilidad (será llamada por los event listeners existentes)
+function loadAlertDetails(button, definitionUri) {
+    // Simplemente redirige a la nueva implementación
+    showAlertDetailsInline(button, definitionUri);
+}
 
 // Render the alert list
 function renderAlertList(alerts) {

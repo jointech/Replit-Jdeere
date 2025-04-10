@@ -26,21 +26,19 @@
 
                     <div id="manualForm" class="d-none">
                         <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i> El procesamiento automático falló. Por favor, envíe el código manualmente haciendo clic en el botón de abajo.
+                            <i class="fas fa-exclamation-triangle me-2"></i> Procesamiento automático fallido. Por favor, envíe el código manualmente.
                         </div>
                         <form id="codeForm" method="post" action="{{ url_for('auth_complete') }}">
-                            <input type="hidden" name="code" id="codeInput">
-                            <input type="hidden" name="redirect_uri" id="redirectUriInput" value="{{ redirect_uri }}">
-                            <input type="hidden" name="_is_form" value="true">
-                            <div class="d-grid mt-3">
-                                <button type="submit" class="btn btn-lg btn-primary">
-                                    <i class="fas fa-paper-plane me-2"></i> Enviar código manualmente
+                            <div class="mb-3">
+                                <input type="hidden" name="code" id="codeInput">
+                                <input type="hidden" name="redirect_uri" id="redirectUriInput" value="{{ redirect_uri }}">
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-2"></i> Enviar código
                                 </button>
                             </div>
                         </form>
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Si continúa teniendo problemas, contacte al administrador del sistema.</small>
-                        </div>
                     </div>
 
                     <div class="text-center mt-4" id="redirectMessage">
@@ -98,8 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`${baseUrl}/auth-complete`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
             body: new URLSearchParams({
                 'code': code,
@@ -137,18 +134,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error al enviar código automáticamente:', error);
             captureSuccess.classList.add('d-none');
             captureError.classList.remove('d-none');
-            errorMessage.textContent = 'Error al procesar el código. Se mostrará el formulario manual.';
-            
-            // Mostrar el formulario de ingreso manual
+            errorMessage.textContent = 'Error al procesar el código: ' + error.message;
             manualForm.classList.remove('d-none');
-            
-            // Asegurar que el código esté correcto en el formulario manual
-            if (codeInput) {
-                codeInput.value = code;
-            }
-            if (document.getElementById('redirectUriInput')) {
-                document.getElementById('redirectUriInput').value = redirectUri;
-            }
         });
     } else {
         // No se encontró código

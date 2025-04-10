@@ -433,55 +433,6 @@ def fetch_alert_definition(token, definition_uri):
             'message': "Error interno al procesar la solicitud de definición de alerta."
         }
 
-def fetch_user_info(token, username):
-    """
-    Verifica si un usuario existe en la plataforma de John Deere y obtiene su información.
-    
-    Args:
-        token: OAuth token
-        username: Nombre de usuario a validar en John Deere
-        
-    Returns:
-        Dictionary con la información del usuario o None si no existe
-    """
-    try:
-        token = refresh_token_if_needed(token)
-        oauth = get_oauth_session(token=token)
-        
-        # Endpoint para verificar usuarios
-        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/users/{username}"
-        
-        # Encabezados para aceptar el formato de respuesta correcto
-        headers = {
-            'Accept': 'application/vnd.deere.axiom.v3+json'
-        }
-        
-        logger.info(f"Verificando usuario {username} en John Deere API")
-        response = oauth.get(endpoint, headers=headers)
-        
-        # Si el usuario existe, se obtiene un código 200
-        if response.status_code == 200:
-            user_data = response.json()
-            logger.info(f"Usuario {username} encontrado en John Deere API")
-            return {
-                'username': user_data.get('accountName'),
-                'first_name': user_data.get('givenName'),
-                'last_name': user_data.get('familyName'),
-                'user_type': user_data.get('userType'),
-                'links': user_data.get('links', [])
-            }
-        elif response.status_code == 404:
-            # Usuario no existe
-            logger.warning(f"Usuario {username} no encontrado en John Deere API")
-            return None
-        else:
-            # Otro error
-            logger.error(f"Error verificando usuario {username}: {response.status_code} - {response.text}")
-            return None
-    except Exception as e:
-        logger.error(f"Error al verificar usuario {username}: {str(e)}")
-        return None
-
 def fetch_machine_alerts(token, machine_id, days_back=30):
     """Fetches alerts for a specific machine within a date range.
     
