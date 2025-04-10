@@ -1,0 +1,94 @@
+/* Estilos específicos para las alertas */
+
+/* Contenedor de detalles de alerta */
+.alert-details-container {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin-top: 1rem !important;
+    transition: all 0.3s ease;
+    border-radius: 0.25rem;
+}
+
+.alert-details-container.d-none {
+    display: none !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Botón de detalles */
+.show-alert-details {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* Detalles expandidos */
+.alert-details-content {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+/* Severidades de alertas */
+.alert-severity-high, .bg-severity-high {
+    color: #721c24 !important;
+    background-color: #f8d7da !important;
+}
+
+.alert-severity-medium, .bg-severity-medium {
+    color: #856404 !important;
+    background-color: #fff3cd !important;
+}
+
+.alert-severity-low, .bg-severity-low,
+.alert-severity-dtc, .bg-severity-dtc,
+.alert-severity-unknown, .bg-severity-unknown {
+    color: #6c757d !important;
+    background-color: #f8f9fa !important;
+}
+
+.alert-severity-info, .bg-severity-info {
+    color: #0c5460 !important;
+    background-color: #d1ecf1 !important;
+}
+
+/* Estilos para badges */
+.badge.bg-severity-high, 
+.badge.bg-severity-medium, 
+.badge.bg-severity-low, 
+.badge.bg-severity-dtc, 
+.badge.bg-severity-unknown,
+.badge.bg-severity-info {
+    color: white !important;
+}
+
+.badge.bg-severity-high {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-severity-medium {
+    background-color: #ffc107 !important;
+    color: #343a40 !important;
+}
+
+.badge.bg-severity-low, 
+.badge.bg-severity-dtc, 
+.badge.bg-severity-unknown {
+    background-color: #6c757d !important;
+}
+
+.badge.bg-severity-info {
+    background-color: #17a2b8 !important;
+}

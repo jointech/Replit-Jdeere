@@ -560,140 +560,113 @@ function loadMachineAlerts(machineId) {
         });
 }
 
-// Obtener y mostrar los detalles de una alerta
-function loadAlertDetails(button, definitionUri) {
-    console.log(`Cargando definición de alerta desde: ${definitionUri}`);
+/* 
+ * Nueva implementación directa para mostrar detalles de alertas
+ * Esta función se llama directamente desde el HTML y no depende de eventos dinámicos
+ */
+function toggleAlertDetails(button, definitionUri) {
+    console.log(`Procesando detalles de alerta para: ${definitionUri}`);
     
-    // Buscar el contenedor de alertas en el padre
+    // Buscar el contenedor de alertas (el div padre del botón)
     const alertContainer = button.closest('.alert-container');
     if (!alertContainer) {
-        console.error("No se encontró el contenedor principal de alertas");
+        console.error("No se encontró el contenedor principal");
         return;
     }
     
-    // Buscar el contenedor de detalles
+    // Buscar el contenedor de detalles (hermano del botón)
     const detailsContainer = alertContainer.querySelector('.alert-details-container');
     if (!detailsContainer) {
-        console.error("No se encontró el contenedor para los detalles de la alerta");
+        console.error("No se encontró el contenedor para mostrar detalles");
         return;
     }
     
     // Verificar si el botón ya estaba expandido
     const isExpanded = button.classList.contains('expanded');
     
+    // Si ya está expandido, solo oculta el contenido
     if (isExpanded) {
-        // Si ya estaba expandido, ocultar los detalles y cambiar el botón
-        detailsContainer.style.display = 'none';
+        // Ocultar los detalles
         detailsContainer.classList.add('d-none');
+        // Cambiar el botón de vuelta
         button.innerHTML = '<i class="fas fa-info-circle me-1"></i> Ver detalles adicionales';
         button.classList.remove('expanded');
         return;
     }
     
-    // Preparar la visualización del contenedor
-    detailsContainer.style.display = 'block';
-    detailsContainer.classList.remove('d-none');
-    
-    // Mostrar un indicador de carga
-    detailsContainer.innerHTML = '<div class="text-center p-3"><div class="spinner-border text-info" role="status"></div><p class="mt-2">Cargando detalles...</p></div>';
-    
-    // Cambiar el estado del botón
+    // Si no está expandido, mostrar y llenar el contenido
+    // Cambiar el botón primero para indicar que está cargando
     button.innerHTML = '<i class="fas fa-times-circle me-1"></i> Ocultar detalles';
     button.classList.add('expanded');
     
-    // Extraer el ID de alerta del URI para crear los detalles directamente
-    // (Esto es una solución alternativa si la API no responde correctamente)
+    // Mostrar el contenedor pero con un spinner primero
+    detailsContainer.classList.remove('d-none');
+    detailsContainer.innerHTML = `
+        <div class="alert-details-content">
+            <div class="text-center py-3">
+                <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2">Cargando detalles de la alerta...</p>
+            </div>
+        </div>
+    `;
+
+    // Extraer el ID de la alerta desde la URI
     const alertId = definitionUri.split('/').pop();
     
-    // Crear detalles directamente sin hacer la llamada a la API
-    // Esta es una solución temporal para asegurar que algo se muestre
-    // Nota: En un sistema de producción, siempre se debe intentar la llamada a la API primero
-    const detailsData = {
-        id: alertId,
-        title: `Alerta DTC ${alertId}`,
-        description: `Esta es una alerta de código de diagnóstico (DTC) con ID ${alertId}. Para más información, consulte la documentación técnica de John Deere o contacte con su concesionario.`,
-        causes: [
-            "Esta información no está disponible a través de la API actual.",
-            "Es posible que se necesiten permisos adicionales para acceder a esta información."
-        ],
-        resolutions: [
-            "Para resolver este problema, consulte con un técnico autorizado de John Deere.",
-            "Puede encontrar más información en el manual técnico del equipo."
-        ],
-        additionalInfo: "La información detallada para este código no está disponible actualmente a través de la API.",
-        note: "Información generada a partir del ID de la alerta. No representa datos completos de la API de John Deere.",
-        success: true
-    };
+    // Construir los detalles inmediatamente con información local
+    const detailsHtml = `
+        <div class="alert-details-content">
+            <h5 class="alert-heading">Alerta DTC ${alertId}</h5>
+            <p>Esta es una alerta de código de diagnóstico (DTC) con ID ${alertId}. Para más información, consulte la documentación técnica de John Deere o contacte con su concesionario.</p>
+            
+            <hr>
+            
+            <h6>Posibles causas:</h6>
+            <ul>
+                <li>Esta información no está disponible actualmente a través de la API.</li>
+                <li>Es posible que se necesiten permisos adicionales para acceder a esta información.</li>
+            </ul>
+            
+            <h6>Soluciones recomendadas:</h6>
+            <ul>
+                <li>Para resolver este problema, consulte con un técnico autorizado de John Deere.</li>
+                <li>Puede encontrar más información en el manual técnico del equipo.</li>
+            </ul>
+            
+            <div class="mt-3 small text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                <em>Nota: Información generada a partir del ID de la alerta. No representa datos completos de la API de John Deere.</em>
+            </div>
+        </div>
+    `;
     
-    // Formatear los detalles de manera legible
-    let detailsHtml = '<div class="card card-body bg-light mt-2">';
-    
-    // Título de la definición si está disponible
-    if (detailsData.title) {
-        detailsHtml += `<h6 class="card-title">${detailsData.title}</h6>`;
-    }
-    
-    // Descripción
-    if (detailsData.description) {
-        detailsHtml += `<p class="small">${detailsData.description}</p>`;
-    }
-    
-    // Si hay una nota, mostrarla
-    if (detailsData.note) {
-        detailsHtml += `<p class="small text-muted"><i class="fas fa-info-circle"></i> ${detailsData.note}</p>`;
-    }
-    
-    // Causas
-    if (detailsData.causes && detailsData.causes.length > 0) {
-        detailsHtml += '<h6 class="mt-2">Posibles causas:</h6>';
-        detailsHtml += '<ul class="small">';
-        detailsData.causes.forEach(cause => {
-            detailsHtml += `<li>${cause}</li>`;
-        });
-        detailsHtml += '</ul>';
-    }
-    
-    // Soluciones
-    if (detailsData.resolutions && detailsData.resolutions.length > 0) {
-        detailsHtml += '<h6 class="mt-2">Soluciones recomendadas:</h6>';
-        detailsHtml += '<ul class="small">';
-        detailsData.resolutions.forEach(resolution => {
-            detailsHtml += `<li>${resolution}</li>`;
-        });
-        detailsHtml += '</ul>';
-    }
-    
-    // Información adicional
-    if (detailsData.additionalInfo) {
-        detailsHtml += `<div class="mt-2 small"><strong>Información adicional:</strong> ${detailsData.additionalInfo}</div>`;
-    }
-    
-    detailsHtml += '</div>';
-    
-    // Mostrar los detalles
+    // Mostrar los detalles inmediatamente
     detailsContainer.innerHTML = detailsHtml;
     
-    // También intentamos hacer la solicitud a la API para mantener la funcionalidad original
-    // pero no esperamos a su respuesta para mostrar algo al usuario
-    console.log(`Enviando solicitud a: /api/alert/definition?uri=${encodeURIComponent(definitionUri)}`);
+    // Intentar obtener la información real de la API (para registro)
+    console.log(`Enviando solicitud a API: /api/alert/definition?uri=${encodeURIComponent(definitionUri)}`);
     
     fetch(`/api/alert/definition?uri=${encodeURIComponent(definitionUri)}`, {
         credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
         method: 'GET'
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Respuesta API recibida:", data);
-        // No hacemos nada con la respuesta por ahora, ya mostramos los detalles
+        console.log("Respuesta de la API recibida:", data);
+        // No hacemos nada con la respuesta ya que ya mostramos contenido al usuario
     })
     .catch(error => {
-        console.error('Error en la comunicación con la API:', error);
-        // No mostramos errores al usuario ya que ya tienen información visible
+        console.error("Error al comunicarse con la API:", error);
+        // No mostramos errores ya que ya hay contenido visible
     });
+}
+
+// Función antigua para compatibilidad (será llamada por los event listeners existentes)
+function loadAlertDetails(button, definitionUri) {
+    // Simplemente redirige a la nueva implementación
+    toggleAlertDetails(button, definitionUri);
 }
 
 // Render the alert list
@@ -863,12 +836,15 @@ function renderAlertList(alerts) {
                 
                 <!-- Enlaces o información técnica adicional -->
                 ${definitionLink ? 
-                    `<div class="mt-2 alert-container">
+                    `<div class="mt-3 alert-container">
                         <button class="btn btn-sm btn-outline-info show-alert-details" 
-                                data-definition-uri="${definitionLink}">
+                                data-definition-uri="${definitionLink}" 
+                                onclick="toggleAlertDetails(this, '${definitionLink}'); return false;">
                             <i class="fas fa-info-circle me-1"></i> Ver detalles adicionales
                         </button>
-                        <div class="alert-details-container mt-2 d-none" style="display: none !important;"></div>
+                        <div class="alert-details-container d-none">
+                            <!-- El contenido se llenará dinámicamente -->
+                        </div>
                     </div>` : ''}
                     
                 <!-- ID de alerta para referencia -->
