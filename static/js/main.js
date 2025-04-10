@@ -271,7 +271,7 @@ function renderMachineList(machines) {
     
     // Limitar número de máquinas mostradas inicialmente si hay muchas
     // y agregar un botón para cargar más si es necesario
-    const CHUNK_SIZE = 50; // Cantidad máxima inicial
+    const CHUNK_SIZE = 100; // Cantidad máxima inicial
     const totalMachines = machines.length;
     let initialMachines = machines;
     let remainingMachines = [];

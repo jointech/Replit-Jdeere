@@ -243,7 +243,7 @@ def fetch_machines_by_organization(token, organization_id):
             "categories": "machine"
         }
         
-        # Agregar encabezado para desactivar paginación
+        # Agregar encabezado para desactivar paginación y obtener todos los resultados
         headers = {'x-deere-no-paging': 'true'}
         
         # Realizar la petición con los parámetros específicos
@@ -255,20 +255,24 @@ def fetch_machines_by_organization(token, organization_id):
         data = response.json()
         machines = []
         
-        # Log especial para la organización 463153
-        if organization_id == "463153":
-            logger.info(f"Respuesta completa para organización 463153: {data}")
-            # Verificar el número total de valores devueltos
-            if 'values' in data:
-                logger.info(f"Total de valores para organización 463153: {len(data['values'])}")
-        
+        # Log especial para organizaciones grandes
+        total_machines = 0
         if 'values' in data:
             total_machines = len(data['values'])
+            logger.info(f"Recibidas {total_machines} máquinas para la organización {organization_id}")
+        
+        if 'values' in data:
             logger.info(f"Procesando {total_machines} máquinas para la organización {organization_id}")
             
             # Si hay muchas máquinas (más de 50), limitamos la obtención de ubicaciones
             # para mejorar el rendimiento y evitar demasiadas peticiones a la API
             limit_location_fetching = total_machines > 50
+            
+            # Para organizaciones con muchísimas máquinas, ajustamos el número de máquinas 
+            # para las que buscamos ubicación
+            location_fetch_limit = 15
+            if total_machines > 200:
+                location_fetch_limit = 10
             
             for machine in data['values']:
                 machine_id = machine.get('id')
@@ -278,9 +282,9 @@ def fetch_machines_by_organization(token, organization_id):
                 location = None
                 
                 # Para organizaciones con muchas máquinas, buscamos ubicación para
-                # una cantidad razonable (las primeras 15) para un mejor balance entre
+                # una cantidad razonable para un mejor balance entre
                 # rendimiento y experiencia de usuario
-                if machine_id and (not limit_location_fetching or len(machines) < 15):
+                if machine_id and (not limit_location_fetching or len(machines) < location_fetch_limit):
                     location = fetch_machine_location(token, machine_id)
                     
                     # Si encontramos una ubicación, registrar el éxito
