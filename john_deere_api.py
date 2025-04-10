@@ -150,24 +150,34 @@ def fetch_machine_location(token, machine_id):
             
             # Si recibimos un array de valores, obtenemos la última ubicación (más reciente)
             if 'values' in data and len(data['values']) > 0:
-                # Ordenar por timestamp en orden descendente
-                location_data = sorted(
-                    data['values'], 
-                    key=lambda x: x.get('timestamp', '0'), 
-                    reverse=True
-                )[0]
+                # En locationHistory, los datos vienen en formato diferente, con 'point' en lugar de 'geometry'
+                location_values = data['values']
                 
-                timestamp = location_data.get('timestamp')
+                # Ordenar por eventTimestamp en orden descendente (más reciente primero)
+                if len(location_values) > 1:
+                    sorted_locations = sorted(
+                        location_values, 
+                        key=lambda x: x.get('eventTimestamp', '0'), 
+                        reverse=True
+                    )
+                    location_data = sorted_locations[0]
+                else:
+                    location_data = location_values[0]
                 
-                # Extraer coordenadas según la estructura recibida
-                if 'geometry' in location_data and 'coordinates' in location_data['geometry']:
-                    coords = location_data['geometry']['coordinates']
-                    return {
-                        'longitude': coords[0],
-                        'latitude': coords[1],
+                # Extraer coordenadas según el formato de locationHistory (usa point.lat y point.lon)
+                if 'point' in location_data and 'lat' in location_data['point'] and 'lon' in location_data['point']:
+                    point = location_data['point']
+                    timestamp = location_data.get('eventTimestamp') or location_data.get('gpsFixTimestamp')
+                    
+                    location = {
+                        'longitude': point['lon'],
+                        'latitude': point['lat'],
                         'timestamp': timestamp
                     }
-            # Si los datos vienen directamente con geometry
+                    logger.info(f"Successfully extracted location from locationHistory: {location}")
+                    return location
+                
+            # Si los datos vienen directamente con geometry (formato del endpoint location)
             elif 'geometry' in data and 'coordinates' in data['geometry']:
                 coords = data['geometry']['coordinates']
                 timestamp = data.get('timestamp')
@@ -178,36 +188,39 @@ def fetch_machine_location(token, machine_id):
                     'latitude': coords[1],
                     'timestamp': timestamp
                 }
+                logger.info(f"Successfully extracted location from direct geometry: {location}")
                 return location
+            
+            logger.warning(f"Could not find valid location data in the response for machine {machine_id}")
             
         except Exception as e:
             logger.warning(f"Error fetching location for machine {machine_id} from locationHistory endpoint: {str(e)}")
             
-            # Intentar con endpoint alternativo si el primero falla
-            # Usar explícitamente la URL base correcta para el endpoint alternativo
-            alt_endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/location"
-            try:
-                logger.info(f"Trying alternative location endpoint: {alt_endpoint}")
-                response = oauth.get(alt_endpoint, headers=headers)
-                response.raise_for_status()
+        # Intentar con endpoint alternativo si el primero falla o no tiene datos válidos
+        alt_endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/location"
+        try:
+            logger.info(f"Trying alternative location endpoint: {alt_endpoint}")
+            response = oauth.get(alt_endpoint, headers=headers)
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.info(f"Received machine location response: {data}")
+            
+            # Extraer la información de ubicación
+            if 'geometry' in data and 'coordinates' in data['geometry']:
+                coords = data['geometry']['coordinates']
+                timestamp = data.get('timestamp')
                 
-                data = response.json()
-                logger.info(f"Received machine location response: {data}")
-                
-                # Extraer la información de ubicación
-                if 'geometry' in data and 'coordinates' in data['geometry']:
-                    coords = data['geometry']['coordinates']
-                    timestamp = data.get('timestamp')
-                    
-                    location = {
-                        'longitude': coords[0],
-                        'latitude': coords[1],
-                        'timestamp': timestamp
-                    }
-                    return location
-            except Exception as nested_e:
-                logger.warning(f"Error fetching location from alternative endpoint: {str(nested_e)}")
-                
+                location = {
+                    'longitude': coords[0],
+                    'latitude': coords[1],
+                    'timestamp': timestamp
+                }
+                logger.info(f"Successfully extracted location from alternative endpoint: {location}")
+                return location
+        except Exception as nested_e:
+            logger.warning(f"Error fetching location from alternative endpoint: {str(nested_e)}")
+            
         return None
     except Exception as e:
         logger.error(f"Error in fetch_machine_location for machine {machine_id}: {str(e)}")

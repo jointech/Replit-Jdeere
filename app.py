@@ -448,7 +448,7 @@ def test_location(machine_id):
     try:
         # Importamos aquí para no interferir con las importaciones principales
         from requests_oauthlib import OAuth2Session
-        from john_deere_api import refresh_token_if_needed
+        from john_deere_api import refresh_token_if_needed, fetch_machine_location
         
         # Refrescar token si es necesario
         token = refresh_token_if_needed(token)
@@ -489,7 +489,10 @@ def test_location(machine_id):
         except Exception as e:
             location_error = str(e)
         
-        # Resultado de ambas pruebas
+        # Probar nuestra función actualizada de obtención de ubicación
+        location_result = fetch_machine_location(token, machine_id)
+        
+        # Resultado de todas las pruebas
         result = {
             'machine_id': machine_id,
             'locationHistory': {
@@ -503,7 +506,8 @@ def test_location(machine_id):
                 'status': location_status,
                 'data': location_data,
                 'error': location_error
-            }
+            },
+            'processed_location': location_result
         }
         
         return jsonify(result)
