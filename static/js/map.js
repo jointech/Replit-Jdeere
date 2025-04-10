@@ -1,6 +1,97 @@
 // Map variables
 let map;
 let markers = {};
+let selectedMachineId = null; // ID de la máquina seleccionada actualmente
+
+// Definir íconos según el tipo de máquina
+const machineIcons = {
+    // Íconos por defecto para cada tipo usando FontAwesome
+    'default': L.divIcon({
+        html: '<i class="fas fa-tractor" style="font-size: 24px; color: #28a745;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Tractores
+    'Tractor': L.divIcon({
+        html: '<i class="fas fa-tractor" style="font-size: 24px; color: #28a745;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Cosechadoras
+    'Harvester': L.divIcon({
+        html: '<i class="fas fa-truck-monster" style="font-size: 24px; color: #dc3545;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    'Tracked Harvester': L.divIcon({
+        html: '<i class="fas fa-truck-monster" style="font-size: 24px; color: #dc3545;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Cargadores forestales
+    'Forwarder': L.divIcon({
+        html: '<i class="fas fa-truck-pickup" style="font-size: 24px; color: #fd7e14;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Skidders
+    'Skidder': L.divIcon({
+        html: '<i class="fas fa-truck-container" style="font-size: 24px; color: #6f42c1;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Excavadoras
+    'Excavator': L.divIcon({
+        html: '<i class="fas fa-truck-plow" style="font-size: 24px; color: #ffc107;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Camiones
+    'Truck': L.divIcon({
+        html: '<i class="fas fa-truck" style="font-size: 24px; color: #17a2b8;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Otros vehículos
+    'Vehicle': L.divIcon({
+        html: '<i class="fas fa-car" style="font-size: 24px; color: #007bff;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    }),
+    // Two-wheel Drive Tractors
+    'Two-wheel Drive Tractors - 140 Hp And Above': L.divIcon({
+        html: '<i class="fas fa-tractor" style="font-size: 24px; color: #28a745;"></i>',
+        className: 'machine-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    })
+};
+
+// Función para obtener el ícono según el tipo de máquina
+function getMachineIcon(machine) {
+    // Intentar conseguir el tipo desde la propiedad type (que puede ser un objeto o string)
+    let machineType = '';
+    
+    if (machine.type) {
+        if (typeof machine.type === 'object' && machine.type.name) {
+            machineType = machine.type.name;
+        } else if (typeof machine.type === 'string') {
+            machineType = machine.type;
+        }
+    }
+    
+    // Si no hay un ícono específico para este tipo, usar el ícono predeterminado
+    return machineIcons[machineType] || machineIcons['default'];
+}
 
 // Initialize the map
 function initMap() {
@@ -95,10 +186,29 @@ function addMachinesToMap(machines) {
 function addSingleMachineToMap(machine, bounds, markerGroup) {
     const position = [machine.location.latitude, machine.location.longitude];
     
-    // Create a marker with popup
-    const marker = L.marker(position)
+    // Determinar si esta máquina está seleccionada
+    const isSelected = selectedMachineId && machine.id === selectedMachineId;
+    
+    // Obtener el ícono personalizado según el tipo de máquina
+    const icon = getMachineIcon(machine);
+    
+    // Si está seleccionada, añadir la clase 'selected' al icono
+    if (isSelected) {
+        // Modificar el HTML del icono para incluir la clase selected
+        icon.options.html = icon.options.html.replace('class="', 'class="selected ');
+        icon.options.className = 'machine-icon selected';
+    }
+    
+    // Create a marker with popup and custom icon
+    const marker = L.marker(position, { icon: icon })
         .bindPopup(createMachinePopupContent(machine));
         
+    // Para máquinas seleccionadas, destacar el ícono
+    if (isSelected) {
+        // Asegurarse que esté por encima de otros marcadores
+        marker.setZIndexOffset(1000);
+    }
+    
     // Store marker with machine ID as key
     markers[machine.id] = marker;
     
