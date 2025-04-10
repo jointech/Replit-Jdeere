@@ -155,13 +155,33 @@ def auth_complete():
     """Captura la autenticación después de la redirección de John Deere o código manual."""
     logger.info("Capturando código de autorización")
     
-    # Obtener código y URL de redirección del formulario
-    code = request.form.get('code')
-    redirect_uri = request.form.get('redirect_uri')
+    # Determinar si es una solicitud AJAX o un envío de formulario
+    is_ajax = request.headers.get('Content-Type') == 'application/x-www-form-urlencoded' and not request.form.get('_is_form')
+    
+    # Obtener código y URL de redirección dependiendo del tipo de solicitud
+    if is_ajax:
+        code = request.form.get('code')
+        redirect_uri = request.form.get('redirect_uri')
+        logger.info(f"Solicitud AJAX recibida con redirect_uri: {redirect_uri}")
+    else:
+        code = request.form.get('code')
+        redirect_uri = request.form.get('redirect_uri')
+        logger.info(f"Envío de formulario recibido con redirect_uri: {redirect_uri}")
     
     if not code:
-        flash("No se proporcionó un código de autorización.", "danger")
-        return redirect(url_for('index'))
+        error_msg = "No se proporcionó un código de autorización."
+        logger.error(error_msg)
+        
+        if is_ajax:
+            return jsonify({"success": False, "error": error_msg})
+        else:
+            flash(error_msg, "danger")
+            return redirect(url_for('index'))
+    
+    if not redirect_uri:
+        # Si no se proporciona redirect_uri, usamos la URL base de la aplicación
+        redirect_uri = get_full_redirect_uri()
+        logger.info(f"No se proporcionó redirect_uri, usando valor por defecto: {redirect_uri}")
     
     try:
         # Intercambiar código por token de acceso
@@ -172,12 +192,30 @@ def auth_complete():
         # Guardar el código para referencia (solo para depuración)
         session['last_auth_code'] = code
         
-        flash("Autenticación exitosa con John Deere API.", "success")
-        return redirect(url_for('dashboard'))
+        success_msg = "Autenticación exitosa con John Deere API."
+        logger.info(success_msg)
+        
+        if is_ajax:
+            return jsonify({
+                "success": True,
+                "message": success_msg,
+                "redirect": url_for('dashboard')
+            })
+        else:
+            flash(success_msg, "success")
+            return redirect(url_for('dashboard'))
     except Exception as e:
-        logger.error(f"Error intercambiando código por token: {str(e)}")
-        flash(f"Error intercambiando código por token: {str(e)}", "danger")
-        return redirect(url_for('auth_setup'))
+        error_msg = f"Error intercambiando código por token: {str(e)}"
+        logger.error(error_msg)
+        
+        if is_ajax:
+            return jsonify({
+                "success": False,
+                "error": error_msg
+            })
+        else:
+            flash(error_msg, "danger")
+            return redirect(url_for('auth_setup'))
 
 @app.route('/dashboard')
 def dashboard():

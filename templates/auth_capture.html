@@ -31,6 +31,7 @@
                         <form id="codeForm" method="post" action="{{ url_for('auth_complete') }}">
                             <div class="mb-3">
                                 <input type="hidden" name="code" id="codeInput">
+                                <input type="hidden" name="redirect_uri" id="redirectUriInput" value="{{ redirect_uri }}">
                             </div>
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
@@ -88,13 +89,20 @@ document.addEventListener('DOMContentLoaded', function() {
             baseUrl = baseUrl.replace('http:', 'https:');
         }
         
+        // Obtener la URL de redirección del formulario o usarla desde la plantilla
+        const redirectUri = document.getElementById('redirectUriInput').value || "{{ redirect_uri }}";
+        
         // Intentar enviar el código automáticamente al servidor
         fetch(`${baseUrl}/auth-complete`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: JSON.stringify({ code: code, state: state })
+            body: new URLSearchParams({
+                'code': code,
+                'state': state,
+                'redirect_uri': redirectUri
+            })
         })
         .then(response => response.json())
         .then(data => {

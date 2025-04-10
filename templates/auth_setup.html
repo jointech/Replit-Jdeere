@@ -49,6 +49,21 @@
                         <p>Las URLs están configuradas correctamente y el sistema de autenticación automática debe funcionar sin problemas. Si experimenta algún problema, puede usar el método manual como alternativa.</p>
                     </div>
                     
+                    <h5 class="mt-4">Ingreso manual de código</h5>
+                    <p>Si la redirección automática no funciona, puede ingresar el código manualmente aquí:</p>
+                    <form action="{{ url_for('auth_complete') }}" method="post" class="mb-4">
+                        <input type="hidden" name="_is_form" value="true">
+                        <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+                        <div class="mb-3">
+                            <label for="codeInput" class="form-label">Código de autorización</label>
+                            <textarea class="form-control" id="codeInput" name="code" rows="3" placeholder="Pegue el código de autorización aquí..." required></textarea>
+                            <div class="form-text">Pegue el código exactamente como lo recibió sin espacios adicionales.</div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane me-2"></i> Enviar código
+                        </button>
+                    </form>
+                    
                     <h5 class="mt-4">Página receptora HTML alternativa</h5>
                     <p>Si no puede modificar la configuración de su aplicación John Deere, puede usar nuestro archivo HTML receptor estático:</p>
                     <div class="mb-3">
