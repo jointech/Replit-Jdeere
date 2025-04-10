@@ -364,22 +364,46 @@ def fetch_machine_details(token, machine_id):
         logger.error(f"Error fetching details for machine {machine_id}: {str(e)}")
         raise
 
-def fetch_machine_alerts(token, machine_id):
-    """Fetches alerts for a specific machine."""
+def fetch_machine_alerts(token, machine_id, days_back=30):
+    """Fetches alerts for a specific machine within a date range.
+    
+    Args:
+        token: OAuth token
+        machine_id: ID of the machine
+        days_back: Number of days back to fetch alerts (default: 30)
+    """
     try:
         token = refresh_token_if_needed(token)
         oauth = get_oauth_session(token=token)
         
-        logger.info(f"Fetching alerts for machine {machine_id}")
+        logger.info(f"Fetching alerts for machine {machine_id} for the last {days_back} days")
         
-        # Usando el endpoint específico para alertas de máquinas
+        # Calcular fechas para el rango de tiempo
+        from datetime import datetime, timedelta
+        
+        # Fecha actual
+        end_date = datetime.utcnow()
+        # Fecha de inicio (hace N días)
+        start_date = end_date - timedelta(days=days_back)
+        
+        # Formatear fechas en el formato requerido por la API
+        start_date_str = start_date.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        end_date_str = end_date.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        
+        # Usando el endpoint específico para alertas de máquinas con parámetros de fecha
         endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/alerts"
+        
+        # Parámetros para el rango de fechas
+        params = {
+            'startDate': start_date_str,
+            'endDate': end_date_str
+        }
         
         # Agregar encabezado para desactivar paginación
         headers = {'x-deere-no-paging': 'true'}
         
-        logger.info(f"Requesting machine alerts from: {endpoint}")
-        response = oauth.get(endpoint, headers=headers)
+        logger.info(f"Requesting machine alerts from: {endpoint} with date range: {start_date_str} to {end_date_str}")
+        response = oauth.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
         
         # Process the response to extract alert data
@@ -399,10 +423,21 @@ def fetch_machine_alerts(token, machine_id):
                     elif 'warning' in sev_lower or 'warn' in sev_lower:
                         severity = 'warning'
                 
+                # Extraer datos del contenido si disponibles
+                description = 'Sin descripción'
+                title = 'Alerta sin título'
+                
+                if 'content' in alert:
+                    content = alert.get('content', {})
+                    if isinstance(content, dict):
+                        # Si content es un diccionario, intentar extraer la descripción y el título
+                        description = content.get('description') or alert.get('description', 'Sin descripción')
+                        title = content.get('title') or alert.get('title', 'Alerta sin título')
+                    
                 alert_obj = {
                     'id': alert.get('id'),
-                    'title': alert.get('title', 'Alerta sin título'),
-                    'description': alert.get('description', 'Sin descripción'),
+                    'title': title,
+                    'description': description,
                     'severity': severity,
                     'timestamp': alert.get('timestamp'),
                     'status': alert.get('status', 'ACTIVE'),
@@ -415,4 +450,4 @@ def fetch_machine_alerts(token, machine_id):
         return alerts
     except Exception as e:
         logger.error(f"Error fetching alerts for machine {machine_id}: {str(e)}")
-        raise
+        return []  # Devolver lista vacía en caso de error en lugar de propagar la excepción
