@@ -193,6 +193,9 @@ function loadMachines(organizationId) {
     // Reset machine details
     resetMachineDetails();
     
+    // Crear un objeto global para almacenar las alertas por máquina
+    window.machineAlerts = {};
+    
     // Fetch machines from API
     fetch(`/api/machines/${organizationId}`, {
         credentials: 'same-origin', // Incluir cookies en la petición
@@ -251,8 +254,17 @@ function loadMachines(organizationId) {
             // Render machines in the list
             renderMachineList(machines);
             
-            // Add machines to map
-            addMachinesToMap(machines);
+            // Cargar las alertas de todas las máquinas y luego actualizar el mapa
+            loadAllMachineAlerts(machines)
+                .then(() => {
+                    // Add machines to map with alert colors
+                    addMachinesToMap(machines);
+                })
+                .catch(error => {
+                    console.error("Error cargando alertas de las máquinas:", error);
+                    // Mostrar las máquinas en el mapa incluso si hay error con las alertas
+                    addMachinesToMap(machines);
+                });
         })
         .catch(error => {
             console.error('Error:', error);
@@ -514,6 +526,51 @@ function loadMachineDetails(machineId) {
             if (machineDetailEmpty) {
                 machineDetailEmpty.textContent = 'Error al cargar detalles: ' + error.message;
             }
+        });
+}
+
+// Función para cargar las alertas de todas las máquinas de una organización
+function loadAllMachineAlerts(machines) {
+    console.log(`Cargando alertas para ${machines.length} máquinas...`);
+    
+    // Inicializar el objeto de alertas
+    window.machineAlerts = {};
+    
+    // Crear un arreglo de promesas, una por cada máquina
+    const promises = machines.map(machine => {
+        if (!machine.id) return Promise.resolve(); // Omitir máquinas sin ID
+        
+        return fetch(`/api/machine/${machine.id}/alerts`, {
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.warn(`Error al cargar alertas para máquina ${machine.id}`);
+                return []; // Devolver arreglo vacío en caso de error
+            }
+            return response.json();
+        })
+        .then(alerts => {
+            // Guardar las alertas en el objeto global
+            window.machineAlerts[machine.id] = alerts;
+            return alerts;
+        })
+        .catch(error => {
+            console.warn(`Error al procesar alertas para máquina ${machine.id}:`, error);
+            window.machineAlerts[machine.id] = []; // Inicializar como arreglo vacío en caso de error
+            return []; // Continuar con el proceso
+        });
+    });
+    
+    // Esperar a que todas las promesas se resuelvan
+    return Promise.all(promises)
+        .then(() => {
+            console.log(`Alertas cargadas para ${Object.keys(window.machineAlerts).length} máquinas`);
+            return window.machineAlerts;
         });
 }
 

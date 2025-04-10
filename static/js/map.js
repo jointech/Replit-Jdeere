@@ -82,13 +82,92 @@ function getMachineType(machine) {
     return machineType;
 }
 
-// Función para obtener el color según el tipo de máquina
+// Definir colores según la severidad de la alerta
+const alertColors = {
+    'high': '#dc3545',     // Rojo para alertas de alta severidad
+    'medium': '#ffc107',   // Amarillo para alertas de severidad media
+    'low': '#6c757d',      // Gris para alertas de baja severidad
+    'info': '#17a2b8',     // Azul para alertas informativas
+    'dtc': '#6c757d',      // Gris para alertas DTC
+    'unknown': '#6c757d',  // Gris para alertas de severidad desconocida
+    'default': '#28a745'   // Verde por defecto (sin alertas)
+};
+
+// Función para obtener el color según el tipo de máquina y sus alertas
 function getMachineColor(machine) {
-    // Usar la función auxiliar para obtener el tipo
-    const machineType = getMachineType(machine);
+    // Primero verificar si la máquina tiene alertas
+    if (window.machineAlerts && machine.id && window.machineAlerts[machine.id]) {
+        const alerts = window.machineAlerts[machine.id];
+        
+        // Si hay alertas, determinar el color según la alerta de mayor severidad
+        if (alerts && alerts.length > 0) {
+            // Prioridad de severidad: high > medium > low > info > dtc/unknown
+            let highestSeverity = 'default';
+            
+            // Buscar la alerta con la mayor severidad
+            for (const alert of alerts) {
+                if (!alert.severity) continue;
+                
+                const severityLower = String(alert.severity).toLowerCase();
+                
+                // Orden de prioridad para severidades
+                if (severityLower === 'high') {
+                    highestSeverity = 'high';
+                    break; // Si encontramos una alerta alta, ya no necesitamos seguir buscando
+                } else if (severityLower === 'medium' && highestSeverity !== 'high') {
+                    highestSeverity = 'medium';
+                } else if (severityLower === 'low' && !['high', 'medium'].includes(highestSeverity)) {
+                    highestSeverity = 'low';
+                } else if (severityLower === 'info' && !['high', 'medium', 'low'].includes(highestSeverity)) {
+                    highestSeverity = 'info';
+                } else if ((severityLower === 'dtc' || severityLower === 'unknown') && 
+                           !['high', 'medium', 'low', 'info'].includes(highestSeverity)) {
+                    highestSeverity = severityLower;
+                }
+            }
+            
+            // Devolver el color según la severidad más alta encontrada
+            return alertColors[highestSeverity];
+        }
+    }
     
-    // Si no hay un color específico para este tipo, usar el color predeterminado
+    // Si no hay alertas, usar el color basado en el tipo de máquina
+    const machineType = getMachineType(machine);
     return machineColors[machineType] || machineColors['default'];
+}
+
+// Función auxiliar para encontrar la severidad más alta en un conjunto de alertas
+function findHighestSeverityAlert(alerts) {
+    if (!alerts || alerts.length === 0) {
+        return 'default';
+    }
+    
+    // Prioridad de severidad: high > medium > low > info > dtc/unknown
+    let highestSeverity = 'default';
+    
+    // Buscar la alerta con la mayor severidad
+    for (const alert of alerts) {
+        if (!alert.severity) continue;
+        
+        const severityLower = String(alert.severity).toLowerCase();
+        
+        // Orden de prioridad para severidades
+        if (severityLower === 'high') {
+            highestSeverity = 'high';
+            break; // Si encontramos una alerta alta, ya no necesitamos seguir buscando
+        } else if (severityLower === 'medium' && highestSeverity !== 'high') {
+            highestSeverity = 'medium';
+        } else if (severityLower === 'low' && !['high', 'medium'].includes(highestSeverity)) {
+            highestSeverity = 'low';
+        } else if (severityLower === 'info' && !['high', 'medium', 'low'].includes(highestSeverity)) {
+            highestSeverity = 'info';
+        } else if ((severityLower === 'dtc' || severityLower === 'unknown') && 
+                   !['high', 'medium', 'low', 'info'].includes(highestSeverity)) {
+            highestSeverity = severityLower;
+        }
+    }
+    
+    return highestSeverity;
 }
 
 // Iniciar la carga de Google Maps
@@ -231,47 +310,77 @@ function addSingleMachineToMap(machine, bounds) {
     // Determinar si esta máquina está seleccionada
     const isSelected = selectedMachineId && machine.id === selectedMachineId;
     
-    // Obtener el color según el tipo de máquina
+    // Obtener el color según las alertas de la máquina
     const color = getMachineColor(machine);
     
     // Para máquinas seleccionadas, usar un tamaño más grande y color dorado
     const scale = isSelected ? 1.3 : 1.0;
     const fillColor = isSelected ? '#FFD700' : color; // Dorado para seleccionadas
     
-    // Seleccionar ícono personalizado según el tipo de máquina
+    // Seleccionar ícono personalizado según el color de la alerta o tipo de máquina
     let iconUrl;
-    
-    // Seleccionar ícono según el tipo
-    switch (getMachineType(machine)) {
-        case 'Tractor':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
-            break;
-        case 'Harvester':
-        case 'Tracked Harvester':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
-            break;
-        case 'Backhoes':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
-            break;
-        case 'Excavator':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png';
-            break;
-        case 'Skidder':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png';
-            break;
-        case 'Truck':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
-            break;
-        case 'Vehicle':
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/lightblue-dot.png';
-            break;
-        default:
-            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
-    }
     
     // Si está seleccionada, usar ícono dorado
     if (isSelected) {
         iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+    } 
+    // Si la máquina tiene alertas, seleccionar ícono según la severidad de la alerta
+    else if (window.machineAlerts && machine.id && window.machineAlerts[machine.id] && 
+             window.machineAlerts[machine.id].length > 0) {
+        // Determinar el color del ícono según la alerta con la mayor severidad
+        const highestSeverityAlert = findHighestSeverityAlert(window.machineAlerts[machine.id]);
+        
+        // Seleccionar ícono por severidad
+        switch (highestSeverityAlert) {
+            case 'high':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+                break;
+            case 'medium':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                break;
+            case 'low':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/gray-dot.png';
+                break;
+            case 'info':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+                break;
+            case 'dtc':
+            case 'unknown':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png';
+                break;
+            default:
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+        }
+    } 
+    // Si no hay alertas, usar el ícono según el tipo de máquina
+    else {
+        // Seleccionar ícono según el tipo
+        switch (getMachineType(machine)) {
+            case 'Tractor':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+                break;
+            case 'Harvester':
+            case 'Tracked Harvester':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+                break;
+            case 'Backhoes':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                break;
+            case 'Excavator':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png';
+                break;
+            case 'Skidder':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png';
+                break;
+            case 'Truck':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+                break;
+            case 'Vehicle':
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/lightblue-dot.png';
+                break;
+            default:
+                iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+        }
     }
     
     // Crear un marcador con ícono personalizado
