@@ -485,17 +485,25 @@ function loadMachineAlerts(machineId) {
     console.log(`Cargando alertas para máquina: ${machineId}`);
     
     const alertListContainer = document.getElementById('alertListContainer');
+    const emptyAlertContainer = document.getElementById('emptyAlertContainer');
     const emptyAlertMessage = document.getElementById('emptyAlertMessage');
     
-    if (!alertListContainer || !emptyAlertMessage) {
-        console.error("No se encontraron los contenedores de alertas");
+    if (!alertListContainer || !emptyAlertContainer || !emptyAlertMessage) {
+        console.error("No se encontraron los contenedores de alertas", {
+            alertListContainer: !!alertListContainer,
+            emptyAlertContainer: !!emptyAlertContainer,
+            emptyAlertMessage: !!emptyAlertMessage
+        });
         return;
     }
     
-    // Show loading
+    // Limpiar el contenedor de alertas
     alertListContainer.innerHTML = '';
+    
+    // Mostrar el mensaje de cargando
     emptyAlertMessage.textContent = 'Cargando alertas...';
-    emptyAlertMessage.classList.remove('d-none');
+    emptyAlertContainer.classList.remove('d-none');
+    alertListContainer.classList.add('d-none');
     
     // Fetch machine alerts from API
     // Agregamos parámetro para diagnóstico que nos dará alertas simuladas
@@ -517,11 +525,14 @@ function loadMachineAlerts(machineId) {
             
             if (alerts.length === 0) {
                 emptyAlertMessage.textContent = 'No hay alertas para esta máquina';
+                emptyAlertContainer.classList.remove('d-none');
+                alertListContainer.classList.add('d-none');
                 return;
             }
             
-            // Hide empty message
-            emptyAlertMessage.classList.add('d-none');
+            // Mostrar el contenedor de la lista y ocultar el mensaje vacío
+            alertListContainer.classList.remove('d-none');
+            emptyAlertContainer.classList.add('d-none');
             
             // Render alerts in the list
             renderAlertList(alerts);
@@ -712,7 +723,17 @@ function setupMachineSearch(allMachines) {
             }
             
             const name = (machine.name || '').toLowerCase();
-            const model = (machine.model || '').toLowerCase();
+            
+            // Manejar el caso donde model puede ser un objeto o una cadena
+            let model = '';
+            if (machine.model) {
+                if (typeof machine.model === 'string') {
+                    model = machine.model.toLowerCase();
+                } else if (typeof machine.model === 'object' && machine.model.name) {
+                    model = machine.model.name.toLowerCase();
+                }
+            }
+            
             const category = (machine.category || '').toLowerCase();
             const id = machine.id.toString().toLowerCase();
             
@@ -758,18 +779,20 @@ function resetMachineDetails() {
     console.log("Reseteando detalles de máquina");
     
     // Reset alerts
+    const emptyAlertContainer = document.getElementById('emptyAlertContainer');
     const emptyAlertMessage = document.getElementById('emptyAlertMessage');
     const alertListContainer = document.getElementById('alertListContainer');
     const machineDetailEmpty = document.getElementById('machineDetailEmpty');
     const machineDetailContent = document.getElementById('machineDetailContent');
     
-    if (emptyAlertMessage) {
+    if (emptyAlertMessage && emptyAlertContainer) {
         emptyAlertMessage.textContent = 'Seleccione una máquina para ver sus alertas';
-        emptyAlertMessage.classList.remove('d-none');
+        emptyAlertContainer.classList.remove('d-none');
     }
     
     if (alertListContainer) {
         alertListContainer.innerHTML = '';
+        alertListContainer.classList.add('d-none');
     }
     
     // Reset machine details
