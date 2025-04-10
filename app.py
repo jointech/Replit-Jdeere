@@ -102,11 +102,22 @@ def get_base_url():
 
 def get_full_redirect_uri():
     """Obtiene la URL de redirección completa para la autenticación OAuth."""
-    # Usamos la función de URL base y añadimos la ruta de redirección
+    # Verificar si debemos usar la URI registrada en John Deere
+    from config import USE_REGISTERED_REDIRECT_URI, JOHN_DEERE_REGISTERED_REDIRECT_URI, JOHN_DEERE_CALLBACK_PATH
+    
+    if USE_REGISTERED_REDIRECT_URI and JOHN_DEERE_REGISTERED_REDIRECT_URI:
+        # Usar la URI registrada explícitamente en John Deere
+        redirect_uri = JOHN_DEERE_REGISTERED_REDIRECT_URI
+        logger.info(f"Usando URI de redirección registrada: {redirect_uri}")
+        return redirect_uri
+    
+    # Si no se usa la URI registrada, calcular dinámicamente
     base_url = get_base_url()
-    redirect_path = "/auth-capture"
+    redirect_path = JOHN_DEERE_CALLBACK_PATH  # Usar la ruta configurada
+    
+    # Construir la URL completa de redirección
     redirect_uri = f"{base_url}{redirect_path}"
-    logger.info(f"URL de redirección calculada: {redirect_uri}")
+    logger.info(f"URL de redirección calculada dinámicamente: {redirect_uri}")
     return redirect_uri
 
 @app.route('/')

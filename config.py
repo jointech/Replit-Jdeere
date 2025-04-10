@@ -11,6 +11,13 @@ JOHN_DEERE_AUTHORIZE_URL = 'https://signin.johndeere.com/oauth2/aus78tnlaysMraFh
 USE_ALTERNATE_OAUTH_FLOW = True  # Si es True, usa los nuevos scopes y parámetros
 USE_PERSISTENCE_HEADER_REDIRECT = False  # Si es True, usa la URL de redirección de persistent-header
 
+# URI de redirección registrada en la configuración del cliente de John Deere
+JOHN_DEERE_REGISTERED_REDIRECT_URI = 'https://c5eeb8a4-9ffe-4c51-9c91-4ff1f34335d3-00-3hdn2hfox8ovy.kirk.replit.dev/callback'
+USE_REGISTERED_REDIRECT_URI = True  # Usar la URI de redirección fija para cumplir con la configuración de John Deere
+
+# Ruta de redirección relativa para la aplicación
+JOHN_DEERE_CALLBACK_PATH = '/callback'
+
 # Original Scopes
 ORIGINAL_JOHN_DEERE_SCOPES = [
     'offline_access',
