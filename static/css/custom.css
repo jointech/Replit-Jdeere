@@ -56,11 +56,44 @@
 
 .machine-popup {
     color: var(--bs-light);
+    padding: 5px;
 }
 
 .machine-popup h6 {
-    color: var(--bs-light);
+    color: var(--bs-info);
     margin-bottom: 8px;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+}
+
+.machine-popup hr {
+    border-color: rgba(255, 255, 255, 0.1);
+    margin: 8px 0;
+}
+
+.machine-popup .location-info {
+    background-color: rgba(0, 123, 255, 0.1);
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--bs-info);
+}
+
+.machine-popup strong {
+    color: var(--bs-info);
+    font-weight: 500;
+}
+
+/* Estilo para el enlace a Google Maps */
+.machine-popup .btn-outline-info {
+    border-color: var(--bs-info);
+    color: var(--bs-info);
+}
+
+.machine-popup .btn-outline-info:hover {
+    background-color: var(--bs-info);
+    color: var(--bs-dark);
 }
 
 /* Custom Google Maps controls */

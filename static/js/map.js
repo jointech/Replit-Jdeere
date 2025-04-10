@@ -307,19 +307,79 @@ function addSingleMachineToMap(machine, bounds) {
 
 // Create popup content for machine marker
 function createMachinePopupContent(machine) {
+    // Obtener información de ubicación y formatear datos
     const timestamp = machine.location && machine.location.timestamp ?
         new Date(machine.location.timestamp).toLocaleString() : 'Desconocido';
     
+    // Formatear coordenadas con precisión de 6 decimales
+    const latitude = machine.location && machine.location.latitude ? 
+        parseFloat(machine.location.latitude).toFixed(6) : 'No disponible';
+    const longitude = machine.location && machine.location.longitude ? 
+        parseFloat(machine.location.longitude).toFixed(6) : 'No disponible';
+    
+    // Obtener modelo y tipo de máquina
+    let modelText = 'Modelo desconocido';
+    if (machine.model) {
+        if (typeof machine.model === 'object' && machine.model.name) {
+            modelText = machine.model.name;
+        } else if (typeof machine.model === 'string') {
+            modelText = machine.model;
+        }
+    }
+    
+    let machineType = '';
+    if (machine.type) {
+        if (typeof machine.type === 'object' && machine.type.name) {
+            machineType = machine.type.name;
+        } else if (typeof machine.type === 'string') {
+            machineType = machine.type;
+        }
+    }
+    
+    // Crear un enlace a Google Maps si tenemos coordenadas
+    let mapsLink = '';
+    if (machine.location && machine.location.latitude && machine.location.longitude) {
+        const googleMapsUrl = `https://www.google.com/maps?q=${machine.location.latitude},${machine.location.longitude}`;
+        mapsLink = `
+            <div class="mt-1">
+                <a href="${googleMapsUrl}" target="_blank" class="btn btn-sm btn-outline-info">
+                    <i class="fas fa-external-link-alt me-1"></i> Ver en Google Maps
+                </a>
+            </div>
+        `;
+    }
+    
+    // Añadir información de horas de operación si está disponible
+    const hoursInfo = machine.hoursOfOperation ? 
+        `<div><strong>Horas de operación:</strong> ${machine.hoursOfOperation}</div>` : '';
+    
+    // Añadir información de nivel de combustible si está disponible
+    const fuelInfo = machine.fuelLevel || machine.fuelLevel === 0 ? 
+        `<div><strong>Nivel de combustible:</strong> ${machine.fuelLevel}%</div>` : '';
+    
+    // Construir el HTML para el popup
     return `
         <div class="machine-popup">
-            <h6>${machine.name || 'Sin nombre'}</h6>
-            <div><strong>Modelo:</strong> ${machine.model || 'Desconocido'}</div>
+            <h6 class="mb-2">${machine.name || 'Sin nombre'}</h6>
+            <div><strong>Modelo:</strong> ${modelText}</div>
+            <div><strong>Tipo:</strong> ${machineType || 'No especificado'}</div>
             <div><strong>Categoría:</strong> ${machine.category || 'Sin categoría'}</div>
-            <div><strong>Última actualización:</strong> ${timestamp}</div>
-            <div class="mt-2">
+            ${hoursInfo}
+            ${fuelInfo}
+            
+            <hr class="my-2">
+            
+            <div class="location-info">
+                <div><strong>Latitud:</strong> ${latitude}</div>
+                <div><strong>Longitud:</strong> ${longitude}</div>
+                <div><strong>Última actualización:</strong> ${timestamp}</div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
                 <button class="btn btn-sm btn-primary" onclick="selectMachine('${machine.id}')">
-                    Ver detalles
+                    <i class="fas fa-info-circle me-1"></i> Ver detalles
                 </button>
+                ${mapsLink}
             </div>
         </div>
     `;
@@ -342,16 +402,128 @@ function clearMapMarkers() {
 
 // Focus map on a specific machine
 function focusMapOnMachine(machineId) {
-    // Usar el wrapper para asegurarnos de que Google Maps está cargado
-    withGoogleMaps(() => {
-        const marker = markers[machineId];
-        if (marker) {
-            map.setCenter(marker.getPosition());
-            map.setZoom(14);
-            infoWindow.setContent(createMachinePopupContent(
-                window.lastLoadedMachines.find(m => m.id === machineId)
-            ));
-            infoWindow.open(map, marker);
+    console.log(`Enfocando mapa en máquina: ${machineId}`);
+    
+    // Primero, intentamos obtener los datos de la máquina más actualizados
+    fetch(`/api/machine/${machineId}`, {
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
         }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al obtener ubicación actualizada de la máquina');
+        }
+        return response.json();
+    })
+    .then(machine => {
+        console.log("Datos de ubicación obtenidos:", machine);
+        
+        // Verificar si tenemos una ubicación válida
+        if (machine.location && machine.location.latitude && machine.location.longitude) {
+            withGoogleMaps(() => {
+                // Crear posición para Google Maps
+                const position = {
+                    lat: parseFloat(machine.location.latitude),
+                    lng: parseFloat(machine.location.longitude)
+                };
+                
+                // Centrar el mapa en la ubicación de la máquina
+                map.setCenter(position);
+                map.setZoom(15); // Establecer un zoom más cercano
+                
+                // Si ya existe un marcador para esta máquina, usar ese
+                if (markers[machineId]) {
+                    // Actualizar la posición del marcador existente
+                    markers[machineId].setPosition(position);
+                    
+                    // Abrir ventana de información
+                    infoWindow.setContent(createMachinePopupContent(machine));
+                    infoWindow.open(map, markers[machineId]);
+                } else {
+                    // Si no existe un marcador, crear uno nuevo
+                    const isSelected = true; // Está seleccionada
+                    
+                    // Seleccionar ícono personalizado
+                    const iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                    
+                    // Crear marcador
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: machine.name || `Máquina ${machine.id}`,
+                        icon: {
+                            url: iconUrl,
+                            scaledSize: new google.maps.Size(42, 42),
+                            origin: new google.maps.Point(0, 0),
+                            anchor: new google.maps.Point(21, 42)
+                        },
+                        zIndex: 1000, // Mayor zIndex para destacar
+                        animation: google.maps.Animation.DROP // Animación para destacar
+                    });
+                    
+                    // Añadir event listener y guardar el marcador
+                    marker.addListener('click', function() {
+                        infoWindow.setContent(createMachinePopupContent(machine));
+                        infoWindow.open(map, marker);
+                    });
+                    
+                    markers[machineId] = marker;
+                    
+                    // Abrir ventana de información
+                    infoWindow.setContent(createMachinePopupContent(machine));
+                    infoWindow.open(map, marker);
+                }
+                
+                // Añadir efecto de rebote al marcador para destacarlo
+                if (markers[machineId].getAnimation() !== google.maps.Animation.BOUNCE) {
+                    markers[machineId].setAnimation(google.maps.Animation.BOUNCE);
+                    // Detener la animación después de 2 segundos
+                    setTimeout(() => {
+                        markers[machineId].setAnimation(null);
+                    }, 2000);
+                }
+                
+                console.log(`Mapa centrado en lat: ${position.lat}, lng: ${position.lng}`);
+            });
+        } else {
+            console.warn(`La máquina ${machineId} no tiene datos de ubicación válidos`);
+            
+            // Buscar el marcador existente como respaldo
+            withGoogleMaps(() => {
+                const marker = markers[machineId];
+                if (marker) {
+                    map.setCenter(marker.getPosition());
+                    map.setZoom(14);
+                    infoWindow.setContent(createMachinePopupContent(machine));
+                    infoWindow.open(map, marker);
+                } else {
+                    console.warn(`No hay marcador existente para la máquina ${machineId}`);
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error(`Error al enfocar máquina ${machineId}:`, error);
+        
+        // Método de respaldo usando los datos locales
+        withGoogleMaps(() => {
+            const marker = markers[machineId];
+            if (marker) {
+                map.setCenter(marker.getPosition());
+                map.setZoom(14);
+                
+                // Buscar los datos de la máquina en la memoria local
+                const localMachineData = window.lastLoadedMachines?.find(m => m.id === machineId);
+                if (localMachineData) {
+                    infoWindow.setContent(createMachinePopupContent(localMachineData));
+                    infoWindow.open(map, marker);
+                }
+            } else {
+                console.warn(`No hay marcador para la máquina ${machineId}`);
+            }
+        });
     });
 }
