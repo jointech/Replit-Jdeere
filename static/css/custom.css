@@ -71,9 +71,9 @@ body {
 
 /* Dark theme specific enhancements */
 body {
-    --bs-dark: #0d1117;
-    --bs-dark-rgb: 13, 17, 23;
-    background-color: var(--bs-dark);
+    --bs-dark: #1e2030;
+    --bs-dark-rgb: 30, 32, 48;
+    background: linear-gradient(135deg, #252837, #1e2030);
     color: #e6edf3;
 }
 
@@ -91,13 +91,19 @@ body {
 
 /* Improved styling for dark theme card headers */
 .card-header {
-    background-color: #161b22;
+    background-color: #2a2d3f;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Elegant hover effect for machine list items in dark mode */
 .machine-item:hover {
-    background-color: #161b22;
+    background-color: #2a2d3f;
+}
+
+/* Improved card styling for dark theme */
+.card {
+    background-color: #2a2d3f;
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Map customization */
@@ -116,9 +122,9 @@ body {
 
 /* Google Maps InfoWindow customization */
 .gm-style .gm-style-iw {
-    background-color: var(--bs-dark);
-    color: var(--bs-light);
-    border-radius: 4px;
+    background-color: #2a2d3f;
+    color: #e6edf3;
+    border-radius: 8px;
     padding: 0;
 }
 
@@ -129,13 +135,14 @@ body {
 
 .gm-style .gm-style-iw-c {
     padding: 12px !important;
-    border-radius: 4px;
-    background-color: var(--bs-dark);
+    border-radius: 8px;
+    background-color: #2a2d3f !important;
     max-width: 300px !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
 }
 
 .gm-style .gm-style-iw-t::after {
-    background: var(--bs-dark);
+    background: #2a2d3f;
 }
 
 .machine-popup {
