@@ -566,6 +566,20 @@ function loadAlertDetails(button, definitionUri) {
     
     // Obtener el contenedor para los detalles (siguiente elemento después del botón)
     const detailsContainer = button.nextElementSibling;
+    
+    // Verificar si el botón ya estaba expandido
+    const isExpanded = button.classList.contains('expanded');
+    
+    if (isExpanded) {
+        // Si ya estaba expandido, ocultar los detalles y cambiar el botón
+        if (detailsContainer) {
+            detailsContainer.classList.add('d-none');
+        }
+        button.innerHTML = '<i class="fas fa-info-circle me-1"></i> Ver detalles adicionales';
+        button.classList.remove('expanded');
+        return;
+    }
+    
     if (!detailsContainer) {
         console.error("No se encontró el contenedor para los detalles de la alerta");
         return;
@@ -573,7 +587,11 @@ function loadAlertDetails(button, definitionUri) {
     
     // Mostrar un indicador de carga
     detailsContainer.classList.remove('d-none');
-    detailsContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando detalles...</div>';
+    detailsContainer.innerHTML = '<div class="text-center p-3"><div class="spinner-border text-info" role="status"></div><p class="mt-2">Cargando detalles...</p></div>';
+    
+    // Cambiar el estado del botón
+    button.innerHTML = '<i class="fas fa-times-circle me-1"></i> Ocultar detalles';
+    button.classList.add('expanded');
     
     // Mostrar información de la solicitud para depuración
     console.log(`Enviando solicitud a: /api/alert/definition?uri=${encodeURIComponent(definitionUri)}`);
@@ -595,10 +613,15 @@ function loadAlertDetails(button, definitionUri) {
         .then(data => {
             console.log("Respuesta recibida para definición de alerta:", data);
             
+            // Solo actualizar si el botón sigue expandido
+            if (!button.classList.contains('expanded')) {
+                return;
+            }
+            
             // Verificar si la respuesta fue exitosa o es un error
             if (data.success === true) {
                 // Formatear los detalles de manera legible
-                let detailsHtml = '<div class="card card-body bg-light">';
+                let detailsHtml = '<div class="card card-body bg-light mt-2">';
                 
                 // Título de la definición si está disponible
                 if (data.title) {
@@ -641,7 +664,7 @@ function loadAlertDetails(button, definitionUri) {
                 }
                 
                 // Si no hay datos específicos, mostrar un mensaje adecuado
-                if (detailsHtml === '<div class="card card-body bg-light">') {
+                if (detailsHtml === '<div class="card card-body bg-light mt-2">') {
                     detailsHtml += '<p class="small">No hay detalles específicos disponibles para esta alerta.</p>';
                 }
                 
@@ -655,7 +678,7 @@ function loadAlertDetails(button, definitionUri) {
                 
                 // Mostrar mensaje de error formateado
                 detailsContainer.innerHTML = `
-                    <div class="alert alert-warning small">
+                    <div class="alert alert-warning small mt-2">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         ${errorMessage}
                     </div>
@@ -668,8 +691,14 @@ function loadAlertDetails(button, definitionUri) {
         })
         .catch(error => {
             console.error('Error en la comunicación:', error);
+            
+            // Solo actualizar si el botón sigue expandido
+            if (!button.classList.contains('expanded')) {
+                return;
+            }
+            
             detailsContainer.innerHTML = `
-                <div class="alert alert-danger small">
+                <div class="alert alert-danger small mt-2">
                     <i class="fas fa-times-circle me-2"></i>
                     Error de comunicación: ${error.message || 'Error desconocido'}
                 </div>
