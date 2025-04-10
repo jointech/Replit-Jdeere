@@ -379,15 +379,20 @@ def get_machine_details(machine_id):
 @app.route('/api/machine/<machine_id>/alerts')
 def get_machine_alerts(machine_id):
     """API endpoint to get alerts for a specific machine."""
+    logger.info(f"INICIO endpoint get_machine_alerts para máquina: {machine_id}")
+    
     if 'oauth_token' not in session:
+        logger.error("No hay token OAuth en la sesión")
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
         token = session.get('oauth_token')
+        logger.info(f"Token presente: {bool(token)}")
         
         try:
             # Verificar si estamos usando un token simulado o de prueba
             if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                logger.warning("Usando token simulado")
                 return jsonify({'error': 'Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.'}), 401
                 
             # Intentar obtener alertas reales desde la API de John Deere
@@ -396,8 +401,63 @@ def get_machine_alerts(machine_id):
             
             if not alerts:
                 logger.warning(f"No se encontraron alertas para la máquina {machine_id}")
-                # Retornar una lista vacía, no es un error que una máquina no tenga alertas
-                return jsonify([])
+                # Para propósitos de diagnóstico, agregar alertas de ejemplo si no hay reales
+                logger.info("Verificando si debemos usar alertas de prueba para diagnóstico")
+                
+                # Verificamos si estamos en modo de diagnóstico temporal
+                if 'test_alerts' in request.args:
+                    logger.info("Proporcionando alertas de muestra para diagnóstico")
+                    # Para probar la interfaz, podemos devolver datos de ejemplo
+                    alerts = [
+                        {
+                            'id': 'test-high',
+                            'title': 'PRUEBA: Alerta de alta severidad',
+                            'description': 'Esta es una alerta de prueba con severidad alta',
+                            'severity': 'high',
+                            'timestamp': '2025-04-10T18:00:00.000Z',
+                            'status': 'ACTIVE',
+                            'type': 'TEST'
+                        },
+                        {
+                            'id': 'test-medium',
+                            'title': 'PRUEBA: Alerta de severidad media',
+                            'description': 'Esta es una alerta de prueba con severidad media',
+                            'severity': 'medium',
+                            'timestamp': '2025-04-10T17:00:00.000Z',
+                            'status': 'ACTIVE',
+                            'type': 'TEST'
+                        },
+                        {
+                            'id': 'test-low',
+                            'title': 'PRUEBA: Alerta de baja severidad',
+                            'description': 'Esta es una alerta de prueba con severidad baja',
+                            'severity': 'low',
+                            'timestamp': '2025-04-10T16:00:00.000Z',
+                            'status': 'ACTIVE',
+                            'type': 'TEST'
+                        },
+                        {
+                            'id': 'test-info',
+                            'title': 'PRUEBA: Alerta informativa',
+                            'description': 'Esta es una alerta de prueba informativa',
+                            'severity': 'info',
+                            'timestamp': '2025-04-10T15:00:00.000Z',
+                            'status': 'ACTIVE',
+                            'type': 'TEST'
+                        },
+                        {
+                            'id': 'test-dtc',
+                            'title': 'PRUEBA: Alerta DTC',
+                            'description': 'Esta es una alerta de prueba tipo DTC',
+                            'severity': 'dtc',
+                            'timestamp': '2025-04-10T14:00:00.000Z',
+                            'status': 'ACTIVE',
+                            'type': 'TEST'
+                        }
+                    ]
+                else:
+                    # Retornar una lista vacía, no es un error que una máquina no tenga alertas
+                    return jsonify([])
                 
         except Exception as ma_error:
             logger.error(f"Error fetching machine alerts from API: {str(ma_error)}")
@@ -411,6 +471,7 @@ def get_machine_alerts(machine_id):
             else:
                 return jsonify({'error': f'Error al obtener alertas de la máquina: {error_msg}'}), 500
         
+        logger.info(f"Retornando {len(alerts)} alertas para la máquina {machine_id}")
         return jsonify(alerts)
     except Exception as e:
         logger.error(f"Error general en get_machine_alerts: {str(e)}")

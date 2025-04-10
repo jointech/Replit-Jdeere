@@ -373,8 +373,17 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
         days_back: Number of days back to fetch alerts (default: 30)
     """
     try:
+        logger.info(f"INICIO fetch_machine_alerts para máquina {machine_id}")
+        
         token = refresh_token_if_needed(token)
+        if not token:
+            logger.error("Token no válido o expirado y no se pudo refrescar")
+            return []
+            
         oauth = get_oauth_session(token=token)
+        if not oauth:
+            logger.error("No se pudo crear la sesión OAuth")
+            return []
         
         logger.info(f"Fetching alerts for machine {machine_id} for the last {days_back} days")
         
@@ -408,50 +417,72 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
         
         # Process the response to extract alert data
         data = response.json()
-        logger.info(f"Received machine alerts response for {machine_id}")
+        logger.info(f"Received machine alerts response for {machine_id}: {str(data)[:300]}...")
         
         alerts = []
         
         if 'values' in data:
+            logger.info(f"Encontradas {len(data['values'])} alertas en la respuesta")
             for alert in data['values']:
-                # Normalizar el tipo de severidad según la tabla proporcionada
-                # HIGH: rojo, MEDIUM: amarillo, LOW: gris, INFO: azul, DTC/UNKNOWN: gris
-                severity = 'unknown'  # valor por defecto
-                if alert.get('severity'):
-                    sev_upper = str(alert.get('severity')).upper()
-                    if 'HIGH' in sev_upper or 'CRITICAL' in sev_upper or 'ERROR' in sev_upper:
-                        severity = 'high'
-                    elif 'MEDIUM' in sev_upper or 'WARNING' in sev_upper or 'WARN' in sev_upper:
-                        severity = 'medium'
-                    elif 'LOW' in sev_upper:
-                        severity = 'low'
-                    elif 'INFO' in sev_upper:
-                        severity = 'info'
-                    elif 'DTC' in sev_upper:
-                        severity = 'dtc'
+                try:
+                    logger.info(f"Procesando alerta: {str(alert)[:200]}...")
+                    # Normalizar el tipo de severidad según la tabla proporcionada
+                    # HIGH: rojo, MEDIUM: amarillo, LOW: gris, INFO: azul, DTC/UNKNOWN: gris
+                    severity = 'unknown'  # valor por defecto
+                    if alert.get('severity'):
+                        sev_upper = str(alert.get('severity')).upper()
+                        logger.info(f"Severidad original: {sev_upper}")
+                        if 'HIGH' in sev_upper or 'CRITICAL' in sev_upper or 'ERROR' in sev_upper:
+                            severity = 'high'
+                        elif 'MEDIUM' in sev_upper or 'WARNING' in sev_upper or 'WARN' in sev_upper:
+                            severity = 'medium'
+                        elif 'LOW' in sev_upper:
+                            severity = 'low'
+                        elif 'INFO' in sev_upper:
+                            severity = 'info'
+                        elif 'DTC' in sev_upper:
+                            severity = 'dtc'
+                        logger.info(f"Severidad normalizada: {severity}")
+                except Exception as err:
+                    logger.error(f"Error procesando severidad de alerta: {str(err)}")
+                    severity = 'unknown'
                 
-                # Extraer datos del contenido si disponibles
-                description = 'Sin descripción'
-                title = 'Alerta sin título'
-                
-                if 'content' in alert:
-                    content = alert.get('content', {})
-                    if isinstance(content, dict):
-                        # Si content es un diccionario, intentar extraer la descripción y el título
-                        description = content.get('description') or alert.get('description', 'Sin descripción')
-                        title = content.get('title') or alert.get('title', 'Alerta sin título')
+                try:
+                    # Extraer datos del contenido si disponibles
+                    description = 'Sin descripción'
+                    title = 'Alerta sin título'
                     
-                alert_obj = {
-                    'id': alert.get('id'),
-                    'title': title,
-                    'description': description,
-                    'severity': severity,
-                    'timestamp': alert.get('timestamp'),
-                    'status': alert.get('status', 'ACTIVE'),
-                    'type': alert.get('type', 'UNDEFINED')
-                }
-                
-                alerts.append(alert_obj)
+                    if 'content' in alert:
+                        content = alert.get('content', {})
+                        logger.info(f"Contenido de alerta: {str(content)[:100]}...")
+                        if isinstance(content, dict):
+                            # Si content es un diccionario, intentar extraer la descripción y el título
+                            description = content.get('description') or alert.get('description', 'Sin descripción')
+                            title = content.get('title') or alert.get('title', 'Alerta sin título')
+                    
+                    # Usar título directo de la alerta si está disponible
+                    if not title or title == 'Alerta sin título':
+                        title = alert.get('title', 'Alerta sin título')
+                        
+                    # Usar descripción directa de la alerta si está disponible
+                    if not description or description == 'Sin descripción':
+                        description = alert.get('description', 'Sin descripción')
+                    
+                    # Crear objeto de alerta normalizado
+                    alert_obj = {
+                        'id': alert.get('id', 'sin-id'),
+                        'title': title,
+                        'description': description,
+                        'severity': severity,
+                        'timestamp': alert.get('timestamp'),
+                        'status': alert.get('status', 'ACTIVE'),
+                        'type': alert.get('type', 'UNDEFINED')
+                    }
+                    
+                    logger.info(f"Alerta procesada: {str(alert_obj)[:150]}...")
+                    alerts.append(alert_obj)
+                except Exception as err:
+                    logger.error(f"Error procesando datos de alerta: {str(err)}")
         
         logger.info(f"Retrieved {len(alerts)} alerts for machine {machine_id}")
         return alerts

@@ -498,7 +498,8 @@ function loadMachineAlerts(machineId) {
     emptyAlertMessage.classList.remove('d-none');
     
     // Fetch machine alerts from API
-    fetch(`/api/machine/${machineId}/alerts`, {
+    // Agregamos parámetro para diagnóstico que nos dará alertas simuladas
+    fetch(`/api/machine/${machineId}/alerts?test_alerts=true`, {
         credentials: 'same-origin', // Incluir cookies en la petición
         headers: {
             'Content-Type': 'application/json',
