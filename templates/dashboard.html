@@ -193,22 +193,45 @@
         <h1 class="display-5">Dashboard de Máquinas</h1>
     </div>
     <div class="col-md-4 text-end">
-        <div class="dropdown">
-            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fas fa-building me-2"></i> Seleccionar Organización
-            </button>
-            <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
-                <div class="mb-2">
-                    <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
+        <div class="d-flex justify-content-end align-items-center">
+            <!-- Selector de tema claro/oscuro -->
+            <div class="theme-switch-wrapper me-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="themeSwitch" checked>
+                    <label class="form-check-label ms-2" for="themeSwitch">
+                        <i class="fas fa-moon"></i>
+                    </label>
                 </div>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <ul class="list-unstyled mb-0" id="organizationList">
-                        {% for org in organizations %}
-                        <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
-                        {% endfor %}
-                    </ul>
-                    <div id="noResultsMessage" class="text-center p-2 d-none">
-                        <span class="text-muted">No se encontraron resultados</span>
+            </div>
+
+            <!-- Botón de configuración para mostrar/ocultar panel de autenticación -->
+            <div class="dropdown me-3">
+                <button class="btn btn-sm btn-outline-secondary" type="button" id="configDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="configDropdown">
+                    <li><a class="dropdown-item" href="#" id="toggleAuthInfo">Mostrar información de autenticación</a></li>
+                </ul>
+            </div>
+
+            <!-- Selector de organización -->
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-building me-2"></i> Seleccionar Organización
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <ul class="list-unstyled mb-0" id="organizationList">
+                            {% for org in organizations %}
+                            <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                        <div id="noResultsMessage" class="text-center p-2 d-none">
+                            <span class="text-muted">No se encontraron resultados</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,7 +240,7 @@
 </div>
 
 {% if token_info %}
-<div class="row mb-4">
+<div class="row mb-4" id="authInfoPanel" style="display: none;">
     <div class="col-12">
         <div class="card shadow bg-dark">
             <div class="card-header">

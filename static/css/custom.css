@@ -1,9 +1,42 @@
 /* Additional custom styles */
 
-/* Card shadows */
+/* Light/Dark Theme Variables */
+:root {
+    --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-dark: 0 4px 8px rgba(0, 0, 0, 0.5);
+    --transition-speed: 0.3s;
+}
+
+/* Card shadows and transitions */
 .card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-dark);
     margin-bottom: 1.5rem;
+    transition: all var(--transition-speed) ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Theme toggle styles */
+.theme-switch-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.theme-switch-wrapper .form-check-label {
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--bs-primary);
+}
+
+/* Theme Switch */
+#themeSwitch {
+    cursor: pointer;
+}
+
+/* Active card effect */
+.active-card {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 1px var(--bs-primary), var(--shadow-dark);
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.05), transparent);
 }
 
 /* Machine item in list */
@@ -187,6 +220,64 @@
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+/* Light theme styles */
+body.light-theme {
+    --bs-body-bg: #f8f9fa;
+    --bs-body-color: #212529;
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+body.light-theme .card {
+    background-color: #ffffff;
+    border-color: #dee2e6;
+    box-shadow: var(--shadow-light);
+}
+
+body.light-theme .card-header {
+    background-color: #f8f9fa;
+    border-bottom-color: #dee2e6;
+}
+
+body.light-theme .bg-dark {
+    background-color: #f0f0f0 !important;
+    color: #212529 !important;
+}
+
+body.light-theme .text-muted {
+    color: #6c757d !important;
+}
+
+body.light-theme .dropdown-menu {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #dee2e6;
+}
+
+body.light-theme .dropdown-item {
+    color: #212529;
+}
+
+body.light-theme .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+body.light-theme .list-group-item {
+    background-color: #ffffff;
+    color: #212529;
+    border-color: #dee2e6;
+}
+
+body.light-theme .list-group-item.active {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: #0d6efd;
+    border-left-color: #0d6efd;
+}
+
+body.light-theme .theme-switch-wrapper .form-check-label {
+    color: #ffc107;
 }
 
 /* Responsive adjustments */

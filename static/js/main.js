@@ -5,11 +5,20 @@ let machineMarkers = {};
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("Interfaz de dashboard cargada");
+    
     // Initialize the map
     initMap();
     
     // Set up the organization selection dropdown
     setupOrganizationSelection();
+    
+    // Set up search functionality
+    setupOrganizationSearch();
+    
+    // Setup theme switcher and auth panel toggler
+    setupThemeSwitcher();
+    setupAuthPanelToggle();
 });
 
 // Organization selection functionality
