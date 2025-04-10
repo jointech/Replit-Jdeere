@@ -78,12 +78,70 @@ def get_full_redirect_uri():
 @app.route('/')
 def index():
     """Landing page that checks if user is authenticated and redirects accordingly."""
-    # Si ya estamos autenticados, redirigir al dashboard
-    if 'oauth_token' in session:
+    # Si el usuario está logueado y tiene un token OAuth válido, redirigir al dashboard
+    if current_user.is_authenticated and 'oauth_token' in session:
         return redirect(url_for('dashboard'))
     
-    # De lo contrario, mostrar la página de inicio
-    return render_template('login.html')
+    # Si el usuario está logueado pero no tiene token OAuth, redirigir a la autenticación de John Deere
+    if current_user.is_authenticated and 'oauth_token' not in session:
+        return redirect(url_for('login'))
+    
+    # De lo contrario, redirigir a la página de login de usuario
+    return redirect(url_for('login_form'))
+
+@app.route('/login-form', methods=['GET', 'POST'])
+def login_form():
+    """Página de inicio de sesión de usuario."""
+    # Si ya está autenticado, redirigir al dashboard
+    if current_user.is_authenticated and 'oauth_token' in session:
+        return redirect(url_for('dashboard'))
+    
+    # Procesar el formulario de login
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            flash('Por favor, complete todos los campos.', 'danger')
+            return render_template('user_login.html')
+        
+        # Buscar usuario en la base de datos
+        user = User.query.filter_by(username=username).first()
+        
+        # Registrar el intento de login, incluso si falla
+        log_entry = LoginLog(
+            username=username,
+            ip_address=request.remote_addr,
+            user_agent=request.user_agent.string,
+            user_id=user.id if user else None,
+            success=False  # Se actualiza después si es exitoso
+        )
+        db.session.add(log_entry)
+        
+        # Verificar credenciales
+        if not user or not user.check_password(password):
+            db.session.commit()  # Guardar el log de intento fallido
+            flash('Usuario o contraseña incorrectos', 'danger')
+            return render_template('user_login.html')
+        
+        # Login exitoso
+        login_user(user)
+        
+        # Actualizar el log
+        log_entry.success = True
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        # Si no tiene token de OAuth, redirigir a la autenticación de John Deere
+        if 'oauth_token' not in session:
+            flash('Autenticación exitosa. Por favor, complete la autenticación con John Deere.', 'success')
+            return redirect(url_for('login'))
+        
+        # Si ya tiene token, ir directamente al dashboard
+        return redirect(url_for('dashboard'))
+    
+    # Mostrar formulario de login
+    return render_template('user_login.html')
 
 @app.route('/login')
 def login():
@@ -216,6 +274,48 @@ def auth_complete():
         # Guardar el código para referencia (solo para depuración)
         session['last_auth_code'] = code
         
+        # Si el usuario está autenticado, guardar el token en su perfil
+        if current_user.is_authenticated:
+            # Convertir el token a formato JSON y guardarlo en el usuario
+            if token:
+                # Calcular la fecha de expiración
+                expires_in = token.get('expires_in', 3600)
+                expiry_date = datetime.utcnow() + timedelta(seconds=expires_in)
+                
+                # Guardar token y fecha de expiración en el usuario
+                current_user.oauth_token = json.dumps(token)
+                current_user.oauth_token_expiry = expiry_date
+                
+                # Actualizar las organizaciones asociadas al usuario
+                try:
+                    orgs = fetch_organizations(token)
+                    
+                    # Buscar o crear organizaciones en la base de datos
+                    for org_data in orgs:
+                        org_id = org_data.get('id')
+                        org = Organization.query.get(org_id)
+                        
+                        if not org:
+                            # Crear nueva organización
+                            org = Organization(
+                                id=org_id,
+                                name=org_data.get('name', 'Sin nombre'),
+                                type=org_data.get('type', 'Unknown')
+                            )
+                            db.session.add(org)
+                        
+                        # Asignar organización al usuario si no la tiene ya
+                        if org not in current_user.organizations:
+                            current_user.organizations.append(org)
+                    
+                    logger.info(f"Asociadas {len(orgs)} organizaciones al usuario {current_user.username}")
+                except Exception as org_error:
+                    logger.error(f"Error al procesar organizaciones para el usuario: {str(org_error)}")
+                
+                # Guardar los cambios
+                db.session.commit()
+                logger.info(f"Token OAuth guardado para el usuario {current_user.username}")
+        
         success_msg = "Autenticación exitosa con John Deere API."
         logger.info(success_msg)
         
@@ -242,6 +342,7 @@ def auth_complete():
             return redirect(url_for('auth_setup'))
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     """Main dashboard view for authenticated users."""
     if 'oauth_token' not in session:
@@ -251,42 +352,93 @@ def dashboard():
     try:
         token = session.get('oauth_token')
         
-        try:
-            # Intenta obtener organizaciones reales desde la API de John Deere
-            logger.info("Obteniendo organizaciones reales desde la API de John Deere")
-            
-            # Verificar si estamos usando un token simulado o de prueba
-            if token.get('access_token') in ['simulated_token_manual', 'test_token']:
-                # El mensaje de error será más específico para entornos de desarrollo
-                raise ValueError("Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.")
+        # Obtener organizaciones del usuario actual
+        user_organizations = []
+        if current_user.is_authenticated:
+            if current_user.is_admin:
+                # Si es admin, buscar todas las organizaciones
+                user_organizations = Organization.query.all()
+                logger.info(f"Usuario admin: {current_user.username}, mostrando todas las organizaciones ({len(user_organizations)})")
+            else:
+                # Si no es admin, mostrar solo sus organizaciones asignadas
+                user_organizations = current_user.organizations
+                logger.info(f"Usuario: {current_user.username}, organizaciones asignadas: {len(user_organizations)}")
+        
+        # Si no hay organizaciones en la base de datos, intentar obtenerlas de la API
+        if not user_organizations:
+            try:
+                # Intenta obtener organizaciones reales desde la API de John Deere
+                logger.info("No hay organizaciones en la base de datos, obteniendo desde API de John Deere")
                 
-            organizations = fetch_organizations(token)
-            logger.info(f"Organizaciones obtenidas: {organizations}")
-            
-            if not organizations:
-                # Si no hay organizaciones reales, mostrar mensaje de error
-                logger.warning("No se obtuvieron organizaciones reales")
-                flash("No se encontraron organizaciones en la cuenta de John Deere. Verifique los permisos de su aplicación.", "warning")
+                # Verificar si estamos usando un token simulado o de prueba
+                if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                    # El mensaje de error será más específico para entornos de desarrollo
+                    raise ValueError("Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.")
+                    
+                api_organizations = fetch_organizations(token)
+                logger.info(f"Organizaciones obtenidas de API: {len(api_organizations)}")
+                
+                # Convertir las organizaciones de la API a objetos de la base de datos
                 organizations = []
-            else:
-                # Mensaje de éxito si se obtuvieron datos reales
-                flash(f"Se obtuvieron {len(organizations)} organizaciones de John Deere.", "success")
-        except Exception as org_error:
-            # Mensaje de error específico según el tipo de error
-            logger.error(f"Error obteniendo organizaciones: {str(org_error)}")
-            
-            error_msg = str(org_error)
-            
-            # Personalizar mensajes de error comunes
-            if "401" in error_msg:
-                flash("Error de autenticación (401): No autorizado para acceder a la API de John Deere. Verifique las credenciales y permisos.", "danger")
-            elif "404" in error_msg:
-                flash("Error 404: El recurso solicitado no existe en la API de John Deere. Verifique los endpoints y parámetros.", "danger")
-            else:
-                flash(f"Error al obtener organizaciones: {error_msg}", "danger")
+                for org_data in api_organizations:
+                    org_id = org_data.get('id')
+                    org_name = org_data.get('name', 'Sin nombre')
+                    org_type = org_data.get('type', 'Desconocido')
+                    
+                    # Buscar o crear la organización en la base de datos
+                    org = Organization.query.get(org_id)
+                    if not org:
+                        org = Organization(id=org_id, name=org_name, type=org_type)
+                        db.session.add(org)
+                        
+                        # Asignar al usuario actual si no es administrador
+                        if current_user.is_authenticated and not current_user.is_admin:
+                            if org not in current_user.organizations:
+                                current_user.organizations.append(org)
+                    
+                    organizations.append(org)
                 
-            # Crear una lista vacía para evitar errores, pero no usar datos simulados
-            organizations = []
+                # Guardar cambios en la base de datos
+                db.session.commit()
+                
+                # Si el usuario no es administrador, filtrar solo sus organizaciones
+                if current_user.is_authenticated and not current_user.is_admin:
+                    user_organizations = current_user.organizations
+                else:
+                    user_organizations = organizations
+                
+                if not user_organizations:
+                    # Si no hay organizaciones, mostrar mensaje de error
+                    logger.warning("No se obtuvieron organizaciones para el usuario")
+                    flash("No se encontraron organizaciones asociadas a su cuenta. Contacte al administrador.", "warning")
+                else:
+                    # Mensaje de éxito si se obtuvieron datos
+                    flash(f"Se obtuvieron {len(user_organizations)} organizaciones asociadas a su cuenta.", "success")
+            except Exception as org_error:
+                # Mensaje de error específico según el tipo de error
+                logger.error(f"Error obteniendo organizaciones: {str(org_error)}")
+                
+                error_msg = str(org_error)
+                
+                # Personalizar mensajes de error comunes
+                if "401" in error_msg:
+                    flash("Error de autenticación (401): No autorizado para acceder a la API de John Deere. Verifique las credenciales y permisos.", "danger")
+                elif "404" in error_msg:
+                    flash("Error 404: El recurso solicitado no existe en la API de John Deere. Verifique los endpoints y parámetros.", "danger")
+                else:
+                    flash(f"Error al obtener organizaciones: {error_msg}", "danger")
+                    
+                # Crear una lista vacía para evitar errores
+                user_organizations = []
+        
+        # Convertir las organizaciones de la base de datos al formato esperado por el frontend
+        organizations = []
+        for org in user_organizations:
+            organizations.append({
+                'id': org.id,
+                'name': org.name,
+                'type': org.type
+            })
         
         # Información del token (solo para desarrollo)
         token_access = token.get('access_token', '')
@@ -319,14 +471,45 @@ def dashboard():
         return render_template('error.html', error=str(e))
 
 @app.route('/api/machines/<organization_id>')
+@login_required
 def get_machines(organization_id):
     """API endpoint to get machines for a specific organization."""
     if 'oauth_token' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
+    # Verificar si el usuario tiene acceso a esta organización
+    if not current_user.is_admin:
+        has_access = False
+        for org in current_user.organizations:
+            if str(org.id) == organization_id:
+                has_access = True
+                break
+        
+        if not has_access:
+            logger.warning(f"Usuario {current_user.username} intentó acceder a organización no autorizada: {organization_id}")
+            return jsonify({'error': 'No tiene permiso para acceder a esta organización'}), 403
+    
     try:
         token = session.get('oauth_token')
         
+        # Buscar máquinas en la base de datos primero
+        db_machines = Machine.query.filter_by(organization_id=organization_id).all()
+        
+        # Si hay máquinas en la base de datos, retornarlas directamente
+        if db_machines:
+            machines = []
+            for machine in db_machines:
+                machines.append({
+                    'id': machine.id,
+                    'name': machine.name,
+                    'model': machine.model,
+                    'category': machine.category,
+                    'organization_id': machine.organization_id
+                })
+            logger.info(f"Retornando {len(machines)} máquinas de la base de datos para la organización {organization_id}")
+            return jsonify(machines)
+        
+        # Si no hay máquinas en la base de datos, intentar obtenerlas de la API
         try:
             # Verificar si estamos usando un token simulado o de prueba
             if token.get('access_token') in ['simulated_token_manual', 'test_token']:
@@ -334,13 +517,45 @@ def get_machines(organization_id):
                 
             # Intentar obtener máquinas reales desde la API de John Deere
             logger.info(f"Obteniendo máquinas reales para la organización {organization_id}")
-            machines = fetch_machines_by_organization(token, organization_id)
-            logger.info(f"Máquinas obtenidas: {len(machines)}")
+            api_machines = fetch_machines_by_organization(token, organization_id)
+            logger.info(f"Máquinas obtenidas de API: {len(api_machines)}")
             
-            if not machines:
+            if not api_machines:
                 logger.warning(f"No se obtuvieron máquinas para la organización {organization_id}")
                 # Retornar lista vacía pero con mensaje informativo
                 return jsonify([])
+            
+            # Guardar las máquinas en la base de datos para futuras consultas
+            for machine_data in api_machines:
+                machine_id = machine_data.get('id')
+                
+                # Verificar si la máquina ya existe
+                machine = Machine.query.get(machine_id)
+                if not machine:
+                    # Extraer nombre, modelo y categoría
+                    name = machine_data.get('name', 'Sin nombre')
+                    
+                    # El modelo puede ser un objeto o una cadena
+                    model = machine_data.get('model', '')
+                    if isinstance(model, dict):
+                        model = model.get('name', '')
+                    
+                    category = machine_data.get('category', '')
+                    
+                    # Crear nueva máquina
+                    machine = Machine(
+                        id=machine_id,
+                        name=name,
+                        model=model,
+                        category=category,
+                        organization_id=organization_id
+                    )
+                    db.session.add(machine)
+            
+            db.session.commit()
+            logger.info(f"Se guardaron {len(api_machines)} máquinas en la base de datos")
+                
+            return jsonify(api_machines)
                 
         except Exception as m_error:
             logger.error(f"Error fetching machines from API: {str(m_error)}")
@@ -356,16 +571,55 @@ def get_machines(organization_id):
                 
             # No usamos datos simulados, solo retornamos el error
         
-        return jsonify(machines)
     except Exception as e:
         logger.error(f"Error general en get_machines: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/machine/<machine_id>')
+@login_required
 def get_machine_details(machine_id):
     """API endpoint to get details for a specific machine."""
     if 'oauth_token' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Verificar si el usuario tiene acceso a la máquina
+    if not current_user.is_admin:
+        # Buscar la máquina para obtener su organización
+        machine = Machine.query.get(machine_id)
+        if not machine:
+            # Si la máquina no está en la base de datos, verificar en tiempo real
+            # con las organizaciones del usuario
+            has_access = False
+            try:
+                # Buscar la máquina en las organizaciones del usuario
+                token = session.get('oauth_token')
+                for org in current_user.organizations:
+                    # Intentar obtener máquinas de la organización desde la API
+                    org_machines = fetch_machines_by_organization(token, org.id)
+                    for m in org_machines:
+                        if m.get('id') == machine_id:
+                            has_access = True
+                            break
+                    if has_access:
+                        break
+            except Exception as e:
+                logger.error(f"Error verificando acceso a máquina {machine_id}: {str(e)}")
+                
+            if not has_access:
+                logger.warning(f"Usuario {current_user.username} intentó acceder a máquina no autorizada: {machine_id}")
+                return jsonify({'error': 'No tiene permiso para acceder a esta máquina'}), 403
+        else:
+            # Si la máquina está en la base de datos, verificar si pertenece a una
+            # organización del usuario
+            has_access = False
+            for org in current_user.organizations:
+                if org.id == machine.organization_id:
+                    has_access = True
+                    break
+            
+            if not has_access:
+                logger.warning(f"Usuario {current_user.username} intentó acceder a máquina no autorizada: {machine_id}")
+                return jsonify({'error': 'No tiene permiso para acceder a esta máquina'}), 403
     
     try:
         token = session.get('oauth_token')
@@ -401,6 +655,7 @@ def get_machine_details(machine_id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/machine/<machine_id>/alerts')
+@login_required
 def get_machine_alerts(machine_id):
     """API endpoint to get alerts for a specific machine."""
     logger.info(f"INICIO endpoint get_machine_alerts para máquina: {machine_id}")
@@ -408,6 +663,22 @@ def get_machine_alerts(machine_id):
     if 'oauth_token' not in session:
         logger.error("No hay token OAuth en la sesión")
         return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Verificar si el usuario tiene acceso a la máquina
+    if not current_user.is_admin:
+        # Buscar la máquina para obtener su organización
+        machine = Machine.query.get(machine_id)
+        if machine:
+            # Verificar si la organización de la máquina está entre las del usuario
+            has_access = False
+            for org in current_user.organizations:
+                if org.id == machine.organization_id:
+                    has_access = True
+                    break
+            
+            if not has_access:
+                logger.warning(f"Usuario {current_user.username} intentó acceder a alertas de máquina no autorizada: {machine_id}")
+                return jsonify({'error': 'No tiene permiso para acceder a esta máquina'}), 403
     
     try:
         token = session.get('oauth_token')
@@ -447,6 +718,7 @@ def get_machine_alerts(machine_id):
         return jsonify({'error': str(e)}), 500
         
 @app.route('/api/alert/definition')
+@login_required
 def get_alert_definition():
     """API endpoint to get detailed definition for a specific alert."""
     if 'oauth_token' not in session:
