@@ -523,25 +523,43 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
                     
                     logger.info(f"Procesando alerta con datos: {str(alert)[:300]}...")
                     
-                    # Intentar obtener descripción y título directamente del mensaje
-                    if 'description' in alert:
+                    # Intentar obtener descripción y título desde la definición
+                    if 'definition' in alert and isinstance(alert['definition'], dict):
+                        definition = alert['definition']
+                        
+                        # Obtener descripción de la definición
+                        if definition.get('description'):
+                            logger.info(f"Descripción encontrada en definición: {definition['description']}")
+                            description = definition['description']
+                        
+                        # Si hay un ID o suspectParameterName, usarlo para el título
+                        if definition.get('id'):
+                            logger.info(f"ID encontrado en definición: {definition['id']}")
+                            title = f"Alerta DTC {definition['id']}"
+                        elif definition.get('suspectParameterName') and definition.get('failureModeIndicator'):
+                            spn = definition.get('suspectParameterName')
+                            fmi = definition.get('failureModeIndicator')
+                            title = f"Alerta {definition.get('threeLetterAcronym', 'DTC')} {spn}.{fmi}"
+                    
+                    # Si no se encontró en la definición, intentar obtener directamente
+                    if description == 'Sin descripción' and 'description' in alert:
                         logger.info(f"Descripción encontrada directamente: {alert['description']}")
                         description = alert['description']
                     
-                    if 'title' in alert:
+                    if title == 'Alerta sin título' and 'title' in alert:
                         logger.info(f"Título encontrado directamente: {alert['title']}")
                         title = alert['title']
                     
-                    # Intentar obtener desde content si existe
+                    # Intentar obtener desde content como último recurso
                     if 'content' in alert:
                         content = alert.get('content', {})
                         logger.info(f"Contenido de alerta: {str(content)[:150]}...")
                         if isinstance(content, dict):
                             # Si content es un diccionario, intentar extraer la descripción y el título
-                            if content.get('description'):
+                            if description == 'Sin descripción' and content.get('description'):
                                 logger.info(f"Descripción encontrada en content: {content['description']}")
                                 description = content['description']
-                            if content.get('title'):
+                            if title == 'Alerta sin título' and content.get('title'):
                                 logger.info(f"Título encontrado en content: {content['title']}")
                                 title = content['title']
                     

@@ -698,30 +698,120 @@ function showAlertDetailsInline(button, definitionUri, alertId) {
     button.innerHTML = '<i class="fas fa-times-circle me-1"></i> Ocultar detalles';
     button.classList.add('expanded');
     
-    // Construir directamente el HTML con los detalles
+    // Indicador de carga mientras esperamos datos de la API
     detailsContainer.innerHTML = `
-        <h5 class="text-info mb-3">Alerta DTC ${alertId}</h5>
-        <p class="mb-3">Esta es una alerta de código de diagnóstico (DTC) con ID ${alertId}. Para más información, consulte la documentación técnica de John Deere o contacte con su concesionario.</p>
-        
-        <hr>
-        
-        <h6 class="text-warning mt-3">Posibles causas:</h6>
-        <ul class="mb-3">
-            <li>Esta información no está disponible actualmente a través de la API.</li>
-            <li>Es posible que se necesiten permisos adicionales para acceder a esta información.</li>
-        </ul>
-        
-        <h6 class="text-success mt-3">Soluciones recomendadas:</h6>
-        <ul class="mb-3">
-            <li>Para resolver este problema, consulte con un técnico autorizado de John Deere.</li>
-            <li>Puede encontrar más información en el manual técnico del equipo.</li>
-        </ul>
-        
-        <div class="mt-3 small text-muted">
-            <i class="fas fa-info-circle me-1"></i>
-            <em>Nota: Información generada a partir del ID de la alerta. No representa datos completos de la API de John Deere.</em>
+        <div class="text-center py-3">
+            <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando detalles de la alerta...</p>
         </div>
     `;
+    
+    // Intentar obtener datos reales de la API
+    fetch(`/api/alert/definition?uri=${encodeURIComponent(definitionUri)}`, {
+        credentials: 'same-origin',
+        method: 'GET'
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Respuesta de la API recibida:", data);
+        
+        // Procesar la respuesta de la API para mostrar datos relevantes
+        let detailsHtml = '';
+        
+        if (data && data.success) {
+            // Usar los datos de la API para mostrar información detallada
+            detailsHtml = `
+                <h5 class="text-info mb-3">${data.title || `Alerta DTC ${alertId}`}</h5>
+                <p class="mb-3">${data.description || `Esta es una alerta de código de diagnóstico (DTC) con ID ${alertId}. Para más información, consulte la documentación técnica de John Deere.`}</p>
+                
+                <hr>
+            `;
+            
+            // Añadir causas si están disponibles
+            if (data.causes && data.causes.length > 0) {
+                detailsHtml += `
+                    <h6 class="text-warning mt-3">Posibles causas:</h6>
+                    <ul class="mb-3">
+                `;
+                
+                data.causes.forEach(cause => {
+                    detailsHtml += `<li>${cause}</li>`;
+                });
+                
+                detailsHtml += '</ul>';
+            }
+            
+            // Añadir soluciones si están disponibles
+            if (data.resolutions && data.resolutions.length > 0) {
+                detailsHtml += `
+                    <h6 class="text-success mt-3">Soluciones recomendadas:</h6>
+                    <ul class="mb-3">
+                `;
+                
+                data.resolutions.forEach(resolution => {
+                    detailsHtml += `<li>${resolution}</li>`;
+                });
+                
+                detailsHtml += '</ul>';
+            }
+            
+            // Información adicional y nota
+            if (data.additionalInfo) {
+                detailsHtml += `
+                    <div class="mt-3">
+                        <strong>Información adicional:</strong> ${data.additionalInfo}
+                    </div>
+                `;
+            }
+            
+            if (data.note) {
+                detailsHtml += `
+                    <div class="mt-3 small text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <em>${data.note}</em>
+                    </div>
+                `;
+            }
+        } else {
+            // Mostrar mensaje de error o información por defecto
+            detailsHtml = `
+                <h5 class="text-info mb-3">Alerta DTC ${alertId}</h5>
+                <p class="mb-3">Esta es una alerta de código de diagnóstico (DTC). Para más información, consulte la documentación técnica de John Deere o contacte con su concesionario.</p>
+                
+                <hr>
+                
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No se pudo obtener información detallada para esta alerta. Es posible que se requieran permisos adicionales para acceder a los detalles completos.
+                </div>
+                
+                <h6 class="text-warning mt-3">Recomendaciones generales:</h6>
+                <ul class="mb-3">
+                    <li>Consulte con un técnico autorizado de John Deere.</li>
+                    <li>Revise el manual técnico del equipo para más información.</li>
+                </ul>
+            `;
+        }
+        
+        // Actualizar el contenedor con los detalles
+        detailsContainer.innerHTML = detailsHtml;
+    })
+    .catch(error => {
+        console.error("Error al comunicarse con la API:", error);
+        
+        // Mostrar un mensaje de error
+        detailsContainer.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No se pudo obtener información para esta alerta debido a un error de comunicación.
+            </div>
+            
+            <h5 class="text-info mt-3">Alerta DTC ${alertId}</h5>
+            <p>Esta es una alerta de código de diagnóstico (DTC). Para más información, consulte la documentación técnica de John Deere.</p>
+        `;
+    });
 }
 
 // Función antigua para compatibilidad (será llamada por los event listeners existentes)
