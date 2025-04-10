@@ -437,10 +437,17 @@ def get_alert_definition():
     try:
         # Obtener la definición de la alerta
         token = session.get('oauth_token')
-        definition = john_deere_api.fetch_alert_definition(token, definition_uri)
+        logger.info(f"Obteniendo definición de alerta desde URI: {definition_uri}")
+        
+        # Importamos la función correctamente
+        from john_deere_api import fetch_alert_definition
+        
+        definition = fetch_alert_definition(token, definition_uri)
         if definition:
+            logger.info(f"Definición de alerta obtenida correctamente: {str(definition)[:150]}")
             return jsonify(definition)
         else:
+            logger.error(f"No se pudo obtener la definición de la alerta desde {definition_uri}")
             return jsonify({"error": "No se pudo obtener la definición de la alerta"}), 404
     except Exception as e:
         logger.error(f"Error al obtener definición de alerta {definition_uri}: {str(e)}")

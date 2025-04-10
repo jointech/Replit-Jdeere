@@ -575,13 +575,17 @@ function loadAlertDetails(button, definitionUri) {
     detailsContainer.classList.remove('d-none');
     detailsContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Cargando detalles...</div>';
     
+    // Mostrar información de la solicitud para depuración
+    console.log(`Enviando solicitud a: /api/alert/definition?uri=${encodeURIComponent(definitionUri)}`);
+    
     // Realizar la solicitud para obtener los detalles
     fetch(`/api/alert/definition?uri=${encodeURIComponent(definitionUri)}`, {
         credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-        }
+        },
+        method: 'GET'
     })
         .then(response => {
             if (!response.ok) {
