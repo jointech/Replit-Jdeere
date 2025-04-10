@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Registrar nuevo usuario</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nombre de usuario</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="isAdmin" name="is_admin">
+                            <label class="form-check-label" for="isAdmin">Es administrador</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Organizaciones asignadas</label>
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                {% if organizations %}
+                                    {% for org in organizations %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="organizations" value="{{ org.id }}" id="org-{{ org.id }}">
+                                        <label class="form-check-label" for="org-{{ org.id }}">
+                                            {{ org.name }} ({{ org.id }})
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No hay organizaciones disponibles. Complete la autenticación con John Deere primero.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Registrar usuario</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">Usuarios existentes</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Email</th>
+                                    <th>Tipo</th>
+                                    <th>Organizaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if users %}
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.username }}</td>
+                                        <td>{{ user.email or '-' }}</td>
+                                        <td>{% if user.is_admin %}<span class="badge bg-warning">Admin</span>{% else %}<span class="badge bg-info">Usuario</span>{% endif %}</td>
+                                        <td>
+                                            <small>
+                                                {% if user.organizations %}
+                                                    {% for org in user.organizations %}
+                                                        <span class="badge bg-secondary">{{ org.name }}</span>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <em class="text-muted">Sin organizaciones</em>
+                                                {% endif %}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No hay usuarios registrados</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

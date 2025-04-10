@@ -1,58 +1,38 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Inicio de Sesión</h4>
-            </div>
-            <div class="card-body">
-                <div class="text-center mb-4">
-                    <svg class="mb-3" width="80" height="80" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <p class="lead">Acceda a su cuenta del Dashboard de John Deere</p>
-                    <p>Visualice y filtre sus máquinas por organización.</p>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Iniciar Sesión</h4>
                 </div>
-
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                <form method="POST" action="{{ url_for('login_form') }}">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Nombre de Usuario</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Contraseña</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i> Iniciar Sesión
-                        </button>
-                    </div>
-                </form>
-
-                <hr class="my-4">
-                
-                <div class="alert alert-info mt-4">
-                    <h5><i class="fas fa-info-circle me-2"></i> Autenticación de dos factores</h5>
-                    <p>Después de iniciar sesión, será redirigido a la autenticación con John Deere para verificar su identidad.</p>
-                    <p>Se enviará un código de verificación a su dispositivo móvil registrado.</p>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('login_form') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nombre de usuario</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-center">
+                    <p class="mb-0 text-muted">
+                        <small>Para acceder al sistema, utilice las credenciales proporcionadas por el administrador.</small><br>
+                        <small>Contacta al administrador si no tienes acceso.</small>
+                    </p>
                 </div>
             </div>
-            <div class="card-footer text-muted">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small>Contacte al administrador si no tiene una cuenta.</small>
-                </div>
+            
+            <div class="mt-4 text-center">
+                <p>Después de iniciar sesión, serás redirigido para completar<br>la autenticación con John Deere para acceder a los datos de equipos.</p>
             </div>
         </div>
     </div>

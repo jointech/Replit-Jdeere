@@ -31,20 +31,34 @@
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
-                        {% if 'oauth_token' in session %}
+                        {% if current_user.is_authenticated %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
                         </li>
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">Administrar Usuarios</a>
+                        </li>
+                        {% endif %}
                         {% endif %}
                     </ul>
                     <ul class="navbar-nav">
-                        {% if 'oauth_token' in session %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                        {% if current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                {% if 'oauth_token' not in session %}
+                                <li><a class="dropdown-item" href="{{ url_for('login') }}"><i class="fas fa-key me-2"></i>Conectar con John Deere</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión</a></li>
+                            </ul>
                         </li>
                         {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                            <a class="nav-link" href="{{ url_for('login_form') }}"><i class="fas fa-sign-in-alt me-1"></i> Iniciar Sesión</a>
                         </li>
                         {% endif %}
                     </ul>

@@ -31,8 +31,17 @@ app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # necesario para url_for con https
 
 # Configurar SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", 'sqlite:///deere_dashboard.db')
+database_url = os.environ.get("DATABASE_URL")
+# Si estamos en PostgreSQL, asegurarnos de que la URL comienza con postgresql://
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///deere_dashboard.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,  # Verifica conexiones antes de usarlas
+    'pool_recycle': 300,    # Recicla conexiones cada 5 minutos
+}
 db.init_app(app)
 
 # Inicializar LoginManager para Flask-Login
@@ -50,6 +59,24 @@ logger = logging.getLogger(__name__)
 def load_user(user_id):
     """Función requerida por Flask-Login para cargar un usuario."""
     return User.query.get(int(user_id))
+
+# Crear tablas de la base de datos al iniciar la aplicación
+with app.app_context():
+    db.create_all()
+    
+    # Verificar si existe un usuario administrador
+    admin = User.query.filter_by(is_admin=True).first()
+    if not admin:
+        # Crear usuario administrador por defecto
+        admin = User(
+            username="admin",
+            email="admin@example.com",
+            is_admin=True
+        )
+        admin.set_password("admin123")  # Contraseña temporal que debe cambiarse
+        db.session.add(admin)
+        db.session.commit()
+        logger.info("Usuario administrador creado exitosamente")
 
 def get_base_url():
     """Obtiene la URL base de la aplicación actual, con el protocolo correcto."""
@@ -88,6 +115,65 @@ def index():
     
     # De lo contrario, redirigir a la página de login de usuario
     return redirect(url_for('login_form'))
+
+@app.route('/register', methods=['GET', 'POST'])
+@login_required
+def register():
+    """Página de registro de usuarios (solo accesible por administradores)."""
+    # Verificar si el usuario actual es administrador
+    if not current_user.is_admin:
+        flash("No tiene permisos para acceder a esta página.", "danger")
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        username = request.form.get('username')
+        password = request.form.get('password')
+        email = request.form.get('email')
+        is_admin = 'is_admin' in request.form
+        organizations = request.form.getlist('organizations')
+        
+        # Validar datos
+        if not username or not password:
+            flash("El nombre de usuario y la contraseña son obligatorios.", "danger")
+            return redirect(url_for('register'))
+        
+        # Verificar si el usuario ya existe
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash(f"El usuario '{username}' ya existe.", "danger")
+            return redirect(url_for('register'))
+        
+        # Crear nuevo usuario
+        new_user = User(
+            username=username,
+            email=email,
+            is_admin=is_admin
+        )
+        new_user.set_password(password)
+        
+        # Asignar organizaciones si se seleccionaron
+        if organizations:
+            for org_id in organizations:
+                org = Organization.query.get(org_id)
+                if org:
+                    new_user.organizations.append(org)
+        
+        # Guardar en la base de datos
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash(f"Usuario '{username}' creado exitosamente.", "success")
+        return redirect(url_for('register'))
+    
+    # Obtener todas las organizaciones para el formulario
+    organizations = Organization.query.all()
+    # Obtener todos los usuarios para mostrarlos
+    users = User.query.all()
+    
+    return render_template('register.html', 
+                          organizations=organizations,
+                          users=users)
 
 @app.route('/login-form', methods=['GET', 'POST'])
 def login_form():
@@ -775,8 +861,13 @@ def auth_setup():
 @app.route('/logout')
 def logout():
     """Logs out the user by clearing the session."""
+    # Cerrar sesión con Flask-Login
+    if current_user.is_authenticated:
+        logout_user()
+    
+    # Limpiar la sesión completa
     session.clear()
-    flash("You have been logged out successfully.", "success")
+    flash("Se ha cerrado la sesión exitosamente.", "success")
     return redirect(url_for('index'))
 
 @app.route('/test-location/<machine_id>')
