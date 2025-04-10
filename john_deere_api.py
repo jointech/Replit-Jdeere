@@ -55,7 +55,9 @@ def fetch_organizations(token):
         token = refresh_token_if_needed(token)
         oauth = get_oauth_session(token=token)
         
-        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/organizations")
+        # Agregar encabezado para desactivar paginación y obtener todas las organizaciones
+        headers = {'x-deere-no-paging': 'true'}
+        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/organizations", headers=headers)
         response.raise_for_status()
         
         # Process the response to extract organization data
@@ -71,6 +73,7 @@ def fetch_organizations(token):
                     'links': org.get('links', [])
                 })
         
+        logger.info(f"Obtenidas {len(organizations)} organizaciones (sin paginación)")
         return organizations
     except Exception as e:
         logger.error(f"Error fetching organizations: {str(e)}")
@@ -89,8 +92,11 @@ def fetch_machines_by_organization(token, organization_id):
         # Los parámetros deben incluir el ID de la organización y el filtro para máquinas
         params = {"organizationId": organization_id, "categories": "machine"}
         
-        # Realizar la petición
-        response = oauth.get(endpoint, params=params)
+        # Agregar encabezado para desactivar paginación
+        headers = {'x-deere-no-paging': 'true'}
+        
+        # Realizar la petición con paginación desactivada
+        response = oauth.get(endpoint, params=params, headers=headers)
         response.raise_for_status()
         
         # Process the response to extract machine data
@@ -142,7 +148,11 @@ def fetch_machine_details(token, machine_id):
         
         logger.info(f"Fetching details for machine {machine_id}")
         
-        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}")
+        # No es necesario el encabezado de paginación para una petición de elemento único,
+        # pero lo incluimos por consistencia
+        headers = {'x-deere-no-paging': 'true'}
+        
+        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}", headers=headers)
         response.raise_for_status()
         
         # Obtener los datos de la respuesta
@@ -185,7 +195,10 @@ def fetch_machine_alerts(token, machine_id):
         
         logger.info(f"Fetching alerts for machine {machine_id}")
         
-        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/alerts")
+        # Agregar encabezado para desactivar paginación
+        headers = {'x-deere-no-paging': 'true'}
+        
+        response = oauth.get(f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/alerts", headers=headers)
         response.raise_for_status()
         
         # Process the response to extract alert data
