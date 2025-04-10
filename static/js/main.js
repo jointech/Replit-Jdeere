@@ -588,65 +588,92 @@ function loadAlertDetails(button, definitionUri) {
         method: 'GET'
     })
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al cargar la definición de la alerta');
-            }
+            // Simplemente convertir a JSON, incluso si hay errores HTTP
+            // porque ahora nuestro backend devuelve respuestas estructuradas incluso para errores
             return response.json();
         })
-        .then(definition => {
-            console.log("Definición de alerta recibida:", definition);
+        .then(data => {
+            console.log("Respuesta recibida para definición de alerta:", data);
             
-            // Formatear los detalles de manera legible
-            let detailsHtml = '<div class="card card-body bg-light">';
-            
-            // Título de la definición si está disponible
-            if (definition.title) {
-                detailsHtml += `<h6 class="card-title">${definition.title}</h6>`;
+            // Verificar si la respuesta fue exitosa o es un error
+            if (data.success === true) {
+                // Formatear los detalles de manera legible
+                let detailsHtml = '<div class="card card-body bg-light">';
+                
+                // Título de la definición si está disponible
+                if (data.title) {
+                    detailsHtml += `<h6 class="card-title">${data.title}</h6>`;
+                }
+                
+                // Descripción
+                if (data.description) {
+                    detailsHtml += `<p class="small">${data.description}</p>`;
+                }
+                
+                // Si hay una nota, mostrarla
+                if (data.note) {
+                    detailsHtml += `<p class="small text-muted"><i class="fas fa-info-circle"></i> ${data.note}</p>`;
+                }
+                
+                // Causas
+                if (data.causes && data.causes.length > 0) {
+                    detailsHtml += '<h6 class="mt-2">Posibles causas:</h6>';
+                    detailsHtml += '<ul class="small">';
+                    data.causes.forEach(cause => {
+                        detailsHtml += `<li>${cause}</li>`;
+                    });
+                    detailsHtml += '</ul>';
+                }
+                
+                // Soluciones
+                if (data.resolutions && data.resolutions.length > 0) {
+                    detailsHtml += '<h6 class="mt-2">Soluciones recomendadas:</h6>';
+                    detailsHtml += '<ul class="small">';
+                    data.resolutions.forEach(resolution => {
+                        detailsHtml += `<li>${resolution}</li>`;
+                    });
+                    detailsHtml += '</ul>';
+                }
+                
+                // Información adicional
+                if (data.additionalInfo) {
+                    detailsHtml += `<div class="mt-2 small"><strong>Información adicional:</strong> ${data.additionalInfo}</div>`;
+                }
+                
+                // Si no hay datos específicos, mostrar un mensaje adecuado
+                if (detailsHtml === '<div class="card card-body bg-light">') {
+                    detailsHtml += '<p class="small">No hay detalles específicos disponibles para esta alerta.</p>';
+                }
+                
+                detailsHtml += '</div>';
+                
+                // Mostrar los detalles
+                detailsContainer.innerHTML = detailsHtml;
+            } else {
+                // Es un error, mostrar mensaje apropiado
+                let errorMessage = data.message || "No se pudo obtener la definición de alerta.";
+                
+                // Mostrar mensaje de error formateado
+                detailsContainer.innerHTML = `
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        ${errorMessage}
+                    </div>
+                    <div class="small text-muted mt-2">
+                        <p>La API de John Deere no pudo proporcionar los detalles para esta alerta.</p>
+                        <p class="mb-0">Código: ${data.status_code || 'N/A'}</p>
+                    </div>
+                `;
             }
-            
-            // Descripción
-            if (definition.description) {
-                detailsHtml += `<p class="small">${definition.description}</p>`;
-            }
-            
-            // Causas
-            if (definition.causes && definition.causes.length > 0) {
-                detailsHtml += '<h6 class="mt-2">Posibles causas:</h6>';
-                detailsHtml += '<ul class="small">';
-                definition.causes.forEach(cause => {
-                    detailsHtml += `<li>${cause}</li>`;
-                });
-                detailsHtml += '</ul>';
-            }
-            
-            // Soluciones
-            if (definition.resolutions && definition.resolutions.length > 0) {
-                detailsHtml += '<h6 class="mt-2">Soluciones recomendadas:</h6>';
-                detailsHtml += '<ul class="small">';
-                definition.resolutions.forEach(resolution => {
-                    detailsHtml += `<li>${resolution}</li>`;
-                });
-                detailsHtml += '</ul>';
-            }
-            
-            // Información adicional
-            if (definition.additionalInfo) {
-                detailsHtml += `<div class="mt-2 small"><strong>Información adicional:</strong> ${definition.additionalInfo}</div>`;
-            }
-            
-            // Si no hay datos específicos, mostrar los datos brutos
-            if (detailsHtml === '<div class="card card-body bg-light">') {
-                detailsHtml += '<p class="small">No hay detalles específicos disponibles para esta alerta.</p>';
-            }
-            
-            detailsHtml += '</div>';
-            
-            // Mostrar los detalles
-            detailsContainer.innerHTML = detailsHtml;
         })
         .catch(error => {
-            console.error('Error:', error);
-            detailsContainer.innerHTML = `<div class="alert alert-danger small">Error al cargar detalles: ${error.message}</div>`;
+            console.error('Error en la comunicación:', error);
+            detailsContainer.innerHTML = `
+                <div class="alert alert-danger small">
+                    <i class="fas fa-times-circle me-2"></i>
+                    Error de comunicación: ${error.message || 'Error desconocido'}
+                </div>
+            `;
         });
 }
 

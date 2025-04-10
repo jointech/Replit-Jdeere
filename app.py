@@ -427,12 +427,12 @@ def get_machine_alerts(machine_id):
 def get_alert_definition():
     """API endpoint to get detailed definition for a specific alert."""
     if 'oauth_token' not in session:
-        return jsonify({"error": "No estás autenticado"}), 401
+        return jsonify({"error": "No estás autenticado", "success": False}), 401
     
     # Obtener la URI de la definición desde los parámetros de consulta
     definition_uri = request.args.get('uri')
     if not definition_uri:
-        return jsonify({"error": "Se requiere el parámetro 'uri'"}), 400
+        return jsonify({"error": "Se requiere el parámetro 'uri'", "success": False}), 400
     
     try:
         # Obtener la definición de la alerta
@@ -442,16 +442,26 @@ def get_alert_definition():
         # Importamos la función correctamente
         from john_deere_api import fetch_alert_definition
         
-        definition = fetch_alert_definition(token, definition_uri)
-        if definition:
-            logger.info(f"Definición de alerta obtenida correctamente: {str(definition)[:150]}")
-            return jsonify(definition)
+        # La función ahora devuelve información de éxito o fallo
+        result = fetch_alert_definition(token, definition_uri)
+        
+        if result.get('success') is True:
+            # La solicitud fue exitosa
+            logger.info(f"Definición de alerta obtenida correctamente: {str(result)[:150]}")
+            return jsonify(result)
         else:
-            logger.error(f"No se pudo obtener la definición de la alerta desde {definition_uri}")
-            return jsonify({"error": "No se pudo obtener la definición de la alerta"}), 404
+            # La solicitud falló, pero tenemos información estructurada para devolver
+            logger.warning(f"No se pudo obtener definición, pero devolviendo información de error: {str(result)}")
+            # Devuelve información del error con un código 200 para que el cliente pueda procesarlo
+            # Esto es mejor que 404 para que el cliente pueda mostrar el mensaje personalizado
+            return jsonify(result)
     except Exception as e:
-        logger.error(f"Error al obtener definición de alerta {definition_uri}: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error crítico al obtener definición de alerta {definition_uri}: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Error interno del servidor al procesar la solicitud."
+        }), 500
 
 @app.route('/auth-setup')
 def auth_setup():

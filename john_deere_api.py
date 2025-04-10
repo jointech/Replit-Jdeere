@@ -378,7 +378,7 @@ def fetch_alert_definition(token, definition_uri):
         definition_uri: URI for the alert definition, either a full URL or just the path
     
     Returns:
-        Dictionary with alert definition details or None if there was an error
+        Dictionary with alert definition details or error information
     """
     try:
         logger.info(f"Fetching alert definition from: {definition_uri}")
@@ -389,6 +389,7 @@ def fetch_alert_definition(token, definition_uri):
         oauth = OAuth2Session(JOHN_DEERE_CLIENT_ID, token=token)
         
         # Handle either full URL or just path
+        original_uri = definition_uri
         if not definition_uri.startswith('http'):
             # Ensure definition_uri starts with a slash if it's just a path
             if not definition_uri.startswith('/'):
@@ -399,28 +400,87 @@ def fetch_alert_definition(token, definition_uri):
         # Add header to disable pagination
         headers = {'x-deere-no-paging': 'true'}
         
+        logger.info(f"Requesting alert definition from URL: {definition_uri}")
         response = oauth.get(definition_uri, headers=headers)
-        response.raise_for_status()
         
-        # Parse the response
-        definition_data = response.json()
-        logger.info(f"Retrieved alert definition: {str(definition_data)[:150]}...")
-        
-        # Normalize the definition data to a standard format
-        normalized_definition = {
-            'id': definition_data.get('id', 'unknown'),
-            'title': definition_data.get('title', 'Sin título'),
-            'description': definition_data.get('description', 'Sin descripción detallada'),
-            'causes': definition_data.get('causes', []),
-            'resolutions': definition_data.get('resolutions', []),
-            'additionalInfo': definition_data.get('additionalInformation')
-        }
-        
-        return normalized_definition
+        # Intentar la solicitud
+        try:
+            response.raise_for_status()
+            
+            # Parse the response
+            definition_data = response.json()
+            logger.info(f"Retrieved alert definition: {str(definition_data)[:150]}...")
+            
+            # Normalize the definition data to a standard format
+            normalized_definition = {
+                'id': definition_data.get('id', 'unknown'),
+                'title': definition_data.get('title', 'Sin título'),
+                'description': definition_data.get('description', 'Sin descripción detallada'),
+                'causes': definition_data.get('causes', []),
+                'resolutions': definition_data.get('resolutions', []),
+                'additionalInfo': definition_data.get('additionalInformation'),
+                'success': True
+            }
+            
+            return normalized_definition
+            
+        except Exception as req_error:
+            # Si el endpoint principal falla, intentar construir una URL alternativa
+            logger.warning(f"Error with primary endpoint: {str(req_error)}. Status code: {response.status_code}")
+            
+            # Si es un 404, es posible que la estructura del URI sea diferente
+            if response.status_code == 404:
+                try:
+                    # Construir una URL alternativa probando un formato diferente
+                    # Extraer solo el ID de la definición del URI original
+                    definition_id = original_uri.split('/')[-1]
+                    alternative_uri = f"https://api.deere.com/platform/alerts/types/diagnosticTroubleCodeAlert/definitions/{definition_id}"
+                    
+                    logger.info(f"Trying alternative URI format: {alternative_uri}")
+                    alt_response = oauth.get(alternative_uri, headers=headers)
+                    alt_response.raise_for_status()
+                    
+                    alt_data = alt_response.json()
+                    logger.info(f"Retrieved alert definition from alternative URI: {str(alt_data)[:150]}...")
+                    
+                    normalized_definition = {
+                        'id': alt_data.get('id', 'unknown'),
+                        'title': alt_data.get('title', 'Sin título'),
+                        'description': alt_data.get('description', 'Sin descripción detallada'),
+                        'causes': alt_data.get('causes', []),
+                        'resolutions': alt_data.get('resolutions', []),
+                        'additionalInfo': alt_data.get('additionalInformation'),
+                        'success': True,
+                        'note': 'Obtenido desde URI alternativo'
+                    }
+                    
+                    return normalized_definition
+                except Exception as alt_error:
+                    logger.error(f"Alternative URI also failed: {str(alt_error)}")
+                    # Continuar con el manejo normal de errores
+            
+            # Si llegamos aquí, ambos intentos fallaron
+            error_info = {
+                'success': False,
+                'error': str(req_error),
+                'status_code': response.status_code,
+                'uri': definition_uri,
+                'message': f"No se pudo obtener la definición. Código de error: {response.status_code}"
+            }
+            
+            # Para 404, dar un mensaje más específico
+            if response.status_code == 404:
+                error_info['message'] = "La definición de alerta solicitada no se encontró en el servidor de John Deere."
+                
+            return error_info
         
     except Exception as e:
-        logger.error(f"Error fetching alert definition from {definition_uri}: {str(e)}")
-        return None
+        logger.error(f"Error general en fetch_alert_definition: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e),
+            'message': "Error interno al procesar la solicitud de definición de alerta."
+        }
 
 def fetch_machine_alerts(token, machine_id, days_back=30):
     """Fetches alerts for a specific machine within a date range.
