@@ -20,13 +20,13 @@ const machineIcons = {
     }),
     // Cosechadoras
     'Harvester': L.divIcon({
-        html: '<i class="fas fa-truck-monster" style="font-size: 24px; color: #dc3545;"></i>',
+        html: '<i class="fas fa-truck" style="font-size: 24px; color: #dc3545;"></i>',
         className: 'machine-icon',
         iconSize: [24, 24],
         iconAnchor: [12, 12]
     }),
     'Tracked Harvester': L.divIcon({
-        html: '<i class="fas fa-truck-monster" style="font-size: 24px; color: #dc3545;"></i>',
+        html: '<i class="fas fa-truck" style="font-size: 24px; color: #dc3545;"></i>',
         className: 'machine-icon',
         iconSize: [24, 24],
         iconAnchor: [12, 12]
@@ -40,14 +40,14 @@ const machineIcons = {
     }),
     // Skidders
     'Skidder': L.divIcon({
-        html: '<i class="fas fa-truck-container" style="font-size: 24px; color: #6f42c1;"></i>',
+        html: '<i class="fas fa-truck-moving" style="font-size: 24px; color: #6f42c1;"></i>',
         className: 'machine-icon',
         iconSize: [24, 24],
         iconAnchor: [12, 12]
     }),
     // Excavadoras
     'Excavator': L.divIcon({
-        html: '<i class="fas fa-truck-plow" style="font-size: 24px; color: #ffc107;"></i>',
+        html: '<i class="fas fa-truck-loading" style="font-size: 24px; color: #ffc107;"></i>',
         className: 'machine-icon',
         iconSize: [24, 24],
         iconAnchor: [12, 12]

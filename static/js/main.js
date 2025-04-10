@@ -297,7 +297,7 @@ function renderMachineList(machines) {
                 </div>
                 <small class="d-block">Modelo: ${machine.model || 'Desconocido'}</small>
                 <small class="d-block ${hasLocation ? 'text-success' : 'text-muted'}">
-                    <i class="fas fa-${hasLocation ? 'map-marker-alt' : 'map-marker-slash'}"></i>
+                    <i class="fas fa-${hasLocation ? 'map-marker-alt' : 'times-circle'}"></i>
                     ${hasLocation ? 'Ubicación disponible' : 'Sin ubicación'}
                 </small>
             `;
