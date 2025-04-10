@@ -127,6 +127,71 @@ def fetch_organizations(token):
         logger.error(f"Error fetching organizations: {str(e)}")
         raise
 
+def fetch_machine_location(token, machine_id):
+    """Fetches location information for a specific machine from John Deere API."""
+    try:
+        token = refresh_token_if_needed(token)
+        oauth = get_oauth_session(token=token)
+        
+        logger.info(f"Fetching location for machine {machine_id}")
+        
+        # Intentar primero con el endpoint de localización de JDLink
+        endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/location"
+        headers = {'x-deere-no-paging': 'true'}
+        
+        try:
+            logger.info(f"Requesting machine location from: {endpoint}")
+            response = oauth.get(endpoint, headers=headers)
+            response.raise_for_status()
+            
+            # Procesar la respuesta
+            data = response.json()
+            logger.info(f"Received machine location response: {data}")
+            
+            # Extraer la información de ubicación
+            if 'geometry' in data and 'coordinates' in data['geometry']:
+                coords = data['geometry']['coordinates']
+                timestamp = data.get('timestamp')
+                
+                # Coordenadas en GeoJSON están en [longitude, latitude]
+                location = {
+                    'longitude': coords[0],
+                    'latitude': coords[1],
+                    'timestamp': timestamp
+                }
+                return location
+            
+        except Exception as e:
+            logger.warning(f"Error fetching location for machine {machine_id} from primary endpoint: {str(e)}")
+            
+            # Intentar con endpoint alternativo
+            alt_endpoint = f"{JOHN_DEERE_API_BASE_URL}/platform/machines/{machine_id}/locations"
+            try:
+                logger.info(f"Trying alternative location endpoint: {alt_endpoint}")
+                response = oauth.get(alt_endpoint, headers=headers)
+                response.raise_for_status()
+                
+                data = response.json()
+                if 'values' in data and len(data['values']) > 0:
+                    location_data = data['values'][0]
+                    timestamp = location_data.get('timestamp')
+                    
+                    # Extraer coordenadas según la estructura recibida
+                    if 'geometry' in location_data and 'coordinates' in location_data['geometry']:
+                        coords = location_data['geometry']['coordinates']
+                        return {
+                            'longitude': coords[0],
+                            'latitude': coords[1],
+                            'timestamp': timestamp
+                        }
+            except Exception as nested_e:
+                logger.warning(f"Error fetching location from alternative endpoint: {str(nested_e)}")
+                
+        return None
+    except Exception as e:
+        logger.error(f"Error in fetch_machine_location for machine {machine_id}: {str(e)}")
+        return None
+
 def fetch_machines_by_organization(token, organization_id):
     """Fetches machines for a specific organization from John Deere API."""
     try:
@@ -162,22 +227,20 @@ def fetch_machines_by_organization(token, organization_id):
                 
                 # Inicializar location como None
                 location = None
+                machine_id = machine.get('id')
                 
-                # Verificar si existe la ubicación en el formato esperado
-                if 'lastKnownLocation' in machine:
-                    # Normalizar el formato de ubicación para que sea consistente
-                    # con lo que espera el frontend (latitude/longitude)
-                    location = {
-                        'latitude': machine['lastKnownLocation'].get('latitude'),
-                        'longitude': machine['lastKnownLocation'].get('longitude'),
-                        'timestamp': machine['lastKnownLocation'].get('timestamp')
-                    }
-                    logger.info(f"Machine location found: {location}")
+                # Intentar obtener ubicación de la máquina desde un endpoint específico
+                if machine_id:
+                    location = fetch_machine_location(token, machine_id)
+                    
+                    # Si encontramos una ubicación, registrar el éxito
+                    if location:
+                        logger.info(f"Machine location found for {machine_id}: {location}")
                 
                 # Crear el objeto de máquina
                 machine_obj = {
-                    'id': machine.get('id'),
-                    'name': machine.get('name') or f"Máquina {machine.get('id')}",
+                    'id': machine_id,
+                    'name': machine.get('name') or f"Máquina {machine_id}",
                     'model': machine.get('model'),
                     'category': machine.get('category') or 'UNKNOWN',
                     'type': machine.get('type') or machine.get('category') or 'UNKNOWN',
@@ -226,14 +289,8 @@ def fetch_machine_details(token, machine_id):
             logger.error(f"No machine data found for ID: {machine_id}")
             raise ValueError(f"No se encontraron detalles para la máquina con ID: {machine_id}")
         
-        # Crear un objeto con la estructura esperada por nuestro frontend
-        location = None
-        if 'lastKnownLocation' in machine_data:
-            location = {
-                'latitude': machine_data['lastKnownLocation'].get('latitude'),
-                'longitude': machine_data['lastKnownLocation'].get('longitude'),
-                'timestamp': machine_data['lastKnownLocation'].get('timestamp')
-            }
+        # Obtener información de ubicación desde el endpoint específico
+        location = fetch_machine_location(token, machine_id)
         
         # Extraer detalles adicionales si están disponibles
         machine_details = {
