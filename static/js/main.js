@@ -1321,11 +1321,15 @@ function setupAuthPanelToggle() {
     });
 }
 
-// Add a new function to update the alerts summary chart
+// Add a new function to update the alerts summary charts
 function updateAlertsSummaryChart(alerts) {
-    console.log('Updating chart with alerts:', alerts);
-    const ctx = document.getElementById('alertsSummaryChart').getContext('2d');
-    if (ctx) {
+    console.log('Updating charts with alerts:', alerts);
+    
+    // Update severity distribution chart
+    const ctxSeverity = document.getElementById('alertsSeverityChart').getContext('2d');
+    const ctxTimeline = document.getElementById('alertsTimelineChart').getContext('2d');
+    
+    if (ctxSeverity && ctxTimeline) {
         // Agrupar alertas por severidad
         const alertSeverities = {
             'high': 0,
@@ -1336,12 +1340,39 @@ function updateAlertsSummaryChart(alerts) {
             'unknown': 0
         };
 
-        alerts.forEach(alert => {
+        // Preparar datos para el timeline
+        const timelineData = {};
+        const severityColors = {
+            'high': 'rgb(220, 53, 69)',     // rojo
+            'medium': 'rgb(255, 193, 7)',    // amarillo
+            'low': 'rgb(108, 117, 125)',     // gris
+            'info': 'rgb(23, 162, 184)',     // azul
+            'dtc': 'rgb(111, 66, 193)',      // morado
+            'unknown': 'rgb(73, 80, 87)'     // gris oscuro
+        };
+
+        // Ordenar alertas por fecha
+        const sortedAlerts = [...alerts].sort((a, b) => 
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+
+        sortedAlerts.forEach(alert => {
+            // Contar por severidad
             const severity = alert.severity?.toLowerCase() || 'unknown';
             alertSeverities[severity] = (alertSeverities[severity] || 0) + 1;
+
+            // Agrupar por fecha para el timeline
+            const date = new Date(alert.timestamp).toLocaleDateString();
+            if (!timelineData[date]) {
+                timelineData[date] = {
+                    high: 0, medium: 0, low: 0, info: 0, dtc: 0, unknown: 0
+                };
+            }
+            timelineData[date][severity]++;
         });
 
-        const labels = Object.keys(alertSeverities).map(sev => {
+        // Preparar datos para el gráfico de severidad
+        const severityLabels = Object.keys(alertSeverities).map(sev => {
             switch(sev) {
                 case 'high': return 'Alta';
                 case 'medium': return 'Media';
@@ -1353,40 +1384,27 @@ function updateAlertsSummaryChart(alerts) {
             }
         });
 
-        const data = Object.values(alertSeverities);
-        const backgroundColor = [
-            'rgba(220, 53, 69, 0.5)',  // high - rojo
-            'rgba(255, 193, 7, 0.5)',  // medium - amarillo
-            'rgba(108, 117, 125, 0.5)', // low - gris
-            'rgba(23, 162, 184, 0.5)',  // info - azul
-            'rgba(111, 66, 193, 0.5)',  // dtc - morado
-            'rgba(73, 80, 87, 0.5)'     // unknown - gris oscuro
-        ];
+        // Destruir gráficos anteriores si existen
+        if (window.severityChart) window.severityChart.destroy();
+        if (window.timelineChart) window.timelineChart.destroy();
 
-        const borderColor = backgroundColor.map(color => color.replace('0.5', '1'));
-
-        if (window.myChart) {
-            window.myChart.destroy();
-        }
-
-        window.myChart = new Chart(ctx, {
+        // Crear gráfico de distribución de severidad
+        window.severityChart = new Chart(ctxSeverity, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: severityLabels,
                 datasets: [{
-                    label: 'Cantidad de Alertas por Severidad',
-                    data: data,
-                    backgroundColor: backgroundColor,
-                    borderColor: borderColor,
+                    label: 'Cantidad de Alertas',
+                    data: Object.values(alertSeverities),
+                    backgroundColor: Object.values(severityColors).map(color => color.replace('rgb', 'rgba').replace(')', ', 0.5)')),
+                    borderColor: Object.values(severityColors),
                     borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        display: false
-                    },
+                    legend: { display: false },
                     title: {
                         display: true,
                         text: 'Distribución de Alertas por Severidad',
@@ -1396,26 +1414,63 @@ function updateAlertsSummaryChart(alerts) {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            color: '#fff',
-                            stepSize: 1
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
+                        ticks: { color: '#fff', stepSize: 1 },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     },
                     x: {
-                        ticks: {
-                            color: '#fff'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                }
+            }
+        });
+
+        // Crear gráfico de línea temporal
+        const timelineDates = Object.keys(timelineData);
+        const timelineDatasets = Object.keys(alertSeverities).map(severity => ({
+            label: severity.charAt(0).toUpperCase() + severity.slice(1),
+            data: timelineDates.map(date => timelineData[date][severity]),
+            borderColor: severityColors[severity],
+            backgroundColor: severityColors[severity].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+            tension: 0.1,
+            fill: true
+        }));
+
+        window.timelineChart = new Chart(ctxTimeline, {
+            type: 'line',
+            data: {
+                labels: timelineDates,
+                datasets: timelineDatasets
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { color: '#fff' }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Alertas a lo largo del tiempo',
+                        color: '#fff'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        stacked: true,
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     }
                 }
             }
         });
     } else {
-        console.error("Canvas element with id 'alertsSummaryChart' not found.");
+        console.error("One or both canvas elements not found.");
     }
 }
