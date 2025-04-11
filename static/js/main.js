@@ -1323,46 +1323,98 @@ function setupAuthPanelToggle() {
 
 // Add a new function to update the alerts summary chart
 function updateAlertsSummaryChart(alerts) {
-    // Placeholder for chart update logic.  Replace with actual chart update code using a library like Chart.js.
     console.log('Updating chart with alerts:', alerts);
-    //Example using a Chart.js style update, replace with your actual chart logic.
     const ctx = document.getElementById('alertsSummaryChart').getContext('2d');
     if (ctx) {
-        const alertTypes = {};
-        alerts.forEach(alert => {
-            const type = alert.type || 'Unknown';
-            alertTypes[type] = (alertTypes[type] || 0) + 1;
-        });
-        const labels = Object.keys(alertTypes);
-        const data = Object.values(alertTypes);
+        // Agrupar alertas por severidad
+        const alertSeverities = {
+            'high': 0,
+            'medium': 0,
+            'low': 0,
+            'info': 0,
+            'dtc': 0,
+            'unknown': 0
+        };
 
-        //Update existing chart, or create a new one if it doesn't exist.  Replace with your actual chart library's update function.
+        alerts.forEach(alert => {
+            const severity = alert.severity?.toLowerCase() || 'unknown';
+            alertSeverities[severity] = (alertSeverities[severity] || 0) + 1;
+        });
+
+        const labels = Object.keys(alertSeverities).map(sev => {
+            switch(sev) {
+                case 'high': return 'Alta';
+                case 'medium': return 'Media';
+                case 'low': return 'Baja';
+                case 'info': return 'Info';
+                case 'dtc': return 'DTC';
+                case 'unknown': return 'Desconocida';
+                default: return sev;
+            }
+        });
+
+        const data = Object.values(alertSeverities);
+        const backgroundColor = [
+            'rgba(220, 53, 69, 0.5)',  // high - rojo
+            'rgba(255, 193, 7, 0.5)',  // medium - amarillo
+            'rgba(108, 117, 125, 0.5)', // low - gris
+            'rgba(23, 162, 184, 0.5)',  // info - azul
+            'rgba(111, 66, 193, 0.5)',  // dtc - morado
+            'rgba(73, 80, 87, 0.5)'     // unknown - gris oscuro
+        ];
+
+        const borderColor = backgroundColor.map(color => color.replace('0.5', '1'));
+
         if (window.myChart) {
-            window.myChart.data.labels = labels;
-            window.myChart.data.datasets[0].data = data;
-            window.myChart.update();
-        } else {
-            window.myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Alertas por Tipo',
-                        data: data,
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
+            window.myChart.destroy();
+        }
+
+        window.myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cantidad de Alertas por Severidad',
+                    data: data,
+                    backgroundColor: backgroundColor,
+                    borderColor: borderColor,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribución de Alertas por Severidad',
+                        color: '#fff'
+                    }
                 },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#fff',
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#fff'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
                         }
                     }
                 }
-            });
-        }
+            }
+        });
     } else {
         console.error("Canvas element with id 'alertsSummaryChart' not found.");
     }
