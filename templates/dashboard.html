@@ -293,6 +293,22 @@
 </div>
 {% endif %}
 
+<!-- Gráfico de resumen de alertas -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i> Resumen de Alertas por Severidad
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="alertsSummaryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-4">
         <div class="card shadow mb-4">
@@ -403,6 +419,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script>
