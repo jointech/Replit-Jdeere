@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>John Deere Dashboard</title>
+    <title>Monitor Forestal</title>
     
     <!-- Bootstrap CSS (Replit theme) -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
@@ -24,7 +24,8 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{{ url_for('index') }}">
-                    <i class="fas fa-tractor"></i> John Deere Dashboard
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" height="30" class="d-inline-block align-text-top me-2">
+                    Monitor Forestal
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
