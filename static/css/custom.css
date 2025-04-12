@@ -255,6 +255,18 @@ body.light-theme .display-5 {
     color: #9e9e9e;
 }
 
+/* Custom flash message for organizations */
+.alert-organizations {
+    background-color: rgba(255, 153, 51, 0.2);
+    border-color: rgba(255, 153, 51, 0.3);
+    color: #ff9933;
+    font-weight: 500;
+    text-align: center;
+    border-radius: 8px;
+    margin: 10px 0;
+    padding: 10px;
+}
+
 /* Alert severity badges - Modern style with rounded corners */
 .bg-severity-high {
     background-color: #ff5252;
