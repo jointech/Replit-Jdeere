@@ -1256,44 +1256,10 @@ function resetMachineDetails() {
     }
 }
 
-// Función para manejar el cambio de tema claro/oscuro
+// Función para manejar el cambio de tema (removida)
 function setupThemeSwitcher() {
-    const themeSwitch = document.getElementById('themeSwitch');
-    const themeSwitchLabel = document.querySelector('.theme-switch-wrapper .form-check-label');
-
-    if (!themeSwitch || !themeSwitchLabel) {
-        console.warn('Elementos del selector de tema no encontrados');
-        return;
-    }
-
-    // Verificar si hay una preferencia guardada
-    const savedTheme = localStorage.getItem('theme');
-
-    // Aplicar tema guardado, o mantener oscuro por defecto
-    if (savedTheme === 'light') {
-        document.body.classList.add('light-theme');
-        themeSwitch.checked = false;
-        themeSwitchLabel.innerHTML = '<i class="fas fa-sun"></i>';
-    } else {
-        document.body.classList.remove('light-theme');
-        themeSwitch.checked = true;
-        themeSwitchLabel.innerHTML = '<i class="fas fa-moon"></i>';
-    }
-
-    // Escuchar cambios del interruptor
-    themeSwitch.addEventListener('change', function() {
-        if (this.checked) {
-            // Tema oscuro
-            document.body.classList.remove('light-theme');
-            localStorage.setItem('theme', 'dark');
-            themeSwitchLabel.innerHTML = '<i class="fas fa-moon"></i>';
-        } else {
-            // Tema claro
-            document.body.classList.add('light-theme');
-            localStorage.setItem('theme', 'light');
-            themeSwitchLabel.innerHTML = '<i class="fas fa-sun"></i>';
-        }
-    });
+    // Tema oscuro por defecto
+    document.body.classList.remove('light-theme');
 }
 
 // Función para manejar la visibilidad del panel de autenticación

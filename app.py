@@ -247,7 +247,7 @@ def dashboard():
                 organizations = []
             else:
                 # Mensaje de éxito si se obtuvieron datos reales
-                flash(f"Se obtuvieron {len(organizations)} organizaciones de John Deere.", "success")
+                flash(f"{len(organizations)}", "success")
         except Exception as org_error:
             # Mensaje de error específico según el tipo de error
             logger.error(f"Error obteniendo organizaciones: {str(org_error)}")
