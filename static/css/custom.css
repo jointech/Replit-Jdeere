@@ -10,20 +10,20 @@
 }
 
 .organizations-panel {
-    width: 20%;
-    height: 100%;
-    overflow-y: auto;
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 1rem;
 }
 
 .left-panel {
-    width: 40%;
+    width: 50%;
     height: 100%;
     overflow-y: auto;
     padding-right: 0.5rem;
 }
 
 .right-panel {
-    width: 40%;
+    width: 50%;
     height: 100%;
 }
 
