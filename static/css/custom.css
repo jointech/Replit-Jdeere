@@ -270,9 +270,31 @@ body {
 /* Machine item in list with enhanced styling */
 .machine-item {
     border-left: 3px solid transparent;
-    padding-left: 0.75rem;
+    padding: 0.75rem;
     transition: all var(--transition-speed) ease;
-    background: white;
+    background: var(--winter-white);
+    color: #333;
+    text-decoration: none;
+}
+
+.machine-item h6,
+.machine-item small {
+    color: #333;
+}
+
+.machine-item:hover {
+    background-color: rgba(0, 171, 228, 0.1);
+    text-decoration: none;
+}
+
+.machine-item.active {
+    background-color: #00ABE4;
+    color: white;
+}
+
+.machine-item.active h6,
+.machine-item.active small {
+    color: white;
 }
 
 .machine-item.active {
