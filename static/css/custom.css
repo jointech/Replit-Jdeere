@@ -2,13 +2,13 @@
 
 /* Light/Dark Theme Variables */
 :root {
-  --bg-gradient: linear-gradient(135deg, #f0f6ff, #e6f0ff);
-  --card-gradient: linear-gradient(145deg, #ffffff, #f5f9ff);
+  --bg-gradient: linear-gradient(135deg, #1a1f25, #2c3e50);
+  --card-gradient: linear-gradient(145deg, #2a2d3f, #1f2937);
   --border-radius: 16px;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  --text-primary: #2d3748;
-  --text-secondary: #4a5568;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
   --accent: #00b4ff;
   --shadow-light: 0 4px 10px rgba(0, 0, 0, 0.05);
   --shadow-dark: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -75,11 +75,22 @@ body {
 .card {
   background: var(--card-gradient);
   border-radius: var(--border-radius);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--shadow);
   transition: var(--transition);
   overflow: hidden;
   backdrop-filter: blur(10px);
+  color: var(--text-primary);
+}
+
+.card-header {
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.card-title {
+  color: var(--text-primary);
 }
 
 .card:hover {
