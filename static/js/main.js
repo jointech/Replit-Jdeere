@@ -286,17 +286,11 @@ function renderMachineList(machines) {
     const machineListContainer = document.getElementById('machineListContainer');
     machineListContainer.innerHTML = '';
 
-    // Optimización para rendimiento: crear un fragmento de documento
-    // para evitar múltiples repaints en grandes cantidades de máquinas
+    // Create document fragment for better performance
     const fragment = document.createDocumentFragment();
 
-    // Mostrar todas las máquinas disponibles
-    const totalMachines = machines.length;
-    let initialMachines = machines;
-    let remainingMachines = [];
-
-    // Función para renderizar un conjunto de máquinas
-    const renderMachinesChunk = (machinesList, container) => {
+    // Function to render machines
+    const renderMachineItems = (machineList) => {
         machinesList.forEach(machine => {
             const machineItem = document.createElement('a');
             machineItem.href = '#';
@@ -335,12 +329,18 @@ function renderMachineList(machines) {
         });
     };
 
-    // Renderizar el primer conjunto de máquinas
-    renderMachinesChunk(initialMachines, fragment);
-
-
-    // Agregar todos los elementos al contenedor
+    // Render all machines at once
+    renderMachineItems(machines);
+    
+    // Add all elements to container
     machineListContainer.appendChild(fragment);
+    
+    // Update search if there's an active term
+    const searchInput = document.getElementById('machineSearchInput');
+    if (searchInput && searchInput.value.trim()) {
+        const event = new Event('input');
+        searchInput.dispatchEvent(event);
+    }
 }
 
 // Select a machine to show details and alerts
