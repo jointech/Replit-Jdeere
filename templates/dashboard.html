@@ -13,7 +13,7 @@
         --box-shadow-color: rgba(0, 0, 0, 0.5);
     }
 
-    /* Mejoras para los paneles/cards */
+    /* Existing styles from original file can be added here if needed */
     .card {
         border-radius: var(--card-border-radius) !important;
         border: none !important;
@@ -21,71 +21,31 @@
         transition: all 0.3s ease !important;
         overflow: hidden;
     }
-    
     .card:hover {
         box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25) !important;
         transform: translateY(-2px);
     }
-    
     .card .card-header {
         background: var(--gradient-dark) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         padding: 0.8rem 1.25rem !important;
     }
-    
-    /* Contenedor de máquinas con degradado */
-    #machineListContainer {
-        background: var(--gradient-secondary);
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    
-    /* Contenedor de alertas con degradado */
-    #alertListContainer {
-        background: var(--gradient-secondary);
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    
-    /* Mapa con borde personalizado */
-    #map {
-        height: 500px;
-        width: 100%;
-        border-radius: 8px;
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    /* Efecto de brillo en los bordes para paneles importantes */
-    .card.shadow {
-        position: relative;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    }
-    
-    .card.shadow.active-card {
-        border: 1px solid rgba(13, 110, 253, 0.5) !important;
-        box-shadow: 0 0 20px rgba(13, 110, 253, 0.2) !important;
-    }
-    
-    /* Mejoras para los items de máquina */
     .machine-item {
         cursor: pointer;
         transition: all 0.3s ease;
         border-left: 4px solid transparent;
         margin-bottom: 1px;
     }
-    
     .machine-item:hover {
         background-color: rgba(255, 255, 255, 0.05);
         border-left-color: rgba(13, 110, 253, 0.5);
     }
-    
     .machine-item.active {
         background: var(--gradient-primary) !important;
         color: white;
         border-left-color: white;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
-    
-    /* Badge de alertas con efecto elevado */
     .alert-badge {
         position: absolute;
         top: -5px;
@@ -94,14 +54,11 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
-    /* Botones con efecto de brillo */
     .btn {
         position: relative;
         overflow: hidden;
         transition: all 0.3s ease;
     }
-    
     .btn:after {
         content: '';
         position: absolute;
@@ -114,201 +71,120 @@
         opacity: 0;
         transition: all 0.8s ease;
     }
-    
     .btn:hover:after {
         opacity: 1;
         transform: rotate(30deg) translate(20%, -20%);
     }
-    
-    /* Estilos de severidad de alertas */
     .alert-severity-high {
         color: var(--bs-danger); /* ROJO para HIGH */
         text-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
     }
-    
     .alert-severity-medium {
         color: var(--bs-warning); /* AMARILLO para MEDIUM */
         text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
     }
-    
     .alert-severity-low, 
     .alert-severity-dtc,
     .alert-severity-unknown {
         color: var(--bs-secondary); /* GRIS para LOW, DTC, UNKNOWN */
     }
-    
     .alert-severity-info {
         color: var(--bs-info); /* AZUL para INFO */
         text-shadow: 0 0 5px rgba(13, 202, 240, 0.3);
     }
-    
-    /* Clases de fondo para badges con degradados */
     .bg-severity-high {
         background: var(--gradient-danger) !important;
         box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
     }
-    
     .bg-severity-medium {
         background: var(--gradient-warning) !important;
         color: var(--bs-dark) !important;
         box-shadow: 0 2px 5px rgba(255, 193, 7, 0.3);
     }
-    
     .bg-severity-low,
     .bg-severity-dtc,
     .bg-severity-unknown {
         background: var(--gradient-secondary) !important;
     }
-    
     .bg-severity-info {
         background: var(--gradient-info) !important;
         box-shadow: 0 2px 5px rgba(13, 202, 240, 0.3);
     }
-    
-    /* Efecto de iluminación para elementos importantes */
     .card-header h5 i {
         filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.3));
     }
-    
-    /* Spinner personalizado */
     .spinner-border {
         box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     }
-    
-    /* Animación para transiciones suaves */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    
     .fade-in {
         animation: fadeIn 0.3s ease forwards;
+    }
+
+    /* New styles for responsive layout */
+    .dashboard-container {
+        display: flex;
+        gap: 20px;
+    }
+    .left-panel {
+        width: 30%;
+    }
+    .right-panel {
+        width: 70%;
+    }
+    @media (max-width: 768px) {
+        .dashboard-container {
+            flex-direction: column;
+        }
+        .left-panel, .right-panel {
+            width: 100%;
+        }
+    }
+
+    .location-card {
+        background-color: var(--gradient-dark);
+        color: white;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1 class="display-5">Dashboard de Máquinas</h1>
-    </div>
-    <div class="col-md-4 text-end">
-        <div class="d-flex justify-content-end align-items-center">
-            <!-- Botón de configuración para mostrar/ocultar panel de autenticación -->
-            <div class="dropdown me-3">
-                <button class="btn btn-sm btn-outline-secondary" type="button" id="configDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="configDropdown">
-                    <li><a class="dropdown-item" href="#" id="toggleAuthInfo">Mostrar información de autenticación</a></li>
-                </ul>
-            </div>
-
-            <!-- Selector de organización -->
-            <div class="dropdown">
-                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-building me-2"></i> Seleccionar Organización
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
-                    <div class="mb-2">
-                        <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
-                    </div>
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        <ul class="list-unstyled mb-0" id="organizationList">
-                            {% for org in organizations %}
-                            <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                        <div id="noResultsMessage" class="text-center p-2 d-none">
-                            <span class="text-muted">No se encontraron resultados</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% if token_info %}
-<div class="row mb-4" id="authInfoPanel" style="display: none;">
-    <div class="col-12">
-        <div class="card shadow bg-dark">
-            <div class="card-header">
+<div class="dashboard-container">
+    <!-- Panel izquierdo -->
+    <div class="left-panel">
+        <!-- Selector de organización -->
+        <div class="card shadow mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="fas fa-key me-2"></i> Información de Autenticación
+                    <i class="fas fa-building me-2"></i> Organizaciones
                 </h5>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
+                <div class="dropdown w-100">
+                    <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-building me-2"></i> Seleccionar Organización
+                    </button>
+                    <div class="dropdown-menu w-100 p-2" aria-labelledby="organizationDropdown">
                         <div class="mb-2">
-                            <strong>Access Token:</strong> <span>{{ token_info.access_token }}</span>
+                            <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-2">
-                            <strong>Refresh Token:</strong> <span>{{ token_info.refresh_token }}</span>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <ul class="list-unstyled mb-0" id="organizationList">
+                                {% for org in organizations %}
+                                <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
+                                {% endfor %}
+                            </ul>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-2">
-                            <strong>Expira en:</strong> <span>{{ token_info.expires_in }}</span>
-                        </div>
-                    </div>
-                    <div class="col-md-3 text-end">
-                        <a href="{{ url_for('auth_setup') }}" class="btn btn-sm btn-outline-light">
-                            <i class="fas fa-cog me-1"></i> Configurar autenticación
-                        </a>
-                    </div>
-                </div>
-                
-                {% if auth_code_info %}
-                <hr class="border-secondary">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-2">
-                            <strong>Último código de autorización:</strong> 
-                            <span class="user-select-all">{{ auth_code_info.code }}</span>
-                            <span class="badge bg-info ms-1">{{ auth_code_info.full_length }} caracteres</span>
-                        </div>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <small class="text-muted">Este código fue utilizado para obtener el token actual. Guárdelo como referencia.</small>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Gráfico de resumen de alertas -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-pie me-2"></i> Resumen de Alertas por Severidad
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <canvas id="alertsSeverityChart"></canvas>
-                    </div>
-                    <div class="col-md-6">
-                        <canvas id="alertsTimelineChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card shadow mb-4">
+        <!-- Lista de máquinas -->
+        <div class="card shadow mb-3">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-tractor me-2"></i> Máquinas
@@ -317,83 +193,81 @@
             </div>
             <div class="card-body p-0">
                 <div id="machineSearchContainer" class="p-2 border-bottom d-none">
-                    <div class="position-relative">
-                        <input type="text" class="form-control form-control-sm" id="machineSearchInput" placeholder="Buscar máquina..." autocomplete="off">
-                        <div id="machineSearchLoading" class="position-absolute d-none" style="right: 10px; top: 5px;">
-                            <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                                <span class="visually-hidden">Buscando...</span>
-                            </div>
-                        </div>
-                    </div>
+                    <input type="text" class="form-control form-control-sm" id="machineSearchInput" placeholder="Buscar máquina...">
                 </div>
-                <div id="machineListContainer" class="list-group list-group-flush machine-list" style="max-height: 400px; overflow-y: auto;">
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-secondary d-none" id="machineLoader" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="text-muted mt-3" id="emptyMachineMessage">Seleccione una organización para ver sus máquinas</p>
+                <div id="machineListContainer" class="machine-list">
+                    <div class="text-center py-3" id="emptyMachineMessage">
+                        Seleccione una organización
                     </div>
-                </div>
-                <div id="noMachineResultsMessage" class="text-center py-3 d-none">
-                    <span class="text-muted">No se encontraron máquinas con ese criterio</span>
                 </div>
             </div>
         </div>
-        
-        <div class="card shadow mb-4" id="machine-alerts-card">
+
+        <!-- Alertas -->
+        <div class="card shadow mb-3">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-bell me-2"></i> Alertas
                 </h5>
             </div>
             <div class="card-body p-0">
-                <!-- Mensaje cuando está vacío -->
-                <div id="emptyAlertContainer" class="text-center py-5">
+                <div id="emptyAlertContainer" class="text-center py-3">
                     <p class="text-muted" id="emptyAlertMessage">Seleccione una máquina para ver sus alertas</p>
                 </div>
-                
-                <!-- Contenedor para la lista de alertas -->
-                <div id="alert-list-container" class="list-group list-group-flush alert-list" style="max-height: 300px; overflow-y: auto;" data-original-id="alertListContainer">
-                    <!-- Las alertas se insertarán aquí dinámicamente -->
+                <div id="alert-list-container" class="alert-list">
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="card shadow mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i> Estadísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <canvas id="alertsSeverityChart"></canvas>
+                    </div>
+                    <div class="col-12">
+                        <canvas id="alertsTimelineChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-8">
-        <div class="card shadow mb-4">
+
+    <!-- Panel derecho - Mapa y detalles -->
+    <div class="right-panel">
+        <div class="card shadow h-100">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-map-marker-alt me-2"></i> Ubicación de Máquinas
                 </h5>
             </div>
-            <div class="card-body">
-                <div id="map"></div>
-            </div>
-        </div>
-        
-        <div class="card shadow" id="machine-details-card" data-original-id="machineDetailCard">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-info-circle me-2"></i> Detalles de la Máquina
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="text-center py-4" id="machineDetailEmpty">
-                    <p class="text-muted">Seleccione una máquina para ver sus detalles</p>
-                </div>
-                <div id="machine-details-content" class="d-none" data-original-id="machineDetailContent">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h3 id="machineName">-</h3>
-                            <p class="lead" id="machineModel">-</p>
-                            <div class="mb-3">
-                                <strong>Categoría:</strong> <span id="machineCategory">-</span>
+            <div class="card-body d-flex flex-column">
+                <div id="map" class="flex-grow-1"></div>
+                <!-- Detalles de máquina -->
+                <div id="machine-details-card" class="mt-3">
+                    <h5>
+                        <i class="fas fa-info-circle me-2"></i> Detalles de la Máquina
+                    </h5>
+                    <div class="text-center py-2" id="machineDetailEmpty">
+                        <p class="text-muted mb-0">Seleccione una máquina para ver sus detalles</p>
+                    </div>
+                    <div id="machine-details-content" class="d-none">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h3 id="machineName">-</h3>
+                                <p class="lead" id="machineModel">-</p>
+                                <div class="mb-3">
+                                    <strong>Categoría:</strong> <span id="machineCategory">-</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card bg-dark location-card">
-                                <div class="card-body">
+                            <div class="col-md-6">
+                                <div class="location-card p-3 rounded">
                                     <h6>Última ubicación conocida</h6>
                                     <div class="mb-2">
                                         <strong>Latitud:</strong> <span id="machineLatitude">-</span>
@@ -419,29 +293,4 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script>
-// Script para compatibilidad de IDs entre CSS y JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-    // Mapeo de IDs originales a nuevos IDs
-    const idMap = {
-        'machineDetailCard': 'machine-details-card',
-        'machineDetailContent': 'machine-details-content',
-        'alertListContainer': 'alert-list-container'
-    };
-    
-    // Reemplazar el método getElementById original
-    const originalGetElementById = document.getElementById;
-    document.getElementById = function(id) {
-        // Si el ID está en nuestro mapeo, intenta obtener el elemento con el nuevo ID
-        if (idMap[id]) {
-            const element = originalGetElementById.call(document, idMap[id]);
-            if (element) {
-                return element;
-            }
-        }
-        // Si no está en el mapeo o no se encontró con el nuevo ID, usa el método original
-        return originalGetElementById.call(document, id);
-    };
-});
-</script>
 {% endblock %}
