@@ -929,7 +929,7 @@ function renderAlertList(alerts) {
     alerts.forEach(alert => {
         try {
             const alertItem = document.createElement('div');
-            alertItem.className = ''list-group-item';
+            alertItem.className = 'list-group-item';
 
             // Determine severity class based on the John Deere severity levels
             // HIGH: rojo, MEDIUM: amarillo, LOW/DTC/UNKNOWN: gris, INFO: azul
