@@ -879,6 +879,9 @@ function loadAlertDetails(button, definitionUri) {
 // Render the alert list
 function renderAlertList(alerts) {
     console.log(`Renderizando lista de ${alerts.length} alertas`);
+    
+    // También actualizar la tabla de alertas
+    updateAlertsTable(alerts);
 
     const alertListContainer = document.getElementById('alertListContainer');
     if (!alertListContainer) {
@@ -1401,4 +1404,87 @@ function updateAlertsSummaryChart(alerts) {
     } else {
         console.error("One or both canvas elements not found.");
     }
+}
+
+// Función para actualizar la tabla de alertas
+function updateAlertsTable(alerts) {
+    const tableBody = document.getElementById('alertsTableBody');
+    if (!tableBody) return;
+
+    // Limpiar tabla
+    tableBody.innerHTML = '';
+
+    // Ordenar alertas por fecha (más recientes primero)
+    const sortedAlerts = [...alerts].sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+    );
+
+    // Agregar cada alerta a la tabla
+    sortedAlerts.forEach(alert => {
+        const row = document.createElement('tr');
+        
+        // Formatear fecha
+        const date = new Date(alert.timestamp);
+        const formattedDate = date.toLocaleString();
+
+        // Obtener ID de DTC del título o URI de definición
+        let dtcId = 'N/A';
+        if (alert.title && alert.title.includes('DTC')) {
+            dtcId = alert.title.split('DTC ')[1];
+        } else if (alert.links) {
+            const defLink = alert.links.find(link => link.rel === 'alertDefinition');
+            if (defLink) {
+                dtcId = defLink.uri.split('/').pop();
+            }
+        }
+
+        row.innerHTML = `
+            <td>${formattedDate}</td>
+            <td>${alert.type || 'Desconocido'}</td>
+            <td><span class="badge bg-severity-${alert.severity}">${alert.severity}</span></td>
+            <td>${alert.description || 'Sin descripción'}</td>
+            <td>${dtcId}</td>
+            <td>${alert.status || 'DESCONOCIDO'}</td>
+        `;
+
+        tableBody.appendChild(row);
+    });
+}
+
+// Función para exportar a Excel
+function exportToExcel() {
+    const table = document.getElementById('alertsTable');
+    if (!table) return;
+
+    // Crear una copia de la tabla para manipular
+    const tableClone = table.cloneNode(true);
+    
+    // Obtener todas las filas
+    const rows = Array.from(tableClone.querySelectorAll('tr'));
+    
+    // Convertir a formato CSV
+    const csvContent = rows.map(row => {
+        return Array.from(row.cells)
+            .map(cell => {
+                // Obtener solo el texto, ignorando los elementos HTML
+                let text = cell.textContent.trim();
+                // Escapar comillas dobles y envolver en comillas si contiene comas
+                if (text.includes(',') || text.includes('"')) {
+                    text = `"${text.replace(/"/g, '""')}"`;
+                }
+                return text;
+            })
+            .join(',');
+    }).join('\n');
+
+    // Crear el blob y descargar
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `alertas_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
