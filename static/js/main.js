@@ -641,9 +641,15 @@ function loadMachineAlerts(machineId) {
             renderAlertList(alerts);
         })
         .catch(error => {
-            console.error('Error:', error);
-            if (emptyAlertMessage) {
-                emptyAlertMessage.textContent = 'Error al cargar alertas: ' + error.message;
+            console.error("Error al cargar alertas:", error.error || error.message || error);
+            // Mostrar mensaje de error en la interfaz
+            const alertsContainer = document.getElementById('alerts-container');
+            if (alertsContainer) {
+                alertsContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        Error al cargar las alertas. Por favor, intente nuevamente.
+                    </div>
+                `;
             }
         });
 }
@@ -923,7 +929,7 @@ function renderAlertList(alerts) {
     alerts.forEach(alert => {
         try {
             const alertItem = document.createElement('div');
-            alertItem.className = 'list-group-item';
+            alertItem.className = ''list-group-item';
 
             // Determine severity class based on the John Deere severity levels
             // HIGH: rojo, MEDIUM: amarillo, LOW/DTC/UNKNOWN: gris, INFO: azul
@@ -1290,11 +1296,11 @@ function setupAuthPanelToggle() {
 // Add a new function to update the alerts summary charts
 function updateAlertsSummaryChart(alerts) {
     console.log('Updating charts with alerts:', alerts);
-    
+
     // Update severity distribution chart
     const ctxSeverity = document.getElementById('alertsSeverityChart').getContext('2d');
     const ctxTimeline = document.getElementById('alertsTimelineChart').getContext('2d');
-    
+
     if (ctxSeverity && ctxTimeline) {
         // Agrupar alertas por severidad
         const alertSeverities = {
