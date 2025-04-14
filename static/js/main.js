@@ -291,7 +291,7 @@ function renderMachineList(machines) {
 
     // Function to render machines
     const renderMachineItems = (machineList) => {
-        machinesList.forEach(machine => {
+        machineList.forEach(machine => {
             const machineItem = document.createElement('a');
             machineItem.href = '#';
             machineItem.className = 'list-group-item list-group-item-action machine-item';
@@ -325,7 +325,7 @@ function renderMachineList(machines) {
                 selectMachine(machine.id);
             });
 
-            container.appendChild(machineItem);
+            fragment.appendChild(machineItem);
         });
     };
 
