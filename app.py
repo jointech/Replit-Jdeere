@@ -482,27 +482,40 @@ def logout():
     """Logs out the user by revoking token and clearing session."""
     try:
         if 'oauth_token' in session:
-            # Crear una sesión OAuth con el token actual
+            # Obtener el token actual
             token = session.get('oauth_token')
-            oauth = get_oauth_session(token=token)
             
             # Intentar revocar el token en John Deere
             try:
+                import requests
+                from requests.auth import HTTPBasicAuth
+                
                 revoke_url = "https://signin.johndeere.com/oauth2/aus78tnlaysMraFhC1t7/v1/revoke"
-                oauth.post(revoke_url, data={
-                    'token': token.get('access_token'),
-                    'token_type_hint': 'access_token'
-                })
+                
+                # Usar autenticación básica con client_id y client_secret
+                response = requests.post(
+                    revoke_url,
+                    auth=HTTPBasicAuth(JOHN_DEERE_CLIENT_ID, JOHN_DEERE_CLIENT_SECRET),
+                    data={
+                        'token': token.get('access_token'),
+                        'token_type_hint': 'access_token'
+                    }
+                )
+                
+                if response.status_code == 200:
+                    logger.info("Token revocado exitosamente")
+                else:
+                    logger.warning(f"Error al revocar token. Status: {response.status_code}")
+                    
             except Exception as e:
                 logger.warning(f"Error al revocar token: {str(e)}")
-
     except Exception as e:
         logger.error(f"Error durante logout: {str(e)}")
-    
-    # Limpiar la sesión independientemente del resultado
-    session.clear()
-    flash("Se ha cerrado la sesión correctamente.", "success")
-    return redirect(url_for('index'))
+    finally:
+        # Limpiar la sesión independientemente del resultado
+        session.clear()
+        flash("Se ha cerrado la sesión correctamente.", "success")
+        return redirect(url_for('index'))
 
 @app.route('/test-location/<machine_id>')
 def test_location(machine_id):
