@@ -9,16 +9,46 @@
     margin-top: -1rem;
 }
 
+.organizations-panel {
+    width: 20%;
+    height: 100%;
+    overflow-y: auto;
+}
+
 .left-panel {
-    width: 50%;
+    width: 40%;
     height: 100%;
     overflow-y: auto;
     padding-right: 0.5rem;
 }
 
 .right-panel {
-    width: 50%;
+    width: 40%;
     height: 100%;
+}
+
+.organization-list {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+.organization-item {
+    color: var(--text-primary);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.organization-item:hover {
+    background-color: rgba(0, 171, 228, 0.1);
+    border-left-color: var(--accent);
+    text-decoration: none;
+}
+
+.organization-item.active {
+    background: linear-gradient(145deg, #00ABE4, #0087c7);
+    color: white;
+    border-left-color: white;
 }
 
 /* Lista de máquinas y alertas */
