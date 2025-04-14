@@ -1162,14 +1162,8 @@ function setupMachineSearch(allMachines) {
                    id.includes(searchTerm);
         });
 
-        // Si hay demasiadas coincidencias parciales, limitamos para evitar problemas de rendimiento
-        const MAX_RESULTS = 100;
-        if (partialMatches.length > MAX_RESULTS) {
-            console.log(`Limitando resultados parciales de ${partialMatches.length} a ${MAX_RESULTS}`);
-            filteredMachines.push(...partialMatches.slice(0, MAX_RESULTS));
-        } else {
-            filteredMachines.push(...partialMatches);
-        }
+        // Añadir todas las coincidencias parciales
+        filteredMachines.push(...partialMatches);
 
         console.log("Máquinas filtradas:", filteredMachines.length);
 
