@@ -180,6 +180,23 @@ body {
 .table {
   background: rgba(255, 255, 255, 0.5);
   border-radius: var(--border-radius);
+  display: table;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.table-responsive {
+  margin-bottom: 0;
+  border-radius: var(--border-radius);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  background: #2a2d3f;
+  z-index: 1;
 }
 
 .list-group-item {
