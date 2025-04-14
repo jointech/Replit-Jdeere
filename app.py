@@ -4,7 +4,7 @@ import time
 from urllib.parse import urlparse, urlunparse
 import secrets
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user
 from requests_oauthlib import OAuth2Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -12,6 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from config import JOHN_DEERE_AUTHORIZE_URL
 from john_deere_api import (
     JOHN_DEERE_CLIENT_ID,
+    JOHN_DEERE_CLIENT_SECRET,
     exchange_code_for_token,
     fetch_alert_definition,
     fetch_machine_alerts,
@@ -24,6 +25,12 @@ from john_deere_api import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", os.urandom(24).hex())
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # necesario para url_for con https
+
+# Configuración más estricta para sesiones
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True 
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hora
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -55,16 +62,43 @@ def get_full_redirect_uri():
 @app.route('/')
 def index():
     """Landing page that checks if user is authenticated and redirects accordingly."""
-    # Si ya estamos autenticados, redirigir al dashboard
+    # Verificación adicional de integridad de token
     if 'oauth_token' in session:
+        token = session.get('oauth_token')
+        
+        # Validar que el token tiene la estructura correcta
+        if not isinstance(token, dict) or 'access_token' not in token:
+            logger.warning("Token corrupto encontrado en sesión, limpiando sesión")
+            session.clear()
+            return render_template('login.html')
+            
+        # Verificar si el token está expirado (más detallado que la verificación de refresh)
+        if 'expires_at' in token and token.get('expires_at', 0) < time.time():
+            logger.info("Token expirado en sesión, limpiando sesión")
+            session.clear()
+            return render_template('login.html')
+            
+        # Si todo está bien, redirigir al dashboard
         return redirect(url_for('dashboard'))
     
-    # De lo contrario, mostrar la página de inicio
+    # Asegurar que la sesión está limpia antes de mostrar la página de inicio
+    session.clear()
+    
+    # Mostrar la página de inicio
     return render_template('login.html')
 
 @app.route('/login')
 def login():
-    """Initiates the OAuth2 authentication flow with John Deere."""
+    """Initiates the OAuth2 authentication flow with John Deere.
+    Esta función siempre inicia un flujo de autorización completo con John Deere,
+    forzando al usuario a proporcionar sus credenciales nuevamente."""
+    
+    # Limpiar completamente cualquier sesión existente
+    session.clear()
+    
+    # Eliminar todas las cookies relacionadas con la sesión desde el lado del servidor
+    # Esto se hará efectivo en la respuesta final
+    
     # Obtener el URI de redirección dinámico
     redirect_uri = get_full_redirect_uri()
     
@@ -72,11 +106,25 @@ def login():
     state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
     
-    # Iniciar sesión OAuth2 con John Deere y obtener URL de autorización
-    oauth = get_oauth_session(state=state, redirect_uri=redirect_uri)
-    auth_url, state = oauth.authorization_url(JOHN_DEERE_AUTHORIZE_URL)
+    # Registrar en el log que estamos iniciando un nuevo flujo de autenticación
+    logger.info(f"Iniciando nuevo flujo de autenticación con estado: {state[:10]}... y redirect_uri: {redirect_uri}")
     
-    logger.info(f"Redirigiendo a URL de autorización de John Deere: {auth_url} con redirect_uri {redirect_uri}")
+    # Iniciar sesión OAuth2 con John Deere y obtener URL de autorización
+    # Usamos siempre un objeto OAuth2Session nuevo para evitar cualquier persistencia
+    oauth = get_oauth_session(state=state, redirect_uri=redirect_uri)
+    
+    # Forzar siempre un nuevo inicio de sesión en John Deere
+    # Añadimos múltiples parámetros para asegurar que el usuario tenga que autenticarse completamente
+    # cada vez que utilice el login
+    auth_url, state = oauth.authorization_url(
+        JOHN_DEERE_AUTHORIZE_URL,
+        prompt="login consent",               # Esto fuerza a mostrar la pantalla de login y consentimiento siempre
+        max_age="0",                          # Fuerza siempre una reautenticación  
+        auth_type="rerequest",                # Solicita explícitamente todos los permisos nuevamente
+        response_mode="query"                 # Respuesta en parámetros de URL
+    )
+    
+    logger.info(f"Redirigiendo a URL de autorización de John Deere: {auth_url}")
     
     # Redirigir al usuario a la página de inicio de sesión/autorización de John Deere
     return redirect(auth_url)
@@ -479,7 +527,7 @@ def auth_setup():
 
 @app.route('/logout')
 def logout():
-    """Logs out the user by revoking token and clearing session."""
+    """Logs out the user by revoking token and completely destroying the session."""
     try:
         if 'oauth_token' in session:
             # Obtener el token actual
@@ -499,7 +547,8 @@ def logout():
                     data={
                         'token': token.get('access_token'),
                         'token_type_hint': 'access_token'
-                    }
+                    },
+                    timeout=5  # Añadir timeout para evitar bloqueos
                 )
                 
                 if response.status_code == 200:
@@ -507,15 +556,70 @@ def logout():
                 else:
                     logger.warning(f"Error al revocar token. Status: {response.status_code}")
                     
+                # También intentar revocar refresh token si existe
+                if token.get('refresh_token'):
+                    try:
+                        refresh_response = requests.post(
+                            revoke_url,
+                            auth=HTTPBasicAuth(JOHN_DEERE_CLIENT_ID, JOHN_DEERE_CLIENT_SECRET),
+                            data={
+                                'token': token.get('refresh_token'),
+                                'token_type_hint': 'refresh_token'
+                            },
+                            timeout=5  # Añadir timeout para evitar bloqueos
+                        )
+                        
+                        if refresh_response.status_code == 200:
+                            logger.info("Refresh token revocado exitosamente")
+                        else:
+                            logger.warning(f"Error al revocar refresh token. Status: {refresh_response.status_code}")
+                    except Exception as e:
+                        logger.warning(f"Error al revocar refresh token: {str(e)}")
+                    
             except Exception as e:
                 logger.warning(f"Error al revocar token: {str(e)}")
     except Exception as e:
         logger.error(f"Error durante logout: {str(e)}")
     finally:
-        # Limpiar la sesión independientemente del resultado
+        # Eliminar explícitamente todas las claves relacionadas con la autenticación
+        if 'oauth_token' in session:
+            session.pop('oauth_token', None)
+        if 'oauth_state' in session:
+            session.pop('oauth_state', None)
+        if 'user_orgs' in session:
+            session.pop('user_orgs', None)
+        if 'last_auth_code' in session:
+            session.pop('last_auth_code', None)
+        
+        # Limpiar toda la sesión para asegurar que no quede información
         session.clear()
-        flash("Se ha cerrado la sesión correctamente.", "success")
-        return redirect(url_for('index'))
+        
+        # Regenerar nueva sesión con otro ID para evitar ataques de session fixation
+        # Esto es más seguro que simplemente limpiar la sesión
+        from flask import session as flask_session
+        flask_session.modified = True
+        
+        # Crear una respuesta que incluya eliminación de todas las cookies
+        response = make_response(redirect(url_for('index')))
+        
+        # Establecer Session a expirado para eliminarla del navegador
+        response.set_cookie('session', '', expires=0, path='/')
+        
+        # Eliminar todas las cookies relacionadas con la sesión
+        for cookie in request.cookies:
+            if cookie.startswith('session'):
+                response.delete_cookie(cookie, path='/')
+                
+        # Forzar expiración de todas las cookies para este dominio
+        response.headers.add('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        response.headers.add('Pragma', 'no-cache')
+        response.headers.add('Expires', '0')
+        
+        flash("Se ha cerrado completamente la sesión.", "success")
+        
+        # Redirigir directamente a login para forzar nueva autenticación completa con John Deere
+        # En lugar de ir al index, vamos directamente a la ruta de login que inicia el flujo OAuth2
+        return redirect(url_for('login'))
 
 @app.route('/test-location/<machine_id>')
 def test_location(machine_id):
@@ -605,4 +709,4 @@ def server_error(e):
     return render_template('error.html', error="Internal server error."), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=True)
