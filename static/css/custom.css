@@ -2,16 +2,16 @@
 
 /* Light/Dark Theme Variables */
 :root {
-  --bg-gradient: linear-gradient(135deg, #1a1f25, #2c3e50);
-  --card-gradient: linear-gradient(145deg, #2a2d3f, #1f2937);
+  --bg-gradient: linear-gradient(135deg, #E9F1FA, #FFFFFF);
+  --card-gradient: linear-gradient(145deg, #FFFFFF, #E9F1FA);
   --border-radius: 16px;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-  --text-primary: #ffffff;
-  --text-secondary: #e2e8f0;
-  --accent: #00b4ff;
-  --shadow-light: 0 4px 10px rgba(0, 0, 0, 0.05);
-  --shadow-dark: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow: 0 8px 30px rgba(0, 171, 228, 0.1);
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent: #00ABE4;
+  --shadow-light: 0 4px 10px rgba(0, 171, 228, 0.05);
+  --shadow-dark: 0 4px 12px rgba(0, 171, 228, 0.1);
   --transition-speed: 0.3s;
   --card-border-radius: 10px;
   --primary-color-dark: #0087ff;
@@ -32,8 +32,8 @@ body {
 
 /* Header styles */
 .navbar {
-  background: linear-gradient(to right, #1a1f25, #2c3e50) !important;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  background: linear-gradient(to right, #00ABE4, #E9F1FA) !important;
+  box-shadow: 0 2px 10px rgba(0, 171, 228, 0.2);
   padding: 1rem;
   position: fixed;
   top: 0;
