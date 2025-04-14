@@ -290,18 +290,10 @@ function renderMachineList(machines) {
     // para evitar múltiples repaints en grandes cantidades de máquinas
     const fragment = document.createDocumentFragment();
 
-    // Limitar número de máquinas mostradas inicialmente si hay muchas
-    // y agregar un botón para cargar más si es necesario
-    const CHUNK_SIZE = 100; // Cantidad máxima inicial
+    // Mostrar todas las máquinas disponibles
     const totalMachines = machines.length;
     let initialMachines = machines;
     let remainingMachines = [];
-
-    if (totalMachines > CHUNK_SIZE) {
-        console.log(`Optimizando renderizado para ${totalMachines} máquinas`);
-        initialMachines = machines.slice(0, CHUNK_SIZE);
-        remainingMachines = machines.slice(CHUNK_SIZE);
-    }
 
     // Función para renderizar un conjunto de máquinas
     const renderMachinesChunk = (machinesList, container) => {
@@ -346,36 +338,6 @@ function renderMachineList(machines) {
     // Renderizar el primer conjunto de máquinas
     renderMachinesChunk(initialMachines, fragment);
 
-    // Si hay más máquinas por cargar, agregar botón "Cargar más"
-    if (remainingMachines.length > 0) {
-        const loadMoreButton = document.createElement('button');
-        loadMoreButton.className = 'btn btn-outline-primary btn-sm w-100 mt-2';
-        loadMoreButton.textContent = `Cargar más máquinas (${remainingMachines.length} restantes)`;
-        loadMoreButton.addEventListener('click', function() {
-            this.textContent = 'Cargando...';
-            this.disabled = true;
-
-            // Simular una pequeña demora para que la UI pueda actualizarse
-            setTimeout(() => {
-                // Eliminar el botón "Cargar más"
-                this.remove();
-
-                // Renderizar el siguiente conjunto de máquinas
-                renderMachinesChunk(remainingMachines, machineListContainer);
-
-                console.log('Máquinas adicionales cargadas');
-
-                // Actualizar búsqueda si hay un término activo
-                const searchInput = document.getElementById('machineSearchInput');
-                if (searchInput && searchInput.value.trim()) {
-                    const event = new Event('input');
-                    searchInput.dispatchEvent(event);
-                }
-            }, 50);
-        });
-
-        fragment.appendChild(loadMoreButton);
-    }
 
     // Agregar todos los elementos al contenedor
     machineListContainer.appendChild(fragment);
