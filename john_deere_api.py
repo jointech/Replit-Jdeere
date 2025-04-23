@@ -601,3 +601,39 @@ def fetch_machine_alerts(token, machine_id, days_back=30):
     except Exception as e:
         logger.error(f"Error fetching alerts for machine {machine_id}: {str(e)}")
         return []  # Devolver lista vacía en caso de error en lugar de propagar la excepción
+        
+def fetch_machine_engine_hours(token, machine_id):
+    """Fetches engine hours data for a specific machine.
+    
+    Args:
+        token: OAuth token
+        machine_id: ID of the machine
+    
+    Returns:
+        Dictionary with engine hours data or None if error
+    """
+    try:
+        # Refrescar token si es necesario
+        token = refresh_token_if_needed(token)
+        
+        # Crear sesión OAuth
+        oauth = get_oauth_session(token=token)
+        
+        # URL del endpoint de horas de motor
+        engine_hours_url = f"https://partnerapi.deere.com/platform/machines/{machine_id}/engineHours"
+        logger.info(f"Consultando horas de motor para la máquina {machine_id}")
+        
+        # Realizar solicitud
+        headers = {'x-deere-no-paging': 'true'}  # Para asegurar que obtenemos todos los datos sin paginación
+        response = oauth.get(engine_hours_url, headers=headers)
+        response.raise_for_status()
+        
+        # Procesar respuesta
+        engine_hours_data = response.json()
+        
+        logger.info(f"Datos de horómetro obtenidos para la máquina {machine_id}")
+        return engine_hours_data
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo horas de motor para la máquina {machine_id}: {str(e)}")
+        return None
