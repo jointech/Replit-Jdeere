@@ -188,39 +188,40 @@
 {% endblock %}
 
 {% block content %}
+<!-- Título y controles -->
 <div class="row mb-4">
-    <div class="col-md-8">
-        <h1 class="display-5">Dashboard de Máquinas</h1>
-    </div>
-    <div class="col-md-4 text-end">
-        <div class="d-flex justify-content-end align-items-center">
-            <!-- Botón de configuración para mostrar/ocultar panel de autenticación -->
-            <div class="dropdown me-3">
-                <button class="btn btn-sm btn-outline-secondary" type="button" id="configDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="configDropdown">
-                    <li><a class="dropdown-item" href="#" id="toggleAuthInfo">Mostrar información de autenticación</a></li>
-                </ul>
-            </div>
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-5">Dashboard de Máquinas</h1>
+            <div class="d-flex align-items-center">
+                <!-- Botón de configuración -->
+                <div class="dropdown me-3">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="configDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="configDropdown">
+                        <li><a class="dropdown-item" href="#" id="toggleAuthInfo">Mostrar información de autenticación</a></li>
+                    </ul>
+                </div>
 
-            <!-- Selector de organización -->
-            <div class="dropdown">
-                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-building me-2"></i> Seleccionar Organización
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
-                    <div class="mb-2">
-                        <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
-                    </div>
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        <ul class="list-unstyled mb-0" id="organizationList">
-                            {% for org in organizations %}
-                            <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
-                            {% endfor %}
-                        </ul>
-                        <div id="noResultsMessage" class="text-center p-2 d-none">
-                            <span class="text-muted">No se encontraron resultados</span>
+                <!-- Selector de organización -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-building me-2"></i> Seleccionar Organización
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
+                        <div class="mb-2">
+                            <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
+                        </div>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <ul class="list-unstyled mb-0" id="organizationList">
+                                {% for org in organizations %}
+                                <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
+                                {% endfor %}
+                            </ul>
+                            <div id="noResultsMessage" class="text-center p-2 d-none">
+                                <span class="text-muted">No se encontraron resultados</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -282,6 +283,22 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Mapa -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-map-marker-alt me-2"></i> Ubicación de Máquinas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Gráfico de resumen de alertas -->
 <div class="row mb-4">
@@ -361,16 +378,7 @@
     </div>
     
     <div class="col-md-8">
-        <div class="card shadow mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-map-marker-alt me-2"></i> Ubicación de Máquinas
-                </h5>
-            </div>
-            <div class="card-body">
-                <div id="map"></div>
-            </div>
-        </div>
+        
         
         <div class="card shadow" id="machine-details-card" data-original-id="machineDetailCard">
             <div class="card-header">
