@@ -17,6 +17,8 @@ from john_deere_api import (
     fetch_alert_definition,
     fetch_machine_alerts,
     fetch_machine_details,
+    fetch_machine_engine_hours,
+    fetch_machine_location,
     fetch_machines_by_organization,
     fetch_organizations,
     get_oauth_session
@@ -471,6 +473,51 @@ def get_machine_alerts(machine_id):
         logger.error(f"Error general en get_machine_alerts: {str(e)}")
         return jsonify({'error': str(e)}), 500
         
+@app.route('/api/machine/<machine_id>/engine-hours')
+def get_machine_engine_hours(machine_id):
+    """API endpoint to get engine hours data for a specific machine."""
+    logger.info(f"INICIO endpoint get_machine_engine_hours para máquina: {machine_id}")
+    
+    if 'oauth_token' not in session:
+        logger.error("No hay token OAuth en la sesión")
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        token = session.get('oauth_token')
+        logger.info(f"Token presente: {bool(token)}")
+        
+        try:
+            # Verificar si estamos usando un token simulado o de prueba
+            if token.get('access_token') in ['simulated_token_manual', 'test_token']:
+                logger.warning("Usando token simulado")
+                return jsonify({'error': 'Modo de desarrollo: Se está utilizando un token simulado. Para conectar con datos reales, por favor autentíquese con credenciales válidas de John Deere.'}), 401
+                
+            # Intentar obtener datos de horómetro reales desde la API de John Deere
+            logger.info(f"Obteniendo datos de horómetro reales para la máquina {machine_id}")
+            engine_hours_data = fetch_machine_engine_hours(token, machine_id)
+            
+            if not engine_hours_data:
+                logger.warning(f"No se encontraron datos de horómetro para la máquina {machine_id}")
+                return jsonify({'error': 'No se encontraron datos de horómetro'}), 404
+                
+        except Exception as eh_error:
+            logger.error(f"Error obteniendo horómetro desde la API: {str(eh_error)}")
+            error_msg = str(eh_error)
+            
+            # Personalizar respuesta según el tipo de error
+            if "401" in error_msg:
+                return jsonify({'error': 'Error de autenticación (401): No autorizado para acceder a la API de John Deere.'}), 401
+            elif "404" in error_msg:
+                return jsonify({'error': f'Error 404: No se encontraron datos de horómetro para la máquina con ID {machine_id} en la API de John Deere.'}), 404
+            else:
+                return jsonify({'error': f'Error al obtener datos de horómetro: {error_msg}'}), 500
+        
+        logger.info(f"Retornando datos de horómetro para la máquina {machine_id}")
+        return jsonify(engine_hours_data)
+    except Exception as e:
+        logger.error(f"Error general en get_machine_engine_hours: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/alert/definition')
 def get_alert_definition():
     """API endpoint to get detailed definition for a specific alert."""
