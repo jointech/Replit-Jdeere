@@ -1490,9 +1490,18 @@ function updateAlertsTable(alerts) {
  * @param {Object} engineHoursData - Datos del horómetro de la API
  */
 function updateHourmeterWidget(engineHoursData) {
+    // Logs para depuración
+    console.log("Datos del horómetro recibidos:", engineHoursData);
+    
     const hourmeterWidget = document.getElementById('hourmeterWidget');
     const hourmeterValue = document.getElementById('hourmeterValue');
     const hourmeterLastUpdate = document.getElementById('hourmeterLastUpdate');
+    
+    console.log("Elementos del widget:", {
+        hourmeterWidget: !!hourmeterWidget,
+        hourmeterValue: !!hourmeterValue,
+        hourmeterLastUpdate: !!hourmeterLastUpdate
+    });
     
     if (!hourmeterWidget || !hourmeterValue || !hourmeterLastUpdate) {
         console.warn('No se encontraron elementos del widget de horómetro');
@@ -1505,21 +1514,38 @@ function updateHourmeterWidget(engineHoursData) {
     }
     
     // Obtener el valor más reciente del horómetro
-    const latestReading = engineHoursData.values.sort((a, b) => {
-        return new Date(b.timestamp) - new Date(a.timestamp);
-    })[0];
+    const latestReading = engineHoursData.values && engineHoursData.values.length 
+        ? engineHoursData.values.sort((a, b) => {
+            return new Date(b.reportTime || b.timestamp) - new Date(a.reportTime || a.timestamp);
+          })[0]
+        : null;
     
-    if (!latestReading || latestReading.value === undefined) {
+    console.log("Lectura más reciente:", latestReading);
+    
+    if (!latestReading) {
+        hourmeterWidget.classList.add('d-none');
+        return;
+    }
+    
+    // Extraer el valor según la estructura real de los datos
+    let hourValue;
+    if (latestReading.reading && latestReading.reading.valueAsDouble !== undefined) {
+        hourValue = latestReading.reading.valueAsDouble;
+    } else if (latestReading.value !== undefined) {
+        hourValue = latestReading.value;
+    } else {
+        console.warn("No se pudo extraer el valor del horómetro", latestReading);
         hourmeterWidget.classList.add('d-none');
         return;
     }
     
     // Mostrar el valor del horómetro
-    hourmeterValue.textContent = `${parseFloat(latestReading.value).toFixed(1)} hrs`;
+    hourmeterValue.textContent = `${parseFloat(hourValue).toFixed(1)} hrs`;
     
     // Mostrar la fecha de última actualización
-    if (latestReading.timestamp) {
-        const date = new Date(latestReading.timestamp);
+    const timestamp = latestReading.reportTime || latestReading.timestamp;
+    if (timestamp) {
+        const date = new Date(timestamp);
         hourmeterLastUpdate.textContent = `Última actualización: ${date.toLocaleString()}`;
     } else {
         hourmeterLastUpdate.textContent = 'Última actualización: N/A';
