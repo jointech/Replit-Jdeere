@@ -422,22 +422,53 @@ function loadMachineDetails(machineId) {
     machineDetailEmpty.classList.remove('d-none');
     machineDetailContent.classList.add('d-none');
 
-    // Fetch machine details from API
-    fetch(`/api/machine/${machineId}`, {
-        credentials: 'same-origin', // Incluir cookies en la petición
+    // Variables para almacenar datos
+    let machineData = null;
+    let engineHoursData = null;
+
+    // Cargar datos de la máquina y del horómetro en paralelo
+    const machineDetailsPromise = fetch(`/api/machine/${machineId}`, {
+        credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Error al cargar detalles de la máquina');
-            }
-            return response.json();
-        })
-        .then(machine => {
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al cargar detalles de la máquina');
+        }
+        return response.json();
+    });
+
+    const engineHoursPromise = fetch(`/api/machine/${machineId}/engine-hours`, {
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            console.warn('No se pudieron cargar datos del horómetro:', response.status);
+            return null;
+        }
+        return response.json();
+    })
+    .catch(error => {
+        console.warn('Error al cargar datos del horómetro:', error);
+        return null;
+    });
+
+    // Esperar a que ambas promesas se resuelvan
+    Promise.all([machineDetailsPromise, engineHoursPromise])
+        .then(([machine, hoursData]) => {
             console.log("Detalles de máquina recibidos:", machine);
+            
+            if (hoursData) {
+                console.log("Datos de horómetro recibidos:", hoursData);
+                engineHoursData = hoursData;
+            }
 
             // Update machine details
             const machineName = document.getElementById('machineName');
@@ -478,6 +509,9 @@ function loadMachineDetails(machineId) {
                 if (machineLongitude) machineLongitude.textContent = '-';
                 if (machineLocationUpdate) machineLocationUpdate.textContent = 'No disponible';
             }
+
+            // Actualizar widget de horómetro si hay datos disponibles
+            updateHourmeterWidget(engineHoursData);
 
             // Show content
             machineDetailEmpty.classList.add('d-none');
@@ -1449,6 +1483,50 @@ function updateAlertsTable(alerts) {
 
         tableBody.appendChild(row);
     });
+}
+
+/**
+ * Función para actualizar el widget de horómetro
+ * @param {Object} engineHoursData - Datos del horómetro de la API
+ */
+function updateHourmeterWidget(engineHoursData) {
+    const hourmeterWidget = document.getElementById('hourmeterWidget');
+    const hourmeterValue = document.getElementById('hourmeterValue');
+    const hourmeterLastUpdate = document.getElementById('hourmeterLastUpdate');
+    
+    if (!hourmeterWidget || !hourmeterValue || !hourmeterLastUpdate) {
+        console.warn('No se encontraron elementos del widget de horómetro');
+        return;
+    }
+    
+    if (!engineHoursData || !engineHoursData.values || engineHoursData.values.length === 0) {
+        hourmeterWidget.classList.add('d-none');
+        return;
+    }
+    
+    // Obtener el valor más reciente del horómetro
+    const latestReading = engineHoursData.values.sort((a, b) => {
+        return new Date(b.timestamp) - new Date(a.timestamp);
+    })[0];
+    
+    if (!latestReading || latestReading.value === undefined) {
+        hourmeterWidget.classList.add('d-none');
+        return;
+    }
+    
+    // Mostrar el valor del horómetro
+    hourmeterValue.textContent = `${parseFloat(latestReading.value).toFixed(1)} hrs`;
+    
+    // Mostrar la fecha de última actualización
+    if (latestReading.timestamp) {
+        const date = new Date(latestReading.timestamp);
+        hourmeterLastUpdate.textContent = `Última actualización: ${date.toLocaleString()}`;
+    } else {
+        hourmeterLastUpdate.textContent = 'Última actualización: N/A';
+    }
+    
+    // Mostrar el widget
+    hourmeterWidget.classList.remove('d-none');
 }
 
 // Función para exportar a Excel
