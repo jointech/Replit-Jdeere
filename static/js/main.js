@@ -1490,69 +1490,72 @@ function updateAlertsTable(alerts) {
  * @param {Object} engineHoursData - Datos del horómetro de la API
  */
 function updateHourmeterWidget(engineHoursData) {
-    // Logs para depuración
     console.log("Datos del horómetro recibidos:", engineHoursData);
     
     const hourmeterWidget = document.getElementById('hourmeterWidget');
     const hourmeterValue = document.getElementById('hourmeterValue');
     const hourmeterLastUpdate = document.getElementById('hourmeterLastUpdate');
     
-    console.log("Elementos del widget:", {
-        hourmeterWidget: !!hourmeterWidget,
-        hourmeterValue: !!hourmeterValue,
-        hourmeterLastUpdate: !!hourmeterLastUpdate
-    });
-    
     if (!hourmeterWidget || !hourmeterValue || !hourmeterLastUpdate) {
         console.warn('No se encontraron elementos del widget de horómetro');
         return;
     }
     
-    if (!engineHoursData || !engineHoursData.values || engineHoursData.values.length === 0) {
+    if (!engineHoursData || typeof engineHoursData !== 'object') {
         hourmeterWidget.classList.add('d-none');
         return;
     }
     
-    // Obtener el valor más reciente del horómetro
-    const latestReading = engineHoursData.values && engineHoursData.values.length 
-        ? engineHoursData.values.sort((a, b) => {
-            return new Date(b.reportTime || b.timestamp) - new Date(a.reportTime || a.timestamp);
-          })[0]
-        : null;
+    let latestReading = null;
+    let hourValue = null;
     
-    console.log("Lectura más reciente:", latestReading);
+    // Intentar obtener el valor más reciente según diferentes estructuras de datos posibles
+    if (engineHoursData.values && Array.isArray(engineHoursData.values)) {
+        latestReading = engineHoursData.values
+            .sort((a, b) => new Date(b.timestamp || b.reportTime) - new Date(a.timestamp || a.reportTime))[0];
+            
+        if (latestReading) {
+            if (latestReading.reading && latestReading.reading.valueAsDouble !== undefined) {
+                hourValue = latestReading.reading.valueAsDouble;
+            } else if (latestReading.value !== undefined) {
+                hourValue = latestReading.value;
+            } else if (latestReading.engineHours !== undefined) {
+                hourValue = latestReading.engineHours;
+            }
+        }
+    } else if (engineHoursData.engineHours !== undefined) {
+        hourValue = engineHoursData.engineHours;
+        latestReading = engineHoursData;
+    }
     
-    if (!latestReading) {
+    if (hourValue === null) {
         hourmeterWidget.classList.add('d-none');
         return;
     }
     
-    // Extraer el valor según la estructura real de los datos
-    let hourValue;
-    if (latestReading.reading && latestReading.reading.valueAsDouble !== undefined) {
-        hourValue = latestReading.reading.valueAsDouble;
-    } else if (latestReading.value !== undefined) {
-        hourValue = latestReading.value;
-    } else {
-        console.warn("No se pudo extraer el valor del horómetro", latestReading);
-        hourmeterWidget.classList.add('d-none');
-        return;
-    }
-    
-    // Mostrar el valor del horómetro
-    hourmeterValue.textContent = `${parseFloat(hourValue).toFixed(1)} hrs`;
+    // Formatear y mostrar el valor del horómetro
+    const formattedValue = parseFloat(hourValue).toLocaleString('es-CL', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+    });
+    hourmeterValue.textContent = `${formattedValue} hrs`;
     
     // Mostrar la fecha de última actualización
-    const timestamp = latestReading.reportTime || latestReading.timestamp;
+    const timestamp = latestReading.timestamp || latestReading.reportTime;
     if (timestamp) {
         const date = new Date(timestamp);
-        hourmeterLastUpdate.textContent = `Última actualización: ${date.toLocaleString()}`;
+        hourmeterLastUpdate.textContent = `Última actualización: ${date.toLocaleString('es-CL')}`;
     } else {
         hourmeterLastUpdate.textContent = 'Última actualización: N/A';
     }
     
-    // Mostrar el widget
+    // Mostrar el widget y aplicar animación
     hourmeterWidget.classList.remove('d-none');
+    hourmeterWidget.style.opacity = '0';
+    setTimeout(() => {
+        hourmeterWidget.style.transition = 'opacity 0.3s ease';
+        hourmeterWidget.style.opacity = '1';
+    }, 100);
 }
 
 // Función para exportar a Excel
