@@ -303,12 +303,28 @@ def get_location_history(organization_id):
         machines = fetch_machines_by_organization(token, organization_id)
         
         location_history = []
+        logger.info(f"Procesando {len(machines)} máquinas para historial de ubicaciones")
+        
         for machine in machines:
+            # Incluir todas las máquinas, con o sin ubicación
+            machine_data = {
+                'vin': machine.get('serialNumber') or machine.get('id'),
+                'name': machine.get('name'),
+                'timestamp': None,
+                'latitude': None,
+                'longitude': None
+            }
+            
             if machine.get('location'):
                 timestamp = machine.get('location', {}).get('timestamp')
                 if timestamp:
                     try:
-                        location_date = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+                        # Parsear la fecha para validar el formato
+                        try:
+                            location_date = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+                        except ValueError:
+                            # Intentar otro formato común
+                            location_date = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
                         
                         # Verificar si la fecha está dentro del rango
                         should_include = True
@@ -323,16 +339,21 @@ def get_location_history(organization_id):
                             if location_date > end:
                                 should_include = False
                         
-                        if should_include:
-                            location_history.append({
-                                'vin': machine.get('serialNumber') or machine.get('id'),
-                                'name': machine.get('name'),
-                                'timestamp': timestamp,
-                                'latitude': machine.get('location', {}).get('latitude'),
-                                'longitude': machine.get('location', {}).get('longitude')
-                            })
+                        # Actualizar datos de ubicación
+                        machine_data.update({
+                            'timestamp': timestamp,
+                            'latitude': machine.get('location', {}).get('latitude'),
+                            'longitude': machine.get('location', {}).get('longitude')
+                        })
+                        
+                        # Si no cumple con los filtros de fecha, saltamos esta máquina
+                        if not should_include:
+                            continue
                     except (ValueError, TypeError) as e:
                         logger.error(f"Error processing date for machine {machine.get('id')}: {str(e)}")
+            
+            # Agregar la máquina al historial
+            location_history.append(machine_data)
         
         return jsonify(location_history)
     except Exception as e:

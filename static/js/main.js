@@ -1498,6 +1498,10 @@ function updateAlertsTable(alerts) {
  * Función para actualizar el widget de horómetro
  * @param {Object} engineHoursData - Datos del horómetro de la API
  */
+/**
+ * Función para actualizar el widget de horómetro
+ * @param {Object} engineHoursData - Datos del horómetro de la API
+ */
 function updateHourmeterWidget(engineHoursData) {
     console.log("Datos del horómetro recibidos:", engineHoursData);
 
@@ -1511,49 +1515,126 @@ function updateHourmeterWidget(engineHoursData) {
     }
 
     if (!engineHoursData || typeof engineHoursData !== 'object') {
+        console.warn('Datos de horómetro inválidos o vacíos');
         hourmeterWidget.classList.add('d-none');
         return;
     }
 
     let latestReading = null;
     let hourValue = null;
+    let timestamp = null;
 
-    // Intentar obtener el valor más reciente según diferentes estructuras de datos posibles
-    if (engineHoursData.values && Array.isArray(engineHoursData.values)) {
-        latestReading = engineHoursData.values
-            .sort((a, b) => new Date(b.timestamp || b.reportTime) - new Date(a.timestamp || a.reportTime))[0];
-
-        if (latestReading) {
-            if (latestReading.reading && latestReading.reading.valueAsDouble !== undefined) {
-                hourValue = latestReading.reading.valueAsDouble;
-            } else if (latestReading.value !== undefined) {
-                hourValue = latestReading.value;
-            } else if (latestReading.engineHours !== undefined) {
-                hourValue = latestReading.engineHours;
-            }
+    // Función auxiliar para extraer hora del motor de diferentes estructuras de datos
+    const extractHourValue = (data) => {
+        if (!data) return null;
+        
+        // Caso 1: { reading: { valueAsDouble: X } }
+        if (data.reading && data.reading.valueAsDouble !== undefined) {
+            return data.reading.valueAsDouble;
         }
-    } else if (engineHoursData.engineHours !== undefined) {
-        hourValue = engineHoursData.engineHours;
+        
+        // Caso 2: { value: X }
+        if (data.value !== undefined) {
+            return data.value;
+        }
+        
+        // Caso 3: { engineHours: X }
+        if (data.engineHours !== undefined) {
+            return data.engineHours;
+        }
+        
+        // Caso 4: { hours: X }
+        if (data.hours !== undefined) {
+            return data.hours;
+        }
+        
+        // Caso 5: objetos anidados
+        if (data.engineHoursReading) {
+            return extractHourValue(data.engineHoursReading);
+        }
+        
+        return null;
+    };
+
+    // Función auxiliar para extraer timestamp
+    const extractTimestamp = (data) => {
+        if (!data) return null;
+        
+        // Verificar múltiples propiedades posibles para el timestamp
+        return data.timestamp || data.reportTime || data.eventTime || 
+               data.lastUpdated || data.reportDateTime || data.dateTime;
+    };
+
+    // Caso 1: Array de valores en "values"
+    if (engineHoursData.values && Array.isArray(engineHoursData.values) && engineHoursData.values.length > 0) {
+        console.log("Procesando estructura con valores en array");
+        try {
+            // Ordenar por fecha más reciente
+            const sortedValues = [...engineHoursData.values].sort((a, b) => {
+                const dateA = new Date(extractTimestamp(a) || 0);
+                const dateB = new Date(extractTimestamp(b) || 0);
+                return dateB - dateA;
+            });
+            
+            latestReading = sortedValues[0];
+            hourValue = extractHourValue(latestReading);
+            timestamp = extractTimestamp(latestReading);
+            
+            console.log("Lectura más reciente:", latestReading);
+        } catch (error) {
+            console.error("Error al procesar array de valores:", error);
+        }
+    } 
+    // Caso 2: Valor directo en el objeto raíz
+    else {
+        console.log("Procesando estructura con valor directo");
+        hourValue = extractHourValue(engineHoursData);
+        timestamp = extractTimestamp(engineHoursData);
         latestReading = engineHoursData;
     }
 
-    if (hourValue === null) {
+    console.log("Valor de horas extraído:", hourValue);
+    console.log("Timestamp extraído:", timestamp);
+
+    // Si no pudimos extraer un valor de horas, ocultar el widget
+    if (hourValue === null || hourValue === undefined) {
+        console.warn('No se pudo extraer un valor válido del horómetro');
+        hourmeterWidget.classList.add('d-none');
+        return;
+    }
+
+    // Asegurarse de que el valor sea numérico
+    try {
+        hourValue = parseFloat(hourValue);
+        if (isNaN(hourValue)) {
+            throw new Error("El valor no es un número");
+        }
+    } catch (error) {
+        console.warn('El valor del horómetro no es un número válido:', hourValue);
         hourmeterWidget.classList.add('d-none');
         return;
     }
 
     // Formatear y mostrar el valor del horómetro
-    const formattedValue = parseFloat(hourValue).toLocaleString('es-CL', {
+    const formattedValue = hourValue.toLocaleString('es-CL', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1
     });
     hourmeterValue.textContent = `${formattedValue} hrs`;
 
     // Mostrar la fecha de última actualización
-    const timestamp = latestReading.timestamp || latestReading.reportTime;
     if (timestamp) {
-        const date = new Date(timestamp);
-        hourmeterLastUpdate.textContent = `Última actualización: ${date.toLocaleString('es-CL')}`;
+        try {
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+                hourmeterLastUpdate.textContent = `Última actualización: ${date.toLocaleString('es-CL')}`;
+            } else {
+                throw new Error("Fecha inválida");
+            }
+        } catch (error) {
+            console.warn("Error al formatear fecha:", timestamp);
+            hourmeterLastUpdate.textContent = 'Última actualización: N/A';
+        }
     } else {
         hourmeterLastUpdate.textContent = 'Última actualización: N/A';
     }

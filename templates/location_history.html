@@ -111,14 +111,36 @@ function renderLocationData(data) {
     const tbody = document.getElementById('locationHistoryTableBody');
     tbody.innerHTML = '';
     
+    console.log(`Renderizando ${data.length} registros de ubicación`);
+    
     data.forEach(location => {
         const row = document.createElement('tr');
+        
+        // Formatear la fecha o mostrar mensaje de 'No disponible'
+        let formattedDate = 'No disponible';
+        if (location.timestamp) {
+            try {
+                formattedDate = new Date(location.timestamp).toLocaleString();
+            } catch (e) {
+                console.error("Error al formatear fecha:", e);
+            }
+        }
+        
+        // Formatear coordenadas o mostrar mensaje de 'No disponible'
+        const latitude = location.latitude !== null ? location.latitude : 'No disponible';
+        const longitude = location.longitude !== null ? location.longitude : 'No disponible';
+        
+        // Si no hay coordenadas, aplicar estilo visual diferente
+        const hasLocation = location.latitude !== null && location.longitude !== null;
+        const rowClass = hasLocation ? '' : 'table-secondary';
+        
+        row.className = rowClass;
         row.innerHTML = `
-            <td>${location.vin}</td>
-            <td>${location.name}</td>
-            <td>${new Date(location.timestamp).toLocaleString()}</td>
-            <td>${location.latitude}</td>
-            <td>${location.longitude}</td>
+            <td>${location.vin || 'No disponible'}</td>
+            <td>${location.name || 'Sin nombre'}</td>
+            <td>${formattedDate}</td>
+            <td>${latitude}</td>
+            <td>${longitude}</td>
         `;
         tbody.appendChild(row);
     });
@@ -139,8 +161,18 @@ function filterLocationsByDate() {
     end.setHours(23, 59, 59, 999);
     
     const filteredData = allLocationData.filter(location => {
-        const locationDate = new Date(location.timestamp);
-        return locationDate >= start && locationDate <= end;
+        // Si no hay timestamp, incluimos la máquina en todas las búsquedas
+        if (!location.timestamp) {
+            return true;
+        }
+        
+        try {
+            const locationDate = new Date(location.timestamp);
+            return locationDate >= start && locationDate <= end;
+        } catch (e) {
+            console.error("Error al filtrar por fecha:", e);
+            return true; // Incluir por defecto si hay error
+        }
     });
     
     renderLocationData(filteredData);
