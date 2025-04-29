@@ -489,7 +489,21 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=Function.prototype" async defer></script>
+<script>
+    // Función para cargar Google Maps API
+    function loadGoogleMapsScript() {
+        const script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=initMap';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+    }
+
+    // Ejecutar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        loadGoogleMapsScript();
+    });
+</script>
 
 <!-- IMPLEMENTACIÓN DE MAPA USANDO GOOGLE MAPS API -->
 <script>
