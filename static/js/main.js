@@ -4,6 +4,40 @@ let selectedMachineId = null;
 let machineMarkers = {};
 let allLocationData = []; // Initialize allLocationData
 
+// Definir una versión local de clearMapMarkers en caso de que window.clearMapMarkers no esté disponible
+function clearMapMarkers() {
+    console.log("Usando función clearMapMarkers local");
+    if (window && window.clearMapMarkers) {
+        window.clearMapMarkers();
+    } else {
+        console.warn("No se encontró la función clearMapMarkers global");
+        // Limpiar en machineMarkers como alternativa
+        if (machineMarkers) {
+            for (const key in machineMarkers) {
+                if (Object.hasOwnProperty.call(machineMarkers, key)) {
+                    const marker = machineMarkers[key];
+                    if (marker && marker.setMap) {
+                        marker.setMap(null);
+                    }
+                }
+            }
+            machineMarkers = {};
+        }
+    }
+}
+
+// Definir una versión local de addMachinesToMap
+function addMachinesToMap(machines) {
+    console.log("Usando función addMachinesToMap local");
+    if (window && window.addMachinesToMap) {
+        window.addMachinesToMap(machines);
+    } else {
+        console.warn("No se encontró la función addMachinesToMap global");
+        // Aquí podríamos implementar una alternativa, pero por ahora solo limpiamos
+        clearMapMarkers();
+    }
+}
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Interfaz de dashboard cargada");
@@ -270,13 +304,27 @@ function loadMachines(organizationId) {
             // Cargar las alertas de todas las máquinas y luego actualizar el mapa
             loadAllMachineAlerts(machines)
                 .then(() => {
-                    // Add machines to map with alert colors
-                    addMachinesToMap(machines);
+                    // Add machines to map with alert colors - usando función global
+                    if (window.addMachinesToMap) {
+                        console.log("Usando función global addMachinesToMap");
+                        window.addMachinesToMap(machines);
+                    } else {
+                        console.error("Función global addMachinesToMap no disponible, usando alternativa");
+                        if (window.clearMapMarkers) {
+                            window.clearMapMarkers();
+                        } else {
+                            console.error("Función clearMapMarkers no disponible globalmente");
+                        }
+                    }
                 })
                 .catch(error => {
                     console.error("Error cargando alertas de las máquinas:", error);
                     // Mostrar las máquinas en el mapa incluso si hay error con las alertas
-                    addMachinesToMap(machines);
+                    if (window.addMachinesToMap) {
+                        window.addMachinesToMap(machines);
+                    } else {
+                        console.error("Función global addMachinesToMap no disponible después de error");
+                    }
                 });
         })
         .catch(error => {
@@ -405,7 +453,11 @@ function selectMachine(machineId) {
         if (previousSelectedMachineId !== selectedMachineId && window.lastLoadedMachines) {
             console.log("Actualizando marcadores del mapa con nueva selección");
             // Recargar los marcadores para reflejar la nueva selección
-            addMachinesToMap(window.lastLoadedMachines);
+            if (window.addMachinesToMap) {
+                window.addMachinesToMap(window.lastLoadedMachines);
+            } else {
+                console.error("Función global addMachinesToMap no disponible en selectMachine");
+            }
         }
 
         // Load machine details
