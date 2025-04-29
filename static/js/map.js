@@ -5,6 +5,9 @@ let infoWindow;
 let googleMapsLoaded = false;
 let mapPendingCallbacks = [];
 
+// Acceso a las variables compartidas con main.js
+// selectedMachineId se declara en main.js
+
 // Definir colores según el tipo de máquina para Google Maps
 const machineColors = {
     'default': '#28a745', // Verde por defecto
@@ -506,24 +509,50 @@ function focusMapOnMachine(machineId) {
         return;
     }
 
-    // Primero, ocultar todos los marcadores existentes
-    Object.values(markers).forEach(marker => {
-        marker.setVisible(false);
-    });
+    // Guardar la selección en la variable global para que esté disponible para otros componentes
+    window.selectedMachineId = machineId;
 
-    // Si la máquina ya está en el mapa, usamos esos datos
-    if (markers && markers[machineId]) {
-        console.log("Usando marcador existente para enfoque:", machineId);
+    // Use withGoogleMaps wrapper to make sure Google Maps API is loaded
+    withGoogleMaps(() => {
+        // Si el mapa no está inicializado, no hacer nada
+        if (!map) {
+            console.warn("El mapa no está inicializado todavía");
+            mapPendingCallbacks.push(() => focusMapOnMachine(machineId));
+            return;
+        }
         
-        withGoogleMaps(() => {
+        // Primero, mostrar todos los marcadores pero con una opacidad reducida
+        Object.entries(markers).forEach(([id, marker]) => {
+            // Mostrar todos los marcadores
+            marker.setVisible(true);
+            // Si es el marcador seleccionado, mantener opacidad normal
+            if (id === machineId) {
+                marker.setOpacity(1.0);
+            } else {
+                // Reducir opacidad para los demás marcadores
+                marker.setOpacity(0.5);
+            }
+        });
+
+        // Si la máquina ya está en el mapa, usamos esos datos
+        if (markers && markers[machineId]) {
+            console.log("Usando marcador existente para enfoque:", machineId);
+            
             const marker = markers[machineId];
-            marker.setVisible(true); // Mostrar solo el marcador seleccionado
             const position = marker.getPosition();
             
             // Centrar el mapa en la ubicación de la máquina
             map.setCenter(position);
             map.setZoom(15); // Establecer un zoom más cercano
             map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Mantener siempre en vista satélite
+            
+            // Animar el marcador para destacarlo
+            if (marker.getAnimation() !== google.maps.Animation.BOUNCE) {
+                marker.setAnimation(google.maps.Animation.BOUNCE);
+                setTimeout(() => {
+                    marker.setAnimation(null);
+                }, 1500);
+            }
             
             // Abrir la ventana de información para esta máquina
             if (window.lastLoadedMachines) {
@@ -533,21 +562,20 @@ function focusMapOnMachine(machineId) {
                     infoWindow.open(map, marker);
                 }
             }
-        });
-        return;
-    }
-    
-    // Si no encontramos el marcador, intentamos obtener los datos actualizados
-    console.log("Obteniendo datos actualizados para la máquina:", machineId);
-    
-    // Primero, intentamos obtener los datos de la máquina más actualizados
-    fetch(`/api/machine/${machineId}`, {
-        credentials: 'same-origin',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            return;
         }
-    })
+        
+        // Si no encontramos el marcador, intentamos obtener los datos actualizados
+        console.log("Obteniendo datos actualizados para la máquina:", machineId);
+        
+        // Obtener los datos de la máquina más actualizados
+        fetch(`/api/machine/${machineId}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
     .then(response => {
         if (!response.ok) {
             throw new Error('Error al obtener ubicación actualizada de la máquina');
