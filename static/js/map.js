@@ -1,9 +1,16 @@
-// Map variables
-let map;
-let markers = {};
-let infoWindow;
-let googleMapsLoaded = false;
-let mapPendingCallbacks = [];
+// Map variables - declarados en el ámbito global para que sean accesibles desde main.js
+window.map = null;
+window.markers = {};
+window.infoWindow = null;
+window.googleMapsLoaded = false;
+window.mapPendingCallbacks = [];
+
+// Referencias locales para uso interno en este archivo
+let map = window.map;
+let markers = window.markers;
+let infoWindow = window.infoWindow;
+let googleMapsLoaded = window.googleMapsLoaded;
+let mapPendingCallbacks = window.mapPendingCallbacks;
 
 // Acceso a las variables compartidas con main.js
 // selectedMachineId se declara en main.js
