@@ -20,6 +20,9 @@
                             <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
                             {% endfor %}
                         </ul>
+                        <div id="noResultsMessage" class="text-center py-2 d-none">
+                            <small class="text-muted">No se encontraron resultados</small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -85,14 +88,11 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Manejar selección de organización
-    document.querySelectorAll('.organization-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const orgId = this.getAttribute('data-org-id');
-            loadLocationHistory(orgId);
-        });
-    });
+    // Configurar la búsqueda de organizaciones
+    setupOrganizationSearch();
+    
+    // Inicializar selección de organización
+    setupOrganizationSelection();
 });
 
 let allLocationData = []; // Variable global para almacenar todos los datos
@@ -150,6 +150,111 @@ function clearDateFilters() {
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
     renderLocationData(allLocationData);
+}
+
+// Configurar la selección de organizaciones
+function setupOrganizationSelection() {
+    // También agregar un controlador de eventos al elemento padre para manejar delegación de eventos
+    document.getElementById('organizationList').addEventListener('click', function(e) {
+        // Verificar si el elemento clicado o alguno de sus padres es un .organization-item
+        const item = e.target.closest('.organization-item');
+        if (item) {
+            e.preventDefault();
+            const orgId = item.getAttribute('data-org-id');
+            const orgName = item.textContent.trim();
+
+            console.log(`Organización seleccionada: ${orgName} (${orgId})`);
+
+            // Update dropdown button with organization name but keep the icon
+            const dropdownButton = document.getElementById('organizationDropdown');
+            if (dropdownButton) {
+                dropdownButton.innerHTML = `<i class="fas fa-building me-2"></i> ${orgName}`;
+            } else {
+                console.error("No se encontró el elemento dropdownButton");
+            }
+
+            // Cargar historial de ubicación para esta organización
+            loadLocationHistory(orgId);
+
+            // Cerrar menú desplegable
+            const dropdown = bootstrap.Dropdown.getInstance(dropdownButton);
+            if (dropdown) {
+                dropdown.hide();
+            }
+        }
+    });
+}
+
+// Configurar el buscador de organizaciones
+function setupOrganizationSearch() {
+    const searchInput = document.getElementById('orgSearchInput');
+    if (!searchInput) {
+        console.error("No se encontró el elemento de búsqueda");
+        return;
+    }
+
+    // Variables para optimización
+    let debounceTimer;
+    const DEBOUNCE_DELAY = 300; // ms
+
+    // Manejar el evento de entrada para filtrar la lista con debounce
+    searchInput.addEventListener('input', function() {
+        // Cancelar el timer anterior
+        clearTimeout(debounceTimer);
+
+        // Establecer un nuevo timer
+        debounceTimer = setTimeout(() => {
+            const searchTerm = this.value.toLowerCase().trim();
+            const organizationItems = document.querySelectorAll('.organization-item');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            let matchCount = 0;
+
+            // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
+            organizationItems.forEach(item => {
+                const orgName = item.textContent.toLowerCase();
+                const orgId = item.getAttribute('data-org-id');
+                const listItem = item.closest('li');
+
+                // Verificar si el nombre o ID de la organización contiene el término de búsqueda
+                if (orgName.includes(searchTerm) || (orgId && orgId.includes(searchTerm))) {
+                    if (listItem) {
+                        listItem.style.display = '';
+                        matchCount++;
+                    }
+                } else {
+                    if (listItem) {
+                        listItem.style.display = 'none';
+                    }
+                }
+            });
+
+            // Mostrar/ocultar mensaje de "sin resultados"
+            if (noResultsMessage) {
+                noResultsMessage.classList.toggle('d-none', !(matchCount === 0 && searchTerm.length > 0));
+            }
+        }, DEBOUNCE_DELAY);
+    });
+
+    // Prevenir que el dropdown se cierre al hacer clic en el campo de búsqueda
+    searchInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // Al abrir el dropdown, enfocar automáticamente el campo de búsqueda
+    const dropdownButton = document.getElementById('organizationDropdown');
+    if (dropdownButton) {
+        dropdownButton.addEventListener('shown.bs.dropdown', function() {
+            searchInput.focus();
+        });
+
+        // Limpiar la búsqueda cuando se cierra el dropdown
+        dropdownButton.addEventListener('hidden.bs.dropdown', function() {
+            searchInput.value = '';
+            // Restaurar la visibilidad de todos los elementos
+            const event = new Event('input');
+            searchInput.dispatchEvent(event);
+        });
+    }
 }
 
 function exportLocationHistory() {
