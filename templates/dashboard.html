@@ -294,7 +294,19 @@
                 </h5>
             </div>
             <div class="card-body p-0">
-                <div id="map" style="height: 500px; width: 100%; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
+                <!-- Elemento para el mapa principal -->
+                <div id="map-container" style="position: relative; height: 500px; width: 100%; border-radius: 8px; overflow: hidden;">
+                    <div id="map" style="position: absolute; top: 0; left: 0; height: 100%; width: 100%; z-index: 1; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
+                    <!-- Mensaje de carga del mapa -->
+                    <div id="map-loading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); color: white; display: flex; align-items: center; justify-content: center; z-index: 2;">
+                        <div class="text-center">
+                            <div class="spinner-border mb-2" role="status">
+                                <span class="visually-hidden">Cargando mapa...</span>
+                            </div>
+                            <p class="mb-0">Inicializando mapa...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -475,34 +487,172 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- IMPLEMENTACIÓN DIRECTA DE GOOGLE MAPS -->
 <script>
-    // Usar la función centralizada definida en base.html
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log("Dashboard: DOM cargado, inicializando mapa");
+    // Variables globales
+    let map;
+    let infoWindow;
+    let markers = {};
+    let mapInitialized = false;
+    
+    // Función que inicializa directamente el mapa
+    function initializeMap() {
+        console.log("Inicializando mapa directamente en dashboard.html");
         
-        // Inicializar el mapa usando la función global de base.html
-        if (window.initializeGoogleMap) {
-            const initialized = window.initializeGoogleMap('map');
-            console.log("Resultado de inicialización del mapa:", initialized ? "ÉXITO" : "FALLIDO");
-        } else {
-            console.error("La función initializeGoogleMap no está disponible");
+        // Ocultar el mensaje de carga cuando el mapa esté listo
+        function hideMapLoading() {
+            const mapLoading = document.getElementById('map-loading');
+            if (mapLoading) {
+                mapLoading.style.display = 'none';
+            }
         }
         
-        // Añadir un respaldo por si acaso
-        window.setTimeout(function() {
-            if (!window.isMapReady || !window.isMapReady()) {
-                console.warn("El mapa no se ha inicializado correctamente después de 2 segundos, intentando de nuevo");
-                if (window.initializeGoogleMap) {
-                    window.initializeGoogleMap('map');
-                }
+        try {
+            // Verificar si el elemento del mapa existe
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error("Elemento del mapa no encontrado");
+                return false;
             }
-        }, 2000);
+            
+            // Crear nueva instancia del mapa
+            map = new google.maps.Map(mapElement, {
+                center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
+                zoom: 5,
+                mapTypeId: google.maps.MapTypeId.SATELLITE,
+                mapTypeControl: true,
+                fullscreenControl: true,
+                streetViewControl: false
+            });
+            
+            // Crear ventana de información para marcadores
+            infoWindow = new google.maps.InfoWindow();
+            
+            // Exponer objetos al ámbito global para que otras funciones puedan usarlos
+            window.map = map;
+            window.infoWindow = infoWindow;
+            window.markers = markers;
+            
+            // Marcar como inicializado
+            mapInitialized = true;
+            window.mapInitialized = true;
+            
+            // Ocultar mensaje de carga
+            hideMapLoading();
+            
+            console.log("Mapa inicializado correctamente");
+            return true;
+        } catch (error) {
+            console.error("Error inicializando el mapa:", error);
+            return false;
+        }
+    }
+    
+    // Función para añadir marcadores al mapa
+    function addMachinesToMap(machines) {
+        if (!mapInitialized || !map) {
+            console.error("El mapa no está inicializado");
+            return;
+        }
+        
+        // Limpiar marcadores existentes
+        clearMapMarkers();
+        
+        // Crear límites para ajustar la vista del mapa
+        const bounds = new google.maps.LatLngBounds();
+        let visibleMachines = 0;
+        
+        machines.forEach(machine => {
+            if (machine.location && machine.location.latitude && machine.location.longitude) {
+                const position = {
+                    lat: parseFloat(machine.location.latitude),
+                    lng: parseFloat(machine.location.longitude)
+                };
+                
+                // Determinar si es la máquina seleccionada
+                const isSelected = machine.id === window.selectedMachineId;
+                
+                // Crear marcador
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: machine.name || 'Máquina',
+                    icon: {
+                        url: isSelected ? 
+                            'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' : 
+                            'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                        scaledSize: new google.maps.Size(isSelected ? 42 : 35, isSelected ? 42 : 35)
+                    }
+                });
+                
+                // Añadir evento clic
+                marker.addListener('click', function() {
+                    if (window.selectMachine) {
+                        window.selectMachine(machine.id);
+                    }
+                });
+                
+                // Guardar referencia al marcador
+                markers[machine.id] = marker;
+                
+                // Extender límites
+                bounds.extend(position);
+                visibleMachines++;
+            }
+        });
+        
+        // Ajustar el mapa si hay máquinas visibles
+        if (visibleMachines > 0) {
+            map.fitBounds(bounds);
+            if (visibleMachines === 1) {
+                google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                    if (map.getZoom() > 15) map.setZoom(15);
+                });
+            }
+        }
+        
+        console.log(`Añadidas ${visibleMachines} máquinas al mapa`);
+    }
+    
+    // Función para limpiar marcadores
+    function clearMapMarkers() {
+        for (const id in markers) {
+            if (markers[id]) {
+                markers[id].setMap(null);
+            }
+        }
+        markers = {};
+    }
+    
+    // Exponer funciones al ámbito global
+    window.addMachinesToMap = addMachinesToMap;
+    window.clearMapMarkers = clearMapMarkers;
+    
+    // Inicializar el mapa cuando el API de Google Maps esté cargada
+    function initMapWrapper() {
+        console.log("Google Maps API cargada, inicializando mapa");
+        initializeMap();
+    }
+    
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM cargado, verificando Google Maps API");
+        
+        if (window.google && window.google.maps) {
+            initMapWrapper();
+        } else {
+            console.log("Esperando a que Google Maps se cargue...");
+            // La función global callback que Google Maps llamará cuando se cargue
+            window.initMap = initMapWrapper;
+        }
     });
 </script>
 
-<!-- Aseguramos que map.js se carga primero y completamente -->
-<script src="{{ url_for('static', filename='js/map.js') }}"></script>
-<!-- main.js se cargará después de map.js -->
+<!-- Incluir Google Maps con una callback específica -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&libraries=places,geometry&callback=initMap"></script>
+
+<!-- Incluir el resto de los scripts de la aplicación -->
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script>
 // Script para compatibilidad de IDs entre CSS y JavaScript
@@ -527,21 +677,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Si no está en el mapeo o no se encontró con el nuevo ID, usa el método original
         return originalGetElementById.call(document, id);
     };
-    
-    // Verificar si el mapa ya fue inicializado
-    console.log("Verificando inicialización del mapa desde dashboard.html");
-    if (typeof google !== 'undefined' && google.maps) {
-        console.log("Google Maps API ya está cargada");
-        // Si initMap ya está definido, usarlo
-        if (typeof window.initMap === 'function') {
-            console.log("Llamando a window.initMap desde dashboard.html");
-            window.initMap();
-        } else {
-            console.warn("window.initMap no es una función válida");
-        }
-    } else {
-        console.log("Esperando a que Google Maps API cargue...");
-    }
 });
 </script>
 {% endblock %}
