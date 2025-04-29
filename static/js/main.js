@@ -82,26 +82,25 @@ function setupOrganizationSearch() {
         let matchCount = 0;
 
         // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
-        const machineListContainer = document.getElementById('machineListContainer');
-        const allMachines = window.lastLoadedMachines || [];
+        const organizationItems = document.querySelectorAll('.organization-item');
+        let matchCount = 0;
 
-        if (!allMachines.length) {
-            return;
-        }
+        organizationItems.forEach(item => {
+            const orgName = item.textContent.toLowerCase();
+            const orgId = item.getAttribute('data-org-id');
+            const listItem = item.closest('li');
 
-        const filteredMachines = allMachines.filter(machine => {
-            const searchableText = [
-                machine.name?.toLowerCase() || '',
-                machine.id?.toString().toLowerCase() || '',
-                machine.category?.toLowerCase() || '',
-                machine.model?.toString().toLowerCase() || ''
-            ].join(' ');
-            
-            return searchableText.includes(searchTerm);
+            if (orgName.includes(searchTerm) || (orgId && orgId.includes(searchTerm))) {
+                if (listItem) {
+                    listItem.style.display = '';
+                    matchCount++;
+                }
+            } else {
+                if (listItem) {
+                    listItem.style.display = 'none';
+                }
+            }
         });
-
-        // Renderizar las máquinas filtradas
-        renderMachineList(filteredMachines);
         
         // Actualizar mensaje de no resultados
         const noResultsMessage = document.getElementById('noMachineResultsMessage');

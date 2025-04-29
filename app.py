@@ -407,12 +407,29 @@ def get_machines(organization_id):
             # Intentar obtener máquinas reales desde la API de John Deere
             logger.info(f"Obteniendo máquinas reales para la organización {organization_id}")
             machines = fetch_machines_by_organization(token, organization_id)
-            logger.info(f"Máquinas obtenidas: {len(machines)}")
+            logger.info(f"Máquinas obtenidas: {len(machines) if machines else 0}")
             
-            if not machines:
-                logger.warning(f"No se obtuvieron máquinas para la organización {organization_id}")
-                # Retornar lista vacía pero con mensaje informativo
-                return jsonify([])
+            # Asegurar que tenemos una lista de máquinas válida
+            if machines is None:
+                machines = []
+            elif not isinstance(machines, list):
+                machines = [machines]
+                
+            # Procesar cada máquina para asegurar que tiene todos los campos necesarios
+            processed_machines = []
+            for machine in machines:
+                if isinstance(machine, dict):
+                    # Asegurar que tenemos todos los campos requeridos
+                    processed_machine = {
+                        'id': machine.get('id', 'N/A'),
+                        'name': machine.get('name', 'Sin nombre'),
+                        'category': machine.get('category', 'Sin categoría'),
+                        'model': machine.get('model', {}),
+                        'location': machine.get('location', {})
+                    }
+                    processed_machines.append(processed_machine)
+            
+            return jsonify(processed_machines)
                 
         except Exception as m_error:
             logger.error(f"Error fetching machines from API: {str(m_error)}")
