@@ -475,8 +475,10 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/map.js') }}"></script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<!-- Aseguramos que map.js se carga primero y completamente -->
+<script src="{{ url_for('static', filename='js/map.js') }}" defer></script>
+<!-- main.js se cargará después de map.js -->
+<script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 <script>
 // Script para compatibilidad de IDs entre CSS y JavaScript
 document.addEventListener('DOMContentLoaded', function() {

@@ -8,8 +8,12 @@ let allLocationData = []; // Initialize allLocationData
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Interfaz de dashboard cargada");
 
-    // Initialize the map
-    initMap();
+    // Initialize the map only if it exists
+    if (typeof window.initMap === 'function') {
+        window.initMap();
+    } else {
+        console.warn("La función initMap no está disponible todavía");
+    }
 
     // Set up the organization selection dropdown
     setupOrganizationSelection();
