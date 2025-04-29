@@ -306,8 +306,8 @@
                         </div>
                     </div>
                     
-                    <!-- Mapa como espacio para iframe o div -->
-                    <div id="simple-map-image" class="position-absolute top-0 left-0 w-100 h-100" style="display: none;"></div>
+                    <!-- Contenedor para Google Maps -->
+                    <div id="map" class="position-absolute top-0 left-0 w-100 h-100" style="z-index: 1;"></div>
                 </div>
             </div>
         </div>
@@ -489,65 +489,519 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- No se carga Google Maps, usamos OpenStreetMap que no requiere API key -->
+<!-- Carga de Google Maps API con la API key proporcionada -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=initMap" async defer></script>
 
-<!-- IMPLEMENTACIÓN DE MAPA USANDO GOOGLE MAPS API -->
 <script>
-    /**
-     * Muestra un mapa estático para una máquina seleccionada
-     * @param {Array} machines - Lista de máquinas
-     */
-    function addMachinesToMap(machines) {
-        console.log("Usando implementación super simplificada del mapa para", machines.length, "máquinas");
+    // Variables globales para el mapa
+    let map;
+    let markers = {};
+    let infoWindow;
+    
+    // Inicializar el mapa 
+    function initMap() {
+        console.log("Inicializando Google Maps...");
         
-        // Ocultar mensaje inicial
-        const initialMessage = document.getElementById('map-initial-message');
-        if (initialMessage) initialMessage.style.display = 'none';
-        
-        // No hacemos nada con las máquinas aquí, solo guardamos referencia para cuando se seleccione una
-        window.allLoadedMachines = machines;
+        try {
+            // Crear la ventana de información compartida para todos los marcadores
+            infoWindow = new google.maps.InfoWindow();
+            
+            // Obtener el elemento del mapa
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error("Error: No se encontró el elemento del mapa 'map'");
+                return;
+            }
+            
+            // Asegurarse de que el elemento tenga dimensiones
+            if (mapElement.offsetWidth === 0 || mapElement.offsetHeight === 0) {
+                console.warn("El elemento del mapa tiene dimensiones cero. Estableciendo dimensiones explícitas.");
+                mapElement.style.height = "500px";
+                mapElement.style.width = "100%";
+            }
+            
+            // Crear mapa centrado en una ubicación predeterminada (centro de Chile)
+            map = new google.maps.Map(mapElement, {
+                center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
+                zoom: 5,
+                mapTypeId: google.maps.MapTypeId.SATELLITE, // Vista satélite por defecto
+                mapTypeControl: true,
+                fullscreenControl: true,
+                streetViewControl: false,
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+                },
+                // Estilo oscuro para hacer juego con el tema de la aplicación
+                styles: [
+                    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                    {
+                        featureType: "administrative.locality",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#d59563" }],
+                    },
+                    {
+                        featureType: "poi",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#d59563" }],
+                    },
+                    {
+                        featureType: "poi.park",
+                        elementType: "geometry",
+                        stylers: [{ color: "#263c3f" }],
+                    },
+                    {
+                        featureType: "poi.park",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#6b9a76" }],
+                    },
+                    {
+                        featureType: "road",
+                        elementType: "geometry",
+                        stylers: [{ color: "#38414e" }],
+                    },
+                    {
+                        featureType: "road",
+                        elementType: "geometry.stroke",
+                        stylers: [{ color: "#212a37" }],
+                    },
+                    {
+                        featureType: "road",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#9ca5b3" }],
+                    },
+                    {
+                        featureType: "road.highway",
+                        elementType: "geometry",
+                        stylers: [{ color: "#746855" }],
+                    },
+                    {
+                        featureType: "road.highway",
+                        elementType: "geometry.stroke",
+                        stylers: [{ color: "#1f2835" }],
+                    },
+                    {
+                        featureType: "road.highway",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#f3d19c" }],
+                    },
+                    {
+                        featureType: "transit",
+                        elementType: "geometry",
+                        stylers: [{ color: "#2f3948" }],
+                    },
+                    {
+                        featureType: "transit.station",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#d59563" }],
+                    },
+                    {
+                        featureType: "water",
+                        elementType: "geometry",
+                        stylers: [{ color: "#17263c" }],
+                    },
+                    {
+                        featureType: "water",
+                        elementType: "labels.text.fill",
+                        stylers: [{ color: "#515c6d" }],
+                    },
+                    {
+                        featureType: "water",
+                        elementType: "labels.text.stroke",
+                        stylers: [{ color: "#17263c" }],
+                    },
+                ]
+            });
+            
+            // Ocultar el mensaje inicial cuando el mapa esté listo
+            const initialMessage = document.getElementById('map-initial-message');
+            if (initialMessage) {
+                initialMessage.style.display = 'flex'; // Mantenerlo visible hasta que seleccionen una máquina
+            }
+            
+            console.log("Mapa de Google Maps inicializado correctamente");
+            
+        } catch (error) {
+            console.error("Error al inicializar el mapa:", error);
+            console.error("Detalles del error:", error.message);
+            console.error("Stack trace:", error.stack);
+            
+            displayMapError("Error al inicializar el mapa: " + error.message);
+        }
     }
     
     /**
-     * Muestra el mapa estático para una máquina específica
-     * @param {string} machineId - ID de la máquina seleccionada
+     * Añade máquinas al mapa con marcadores
+     * @param {Array} machines - Lista de máquinas para mostrar en el mapa
      */
-    function showMachineOnMap(machineId) {
-        console.log("Mostrando máquina en mapa estático (versión nueva):", machineId);
+    function addMachinesToMap(machines) {
+        console.log(`Añadiendo ${machines.length} máquinas al mapa`);
+        
+        // Guardar las máquinas para uso posterior
+        window.lastLoadedMachines = machines;
         
         // Ocultar mensaje inicial
         const initialMessage = document.getElementById('map-initial-message');
         if (initialMessage) initialMessage.style.display = 'none';
         
-        const mapContainer = document.getElementById('simple-map-image');
-        if (!mapContainer) {
-            console.error("No se encontró el contenedor del mapa 'simple-map-image'");
+        // Si el mapa no está inicializado, no continuar
+        if (!map) {
+            console.error("El mapa no está inicializado");
             return;
         }
         
-        // Mostrar spinner de carga mientras se procesa
-        mapContainer.innerHTML = `
-            <div class="d-flex justify-content-center align-items-center h-100">
-                <div class="spinner-border text-light" role="status">
-                    <span class="visually-hidden">Cargando mapa...</span>
+        // Limpiar marcadores existentes
+        clearMapMarkers();
+        
+        // Crear límites para ajustar la vista
+        const bounds = new google.maps.LatLngBounds();
+        let validLocations = 0;
+        
+        // Limitar el número de marcadores para evitar sobrecargar el mapa
+        const MAX_MARKERS = 50;
+        let markersAdded = 0;
+        let hasLimitedMarkers = false;
+        
+        // Primero añadir la máquina seleccionada si existe
+        if (window.selectedMachineId) {
+            const selectedMachine = machines.find(m => m.id === window.selectedMachineId);
+            if (selectedMachine && selectedMachine.location && 
+                selectedMachine.location.latitude && selectedMachine.location.longitude) {
+                addSingleMachineToMap(selectedMachine, bounds);
+                validLocations++;
+                markersAdded++;
+            }
+        }
+        
+        // Luego añadir el resto hasta el límite
+        for (const machine of machines) {
+            // Si ya tenemos la máquina seleccionada, saltarla
+            if (window.selectedMachineId && machine.id === window.selectedMachineId) {
+                continue;
+            }
+            
+            if (machine.location && machine.location.latitude && machine.location.longitude) {
+                // Si alcanzamos el límite, detenernos
+                if (markersAdded >= MAX_MARKERS) {
+                    hasLimitedMarkers = true;
+                    break;
+                }
+                
+                addSingleMachineToMap(machine, bounds);
+                validLocations++;
+                markersAdded++;
+            }
+        }
+        
+        // Si tenemos ubicaciones válidas, ajustar el mapa a esos límites
+        if (validLocations > 0) {
+            map.fitBounds(bounds);
+            
+            // Limitar el zoom máximo para no acercarse demasiado si solo hay un marcador
+            if (validLocations === 1) {
+                google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                    if (map.getZoom() > 15) map.setZoom(15);
+                });
+            }
+        }
+        
+        // Si hemos limitado los marcadores, mostrar un mensaje
+        if (hasLimitedMarkers) {
+            // Crear un control de información personalizado
+            const limitInfoDiv = document.createElement('div');
+            limitInfoDiv.className = 'map-info-control';
+            limitInfoDiv.innerHTML = `
+                <div class="alert alert-info p-2 m-0" style="font-size: 0.8rem; opacity: 0.9;">
+                    <i class="fas fa-info-circle"></i> 
+                    Mostrando ${markersAdded} de ${machines.filter(m => m.location && 
+                    m.location.latitude && m.location.longitude).length} ubicaciones.
+                </div>`;
+            
+            // Estilos para el control
+            limitInfoDiv.style.margin = '10px';
+            limitInfoDiv.style.padding = '5px';
+            limitInfoDiv.style.backgroundColor = 'white';
+            limitInfoDiv.style.border = '1px solid #ccc';
+            limitInfoDiv.style.borderRadius = '4px';
+            limitInfoDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            
+            // Añadir el control al mapa
+            map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(limitInfoDiv);
+        }
+        
+        console.log(`Añadidos ${markersAdded} marcadores al mapa`);
+    }
+    
+    /**
+     * Añade una sola máquina al mapa
+     * @param {Object} machine - Objeto con datos de la máquina
+     * @param {Object} bounds - Objeto LatLngBounds para expandir
+     */
+    function addSingleMachineToMap(machine, bounds) {
+        // Crear posición para Google Maps
+        const position = {
+            lat: parseFloat(machine.location.latitude),
+            lng: parseFloat(machine.location.longitude)
+        };
+        
+        // Determinar si esta máquina está seleccionada
+        const isSelected = window.selectedMachineId && machine.id === window.selectedMachineId;
+        
+        // Obtener el color según el tipo de máquina
+        let iconUrl;
+        
+        // Si está seleccionada, usar ícono dorado
+        if (isSelected) {
+            iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+        } 
+        // Si la máquina tiene alertas, seleccionar ícono según la severidad de la alerta
+        else if (window.machineAlerts && machine.id && window.machineAlerts[machine.id] && 
+                 window.machineAlerts[machine.id].length > 0) {
+            
+            // Determinar la alerta con mayor severidad
+            const alerts = window.machineAlerts[machine.id];
+            let highestSeverity = 'info';
+            
+            for (const alert of alerts) {
+                if (alert.severity === 'high') {
+                    highestSeverity = 'high';
+                    break;
+                } else if (alert.severity === 'medium' && highestSeverity !== 'high') {
+                    highestSeverity = 'medium';
+                }
+            }
+            
+            // Seleccionar ícono por severidad
+            switch (highestSeverity) {
+                case 'high':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+                    break;
+                case 'medium':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                    break;
+                case 'low':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/gray-dot.png';
+                    break;
+                case 'info':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+                    break;
+                default:
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+            }
+        } 
+        // Si no hay alertas, usar ícono según el tipo de máquina
+        else {
+            // Obtener categoría
+            const category = machine.category || 'UNKNOWN';
+            
+            // Seleccionar ícono según la categoría
+            switch (category) {
+                case 'Tractor':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+                    break;
+                case 'Harvester':
+                case 'Tracked Harvester':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+                    break;
+                case 'Backhoes':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+                    break;
+                case 'Excavator':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png';
+                    break;
+                case 'Skidder':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png';
+                    break;
+                case 'Truck':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+                    break;
+                case 'Vehicle':
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/lightblue-dot.png';
+                    break;
+                default:
+                    iconUrl = 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+            }
+        }
+        
+        // Crear el marcador con ícono personalizado
+        const marker = new google.maps.Marker({
+            position: position,
+            map: map,
+            title: machine.name || `Máquina ${machine.id}`,
+            icon: {
+                url: iconUrl,
+                scaledSize: new google.maps.Size(isSelected ? 42 : 35, isSelected ? 42 : 35), // Tamaño más grande para seleccionadas
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(isSelected ? 21 : 17.5, isSelected ? 42 : 35)
+            },
+            zIndex: isSelected ? 1000 : 1 // Mayor zIndex para máquinas seleccionadas
+        });
+        
+        // Crear contenido para la ventana de información
+        const popupContent = createMachinePopupContent(machine);
+        
+        // Añadir evento click para mostrar la información y seleccionar la máquina
+        marker.addListener('click', function() {
+            infoWindow.setContent(popupContent);
+            infoWindow.open(map, marker);
+            
+            // Seleccionar esta máquina cuando se hace clic en el marcador
+            if (typeof selectMachine === 'function') {
+                selectMachine(machine.id);
+            }
+        });
+        
+        // Almacenar el marcador con el ID de máquina como clave
+        markers[machine.id] = marker;
+        
+        // Extender los límites para incluir este marcador
+        bounds.extend(position);
+    }
+    
+    /**
+     * Crea el contenido HTML para la ventana de información de una máquina
+     * @param {Object} machine - Objeto con datos de la máquina
+     * @returns {string} HTML formateado para la ventana de información
+     */
+    function createMachinePopupContent(machine) {
+        // Obtener información de ubicación y formatear datos
+        const timestamp = machine.location && machine.location.timestamp ?
+            new Date(machine.location.timestamp).toLocaleString() : 'Desconocido';
+        
+        // Formatear coordenadas con precisión de 6 decimales
+        const latitude = machine.location && machine.location.latitude ? 
+            parseFloat(machine.location.latitude).toFixed(6) : 'No disponible';
+        const longitude = machine.location && machine.location.longitude ? 
+            parseFloat(machine.location.longitude).toFixed(6) : 'No disponible';
+        
+        // Obtener modelo y tipo de máquina
+        let modelText = 'Modelo desconocido';
+        if (machine.model) {
+            if (typeof machine.model === 'object' && machine.model.name) {
+                modelText = machine.model.name;
+            } else if (typeof machine.model === 'string') {
+                modelText = machine.model;
+            }
+        }
+        
+        // Crear HTML para la ventana de información
+        return `
+            <div class="map-info-window">
+                <h5>${machine.name || `Máquina ${machine.id}`}</h5>
+                <p><strong>Modelo:</strong> ${modelText}</p>
+                <p><strong>Categoría:</strong> ${machine.category || 'Sin categoría'}</p>
+                <p><strong>Ubicación:</strong><br>
+                   Lat: ${latitude}, Lng: ${longitude}</p>
+                <p><strong>Última actualización:</strong><br>
+                   ${timestamp}</p>
+                <div class="text-center mt-2">
+                    <button class="btn btn-sm btn-primary" onclick="selectMachine('${machine.id}')">
+                        Ver detalles
+                    </button>
                 </div>
             </div>
         `;
-        mapContainer.style.display = 'block';
+    }
+    
+    /**
+     * Limpia todos los marcadores del mapa
+     */
+    function clearMapMarkers() {
+        console.log("Limpiando todos los marcadores del mapa");
         
-        // Buscamos la máquina en las previamente cargadas
-        const machines = window.lastLoadedMachines || [];
-        let selectedMachine = machines.find(m => m.id === machineId);
+        // Eliminar cada marcador del mapa
+        for (const machineId in markers) {
+            if (markers.hasOwnProperty(machineId)) {
+                markers[machineId].setMap(null);
+            }
+        }
         
-        if (selectedMachine && selectedMachine.location && 
-            selectedMachine.location.latitude && selectedMachine.location.longitude) {
+        // Reiniciar el objeto de marcadores
+        markers = {};
+        
+        // Cerrar la ventana de información si está abierta
+        if (infoWindow) {
+            infoWindow.close();
+        }
+    }
+    
+    /**
+     * Muestra un mensaje de error en el área del mapa
+     * @param {string} message - Mensaje de error a mostrar
+     */
+    function displayMapError(message) {
+        console.error("Error del mapa:", message);
+        
+        // Crear un div para mostrar el error
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'position-absolute top-0 left-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-75';
+        errorDiv.style.zIndex = '1000';
+        errorDiv.innerHTML = `
+            <div class="text-center p-4">
+                <i class="fas fa-exclamation-triangle mb-3 text-warning" style="font-size: 3rem;"></i>
+                <h5 class="text-white">${message}</h5>
+            </div>
+        `;
+        
+        // Agregar al contenedor del mapa
+        const mapContainer = document.getElementById('map').parentNode;
+        mapContainer.appendChild(errorDiv);
+    }
+    
+    /**
+     * Selecciona una máquina específica en el mapa y centra la vista
+     * @param {string} machineId - ID de la máquina a seleccionar
+     */
+    function selectMachineOnMap(machineId) {
+        console.log("Seleccionando máquina en mapa:", machineId);
+        
+        // Ocultar mensaje inicial
+        const initialMessage = document.getElementById('map-initial-message');
+        if (initialMessage) initialMessage.style.display = 'none';
+        
+        // Verificar si el mapa está inicializado
+        if (!map) {
+            console.error("El mapa no está inicializado");
+            return;
+        }
+        
+        // Si ya tenemos el marcador, centramos el mapa en él
+        if (markers[machineId]) {
+            // Centrar en el marcador
+            map.setCenter(markers[machineId].getPosition());
+            map.setZoom(15);
             
-            displayStaticMap(selectedMachine);
+            // Abrir la ventana de información
+            const machine = (window.lastLoadedMachines || []).find(m => m.id === machineId);
+            if (machine) {
+                infoWindow.setContent(createMachinePopupContent(machine));
+                infoWindow.open(map, markers[machineId]);
+            }
             
+            return;
+        }
+        
+        // Si no, buscamos la máquina y creamos un nuevo marcador
+        const machine = (window.lastLoadedMachines || []).find(m => m.id === machineId);
+        if (machine && machine.location && machine.location.latitude && machine.location.longitude) {
+            // Crear límites
+            const bounds = new google.maps.LatLngBounds();
+            
+            // Añadir al mapa
+            addSingleMachineToMap(machine, bounds);
+            
+            // Centrar en la ubicación
+            map.fitBounds(bounds);
+            map.setZoom(15);
+            
+            // Mostrar la ventana de información
+            infoWindow.setContent(createMachinePopupContent(machine));
+            infoWindow.open(map, markers[machineId]);
         } else {
-            // Si no la encontramos entre las cargadas, intentamos cargarla de la API
-            console.log("Máquina no encontrada en cache, cargando de API...");
+            console.error("No se encontró la máquina o no tiene ubicación válida");
             
+            // Intentar cargar la información de la máquina desde la API
             fetch(`/api/machine/${machineId}`, {
                 credentials: 'same-origin',
                 headers: {
@@ -557,167 +1011,37 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Error al cargar detalles de la máquina');
+                    throw new Error('Error al cargar detalles de máquina');
                 }
                 return response.json();
             })
             .then(machine => {
-                console.log("Datos de la máquina recibidos para el mapa:", machine);
-                console.log("Datos completos de la máquina:", JSON.stringify(machine, null, 2));
-displayStaticMap(machine);
+                if (machine && machine.location && 
+                    machine.location.latitude && machine.location.longitude) {
+                    
+                    // Crear límites
+                    const bounds = new google.maps.LatLngBounds();
+                    
+                    // Añadir al mapa
+                    addSingleMachineToMap(machine, bounds);
+                    
+                    // Centrar en la ubicación
+                    map.fitBounds(bounds);
+                    map.setZoom(15);
+                    
+                    // Mostrar la ventana de información
+                    infoWindow.setContent(createMachinePopupContent(machine));
+                    infoWindow.open(map, markers[machineId]);
+                } else {
+                    displayMapError("La máquina no tiene datos de ubicación disponibles");
+                }
             })
             .catch(error => {
-                console.error("Error al cargar datos para el mapa:", error);
-                // Mostrar mensaje de error
-                mapContainer.innerHTML = `
-                    <div class="alert alert-danger m-3">
-                        Error al cargar el mapa: ${error.message}
-                    </div>
-                `;
+                console.error("Error cargando máquina para el mapa:", error);
+                displayMapError("Error al cargar la ubicación: " + error.message);
             });
         }
-        
-        // Función auxiliar para mostrar el mapa con OpenStreetMap
-        function displayStaticMap(machine) {
-            // Verificar si la máquina tiene datos de ubicación
-            if (!machine || !machine.location || 
-                !machine.location.latitude || !machine.location.longitude) {
-                console.log("No hay datos de ubicación disponibles para esta máquina");
-                mapContainer.innerHTML = `
-                    <div class="alert alert-warning m-3">
-                        No hay datos de ubicación disponibles para esta máquina
-                    </div>
-                `;
-                return;
-            }
-            
-            // Extraer coordenadas
-            const lat = machine.location.latitude;
-            const lng = machine.location.longitude;
-            
-            console.log(`Creando mapa OSM para coordenadas: ${lat}, ${lng}`);
-            
-            // Construir OpenStreetMap como iframe
-            const iframeUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.02}%2C${lat-0.02}%2C${lng+0.02}%2C${lat+0.02}&layer=mapnik&marker=${lat}%2C${lng}`;
-            
-            // Crear contenido combinado: iframe para mapa + información de la máquina
-            const mapHtml = `
-                <div class="h-100 d-flex flex-column">
-                    <div class="p-2 bg-dark border-bottom">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 text-white">
-                                <i class="fas fa-map-marker-alt me-2"></i> 
-                                ${machine.name || 'Máquina'} 
-                                <small class="text-muted">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? ' - ' + machine.serialNumber : ''}</small>
-                            </h5>
-                            <div>
-                                <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14" target="_blank" class="btn btn-sm btn-outline-light">
-                                    <i class="fas fa-external-link-alt me-1"></i> Abrir mapa
-                                </a>
-                            </div>
-                        </div>
-                        <small class="text-muted">Ubicación actualizada: ${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</small>
-                    </div>
-                    <div class="position-relative flex-grow-1">
-                        <iframe 
-                            width="100%" 
-                            height="100%" 
-                            frameborder="0" 
-                            scrolling="no" 
-                            marginheight="0" 
-                            marginwidth="0" 
-                            src="${iframeUrl}" 
-                            style="border-radius: 0 0 8px 8px;"
-                            id="osm-map"
-                            loading="lazy"
-                        ></iframe>
-                    </div>
-                </div>
-            `;
-            
-            mapContainer.innerHTML = mapHtml;
-            
-            // Agregar manejador de error para el iframe
-            const iframe = document.getElementById('osm-map');
-            if (iframe) {
-                iframe.onerror = function() {
-                    console.error('Error al cargar el mapa de OpenStreetMap');
-                    showFallbackInfo();
-                };
-            }
-            
-            console.log("Mapa OpenStreetMap creado para máquina:", machine.name || machineId);
-            
-            // Función para mostrar información alternativa si el mapa falla
-            function showFallbackInfo() {
-                const fallbackHtml = `
-                    <div class="h-100 w-100 d-flex flex-column align-items-center justify-content-center p-4">
-                        <div class="card bg-dark mb-4 w-100">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-map-marker-alt me-2"></i> Ubicación de la máquina
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <strong>Latitud:</strong> 
-                                            <span class="badge bg-secondary">${lat}</span>
-                                        </div>
-                                        <div class="mb-3">
-                                            <strong>Longitud:</strong> 
-                                            <span class="badge bg-secondary">${lng}</span>
-                                        </div>
-                                        <div>
-                                            <strong>Actualizado:</strong> 
-                                            <span class="text-muted">${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="alert alert-warning mb-3">
-                                            <small>Error al cargar el mapa. Puedes ver la ubicación a través de los siguientes enlaces:</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="d-flex flex-wrap justify-content-center gap-2">
-                                    <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" class="btn btn-outline-primary">
-                                        <i class="fab fa-google me-2"></i> Ver en Google Maps
-                                    </a>
-                                    <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14" target="_blank" class="btn btn-outline-success">
-                                        <i class="fas fa-map me-2"></i> Ver en OpenStreetMap
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                mapContainer.innerHTML = fallbackHtml;
-            }
-            
-            console.log("Mapa actualizado para máquina:", machine.name || machineId);
-        }
     }
-    
-    /**
-     * Limpia el mapa estático
-     */
-    function clearMapMarkers() {
-        const mapContainer = document.getElementById('simple-map-image');
-        if (mapContainer) {
-            mapContainer.style.display = 'none';
-        }
-        
-        // Mostrar mensaje inicial
-        const initialMessage = document.getElementById('map-initial-message');
-        if (initialMessage) initialMessage.style.display = 'flex';
-    }
-    
-    // Exponer funciones al ámbito global
-    window.addMachinesToMap = addMachinesToMap;
-    window.clearMapMarkers = clearMapMarkers;
     
     // Modificar la función global selectMachine para mostrar el mapa
     window.originalSelectMachine = window.selectMachine;
@@ -733,16 +1057,21 @@ displayStaticMap(machine);
             console.warn("La función originalSelectMachine no está disponible");
         }
         
-        // Luego mostramos el mapa estático
+        // Luego centramos el mapa en esta máquina
         try {
-            showMachineOnMap(machineId);
+            selectMachineOnMap(machineId);
         } catch (error) {
             console.error("Error al mostrar máquina en mapa:", error);
         }
     };
+    
+    // Exponer funciones globalmente para que puedan ser utilizadas desde otros scripts
+    window.addMachinesToMap = addMachinesToMap;
+    window.clearMapMarkers = clearMapMarkers;
+    window.selectMachineOnMap = selectMachineOnMap;
 </script>
 
-<!-- Estilos para el mapa estático -->
+<!-- Estilos para el mapa -->
 <style>
     #simple-map-container {
         position: relative;
@@ -751,10 +1080,22 @@ displayStaticMap(machine);
         border-radius: 8px;
     }
     
-    #simple-map-image {
-        background-position: center;
-        background-size: cover;
-        transition: all 0.3s ease;
+    #map {
+        border-radius: 8px;
+    }
+    
+    .map-info-window {
+        padding: 10px;
+        max-width: 300px;
+    }
+    
+    .gm-style-iw-d {
+        overflow: hidden !important;
+    }
+    
+    .gm-style-iw-c {
+        padding: 12px !important;
+        border-radius: 8px !important;
     }
 </style>
 
