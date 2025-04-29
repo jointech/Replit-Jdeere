@@ -476,16 +476,24 @@ function selectMachine(machineId) {
         selectedMachineId = machineId;
 
         // La función focusMapOnMachine no es necesaria para el mapa estático
-        // La selección de la máquina en el mapa se maneja en la implementación de selectMachineOnMap
-
-        // Si tenemos máquinas cargadas y cambió la selección, actualizar el mapa
-        if (previousSelectedMachineId !== selectedMachineId && window.lastLoadedMachines) {
-            console.log("Actualizando marcadores del mapa con nueva selección");
-            // Recargar los marcadores para reflejar la nueva selección
-            if (window.addMachinesToMap) {
-                window.addMachinesToMap(window.lastLoadedMachines);
-            } else {
-                console.error("Función global addMachinesToMap no disponible en selectMachine");
+        // Llamar a la función específica para resaltar esta máquina en el mapa
+        if (window.selectMachineOnMap && typeof window.selectMachineOnMap === 'function') {
+            try {
+                console.log("Llamando a selectMachineOnMap para centrar el mapa en la máquina:", machineId);
+                window.selectMachineOnMap(machineId);
+            } catch (error) {
+                console.error("Error al seleccionar máquina en el mapa:", error);
+            }
+        } else {
+            // Fallback: Si la función específica no está disponible, 
+            // intentar actualizar todos los marcadores
+            if (previousSelectedMachineId !== selectedMachineId && window.lastLoadedMachines) {
+                console.log("Actualizando marcadores del mapa con nueva selección");
+                if (window.addMachinesToMap) {
+                    window.addMachinesToMap(window.lastLoadedMachines);
+                } else {
+                    console.error("Función global addMachinesToMap no disponible en selectMachine");
+                }
             }
         }
 
