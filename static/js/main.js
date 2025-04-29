@@ -2,6 +2,7 @@
 let selectedOrganizationId = null;
 let selectedMachineId = null;
 let machineMarkers = {};
+let allLocationData = []; // Initialize allLocationData
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -357,10 +358,10 @@ function renderMachineList(machines) {
 
     // Render all machines at once
     renderMachineItems(machines);
-    
+
     // Add all elements to container
     machineListContainer.appendChild(fragment);
-    
+
     // Update search if there's an active term
     const searchInput = document.getElementById('machineSearchInput');
     if (searchInput && searchInput.value.trim()) {
@@ -490,7 +491,7 @@ function loadMachineDetails(machineId) {
     Promise.all([machineDetailsPromise, engineHoursPromise])
         .then(([machine, hoursData]) => {
             console.log("Detalles de máquina recibidos:", machine);
-            
+
             if (hoursData) {
                 console.log("Datos de horómetro recibidos:", hoursData);
                 engineHoursData = hoursData;
@@ -939,7 +940,7 @@ function loadAlertDetails(button, definitionUri) {
 // Render the alert list
 function renderAlertList(alerts) {
     console.log(`Renderizando lista de ${alerts.length} alertas`);
-    
+
     // También actualizar la tabla de alertas
     updateAlertsTable(alerts);
 
@@ -1482,7 +1483,7 @@ function updateAlertsTable(alerts) {
     // Agregar cada alerta a la tabla
     sortedAlerts.forEach(alert => {
         const row = document.createElement('tr');
-        
+
         // Formatear fecha
         const date = new Date(alert.timestamp);
         const formattedDate = date.toLocaleString();
@@ -1517,29 +1518,29 @@ function updateAlertsTable(alerts) {
  */
 function updateHourmeterWidget(engineHoursData) {
     console.log("Datos del horómetro recibidos:", engineHoursData);
-    
+
     const hourmeterWidget = document.getElementById('hourmeterWidget');
     const hourmeterValue = document.getElementById('hourmeterValue');
     const hourmeterLastUpdate = document.getElementById('hourmeterLastUpdate');
-    
+
     if (!hourmeterWidget || !hourmeterValue || !hourmeterLastUpdate) {
         console.warn('No se encontraron elementos del widget de horómetro');
         return;
     }
-    
+
     if (!engineHoursData || typeof engineHoursData !== 'object') {
         hourmeterWidget.classList.add('d-none');
         return;
     }
-    
+
     let latestReading = null;
     let hourValue = null;
-    
+
     // Intentar obtener el valor más reciente según diferentes estructuras de datos posibles
     if (engineHoursData.values && Array.isArray(engineHoursData.values)) {
         latestReading = engineHoursData.values
             .sort((a, b) => new Date(b.timestamp || b.reportTime) - new Date(a.timestamp || a.reportTime))[0];
-            
+
         if (latestReading) {
             if (latestReading.reading && latestReading.reading.valueAsDouble !== undefined) {
                 hourValue = latestReading.reading.valueAsDouble;
@@ -1553,19 +1554,19 @@ function updateHourmeterWidget(engineHoursData) {
         hourValue = engineHoursData.engineHours;
         latestReading = engineHoursData;
     }
-    
+
     if (hourValue === null) {
         hourmeterWidget.classList.add('d-none');
         return;
     }
-    
+
     // Formatear y mostrar el valor del horómetro
     const formattedValue = parseFloat(hourValue).toLocaleString('es-CL', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1
     });
     hourmeterValue.textContent = `${formattedValue} hrs`;
-    
+
     // Mostrar la fecha de última actualización
     const timestamp = latestReading.timestamp || latestReading.reportTime;
     if (timestamp) {
@@ -1574,7 +1575,7 @@ function updateHourmeterWidget(engineHoursData) {
     } else {
         hourmeterLastUpdate.textContent = 'Última actualización: N/A';
     }
-    
+
     // Mostrar el widget y aplicar animación
     hourmeterWidget.classList.remove('d-none');
     hourmeterWidget.style.opacity = '0';
@@ -1591,10 +1592,10 @@ function exportToExcel() {
 
     // Crear una copia de la tabla para manipular
     const tableClone = table.cloneNode(true);
-    
+
     // Obtener todas las filas
     const rows = Array.from(tableClone.querySelectorAll('tr'));
-    
+
     // Convertir a formato CSV
     const csvContent = rows.map(row => {
         return Array.from(row.cells)
@@ -1614,10 +1615,65 @@ function exportToExcel() {
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
     link.setAttribute('download', `alertas_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
+
+function filterLocationsByDate() {
+    if (!selectedOrganizationId) {
+        console.log('No hay organización seleccionada');
+        return;
+    }
+
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    fetch(`/api/location-history/${selectedOrganizationId}?start_date=${startDate}&end_date=${endDate}`, {
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        allLocationData = data;
+        renderLocationData(data);
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Placeholder function - replace with actual map initialization logic
+function initMap() {
+    console.log("Mapa inicializado");
+}
+
+// Placeholder function - replace with actual map marker clearing logic
+function clearMapMarkers() {
+    console.log("Marcadores del mapa borrados");
+}
+
+
+// Placeholder function - replace with actual map focusing logic
+function focusMapOnMachine(machineId) {
+    console.log(`Enfocando mapa en máquina: ${machineId}`);
+}
+
+// Placeholder function - replace with actual location data rendering logic
+function renderLocationData(data) {
+    console.log(`Renderizando datos de ubicación: ${data.length}`);
+}
+
+
+// Placeholder for addMachinesToMap function
+function addMachinesToMap(machines) {
+    console.log(`Añadiendo ${machines.length} máquinas al mapa`);
+}
+
+
+// Placeholder for MAX_RESULTS constant
+const MAX_RESULTS = 100;

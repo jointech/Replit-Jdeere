@@ -296,18 +296,40 @@ def get_location_history(organization_id):
     
     try:
         token = session.get('oauth_token')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
         machines = fetch_machines_by_organization(token, organization_id)
         
         location_history = []
         for machine in machines:
             if machine.get('location'):
-                location_history.append({
+                location_data = {
                     'vin': machine.get('id'),
                     'name': machine.get('name'),
                     'timestamp': machine.get('location', {}).get('timestamp'),
                     'latitude': machine.get('location', {}).get('latitude'),
                     'longitude': machine.get('location', {}).get('longitude')
-                })
+                }
+                
+                # Aplicar filtro de fechas si se especificaron
+                if start_date or end_date:
+                    timestamp = location_data['timestamp']
+                    if timestamp:
+                        location_date = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+                        
+                        if start_date and location_date < datetime.strptime(start_date, '%Y-%m-%d'):
+                            continue
+                            
+                        if end_date:
+                            end = datetime.strptime(end_date, '%Y-%m-%d')
+                            end = end.replace(hour=23, minute=59, second=59)
+                            if location_date > end:
+                                continue
+                                
+                        location_history.append(location_data)
+                else:
+                    location_history.append(location_data)
         
         return jsonify(location_history)
     except Exception as e:
