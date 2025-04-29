@@ -1498,10 +1498,6 @@ function updateAlertsTable(alerts) {
  * Función para actualizar el widget de horómetro
  * @param {Object} engineHoursData - Datos del horómetro de la API
  */
-/**
- * Función para actualizar el widget de horómetro
- * @param {Object} engineHoursData - Datos del horómetro de la API
- */
 function updateHourmeterWidget(engineHoursData) {
     console.log("Datos del horómetro recibidos:", engineHoursData);
 
