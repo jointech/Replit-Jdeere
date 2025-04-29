@@ -29,9 +29,6 @@ function setupOrganizationSelection() {
     // Añadir manejadores a los elementos existentes
     addOrganizationClickHandlers();
 
-    // Configurar buscador de organizaciones
-    setupOrganizationSearch();
-
     // También agregar un controlador de eventos al elemento padre para manejar delegación de eventos
     // Esto ayudará si los elementos se recrean dinámicamente
     document.getElementById('organizationList').addEventListener('click', function(e) {
@@ -115,21 +112,6 @@ function setupOrganizationSearch() {
                 noResultsMessage.classList.toggle('d-none', !(matchCount === 0 && searchTerm.length > 0));
             }
         }, DEBOUNCE_DELAY);
-    });
-
-    // Prevenir que el dropdown se cierre al hacer clic en el campo de búsqueda
-    searchInput.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-
-        // Mostrar mensaje de "sin resultados" si no hay coincidencias
-        if (noResultsMessage) {
-            if (matchCount === 0 && searchTerm.length > 0) {
-                noResultsMessage.classList.remove('d-none');
-            } else {
-                noResultsMessage.classList.add('d-none');
-            }
-        }
     });
 
     // Prevenir que el dropdown se cierre al hacer clic en el campo de búsqueda
