@@ -302,7 +302,7 @@ def get_location_history(organization_id):
         for machine in machines:
             if machine.get('location'):
                 location_history.append({
-                    'vin': machine.get('id'),
+                    'vin': str(machine.get('id')),  # Convertir a string para asegurar el formato completo
                     'name': machine.get('name'),
                     'timestamp': machine.get('location', {}).get('timestamp'),
                     'latitude': machine.get('location', {}).get('latitude'),

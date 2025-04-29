@@ -82,19 +82,32 @@ function setupOrganizationSearch() {
         let matchCount = 0;
 
         // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
-        organizationItems.forEach(item => {
-            const orgName = item.textContent.toLowerCase();
-            const orgId = item.getAttribute('data-org-id');
-            const listItem = item.closest('li');
+        const machineListContainer = document.getElementById('machineListContainer');
+        const allMachines = window.lastLoadedMachines || [];
 
-            // Verificar si el nombre o ID de la organización contiene el término de búsqueda
-            if (orgName.includes(searchTerm) || orgId.includes(searchTerm)) {
-                if (listItem) listItem.style.display = ''; // Mostrar este elemento
-                matchCount++;
-            } else {
-                if (listItem) listItem.style.display = 'none'; // Ocultar este elemento
-            }
+        if (!allMachines.length) {
+            return;
+        }
+
+        const filteredMachines = allMachines.filter(machine => {
+            const searchableText = [
+                machine.name?.toLowerCase() || '',
+                machine.id?.toString().toLowerCase() || '',
+                machine.category?.toLowerCase() || '',
+                machine.model?.toString().toLowerCase() || ''
+            ].join(' ');
+            
+            return searchableText.includes(searchTerm);
         });
+
+        // Renderizar las máquinas filtradas
+        renderMachineList(filteredMachines);
+        
+        // Actualizar mensaje de no resultados
+        const noResultsMessage = document.getElementById('noMachineResultsMessage');
+        if (noResultsMessage) {
+            noResultsMessage.style.display = filteredMachines.length === 0 ? 'block' : 'none';
+        }
 
         // Actualizar mensaje de no resultados
         if (noResultsMessage) {
