@@ -7,34 +7,122 @@ let allLocationData = []; // Initialize allLocationData
 // Definir una versión local de clearMapMarkers en caso de que window.clearMapMarkers no esté disponible
 function clearMapMarkers() {
     console.log("Usando función clearMapMarkers local");
-    if (window && window.clearMapMarkers) {
-        window.clearMapMarkers();
-    } else {
-        console.warn("No se encontró la función clearMapMarkers global");
-        // Limpiar en machineMarkers como alternativa
-        if (machineMarkers) {
-            for (const key in machineMarkers) {
-                if (Object.hasOwnProperty.call(machineMarkers, key)) {
-                    const marker = machineMarkers[key];
-                    if (marker && marker.setMap) {
-                        marker.setMap(null);
-                    }
+    // Evitar llamar a window.clearMapMarkers para prevenir recursión infinita
+    // Solo limpiar machineMarkers directamente
+    if (machineMarkers) {
+        console.log("Limpiando marcadores locales");
+        for (const key in machineMarkers) {
+            if (Object.hasOwnProperty.call(machineMarkers, key)) {
+                const marker = machineMarkers[key];
+                if (marker && marker.setMap) {
+                    marker.setMap(null);
                 }
             }
-            machineMarkers = {};
         }
+        machineMarkers = {};
+    } else {
+        console.warn("No hay arreglo machineMarkers disponible");
     }
 }
 
 // Definir una versión local de addMachinesToMap
 function addMachinesToMap(machines) {
     console.log("Usando función addMachinesToMap local");
-    if (window && window.addMachinesToMap) {
-        window.addMachinesToMap(machines);
-    } else {
-        console.warn("No se encontró la función addMachinesToMap global");
-        // Aquí podríamos implementar una alternativa, pero por ahora solo limpiamos
+    // Evitar llamar a window.addMachinesToMap para prevenir recursión infinita
+    
+    // Implementar una versión simplificada para mostrar las máquinas en el mapa
+    try {
+        console.log(`Intentando mostrar ${machines.length} máquinas en el mapa`);
+        
+        // Primero limpiar el mapa
         clearMapMarkers();
+        
+        // Verificar si el objeto window.google está disponible
+        if (window.google && window.google.maps && window.map) {
+            // Crear un bounds para ajustar el mapa a todos los marcadores
+            const bounds = new google.maps.LatLngBounds();
+            let visibleMachines = 0;
+            
+            // Añadir máquina por máquina
+            machines.forEach(machine => {
+                // Verificar que la máquina tiene ubicación
+                if (machine.location && machine.location.latitude && machine.location.longitude) {
+                    visibleMachines++;
+                    
+                    // Crear posición
+                    const position = new google.maps.LatLng(
+                        machine.location.latitude,
+                        machine.location.longitude
+                    );
+                    
+                    // Agregar al bounds
+                    bounds.extend(position);
+                    
+                    // Determinar color según alertas (simplificado)
+                    let pinColor = '#4CAF50'; // Verde por defecto
+                    
+                    // Si hay alertas para esta máquina, usar el color correspondiente
+                    if (window.machineAlerts && window.machineAlerts[machine.id]) {
+                        const alerts = window.machineAlerts[machine.id];
+                        if (alerts.length > 0) {
+                            // Buscar la alerta de mayor severidad
+                            for (const alert of alerts) {
+                                if (alert.severity === 'HIGH') {
+                                    pinColor = '#F44336'; // Rojo para severidad alta
+                                    break;
+                                } else if (alert.severity === 'MEDIUM') {
+                                    pinColor = '#FF9800'; // Naranja para severidad media
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Determinar si esta máquina está seleccionada
+                    const isSelected = (machine.id === selectedMachineId);
+                    
+                    // Crear marcador
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: window.map,
+                        title: machine.name || 'Máquina',
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            fillColor: pinColor,
+                            fillOpacity: 0.9,
+                            strokeWeight: isSelected ? 3 : 1,
+                            strokeColor: isSelected ? '#000000' : '#FFFFFF',
+                            scale: isSelected ? 10 : 8
+                        },
+                        zIndex: isSelected ? 1000 : 1
+                    });
+                    
+                    // Almacenar referencia al marcador
+                    machineMarkers[machine.id] = marker;
+                    
+                    // Añadir evento de clic
+                    marker.addListener('click', function() {
+                        console.log(`Clic en marcador de máquina: ${machine.id}`);
+                        selectMachine(machine.id);
+                    });
+                }
+            });
+            
+            // Ajustar el mapa si hay marcadores visibles
+            if (visibleMachines > 0) {
+                window.map.fitBounds(bounds);
+                
+                // Si solo hay un marcador, hacer zoom a un nivel razonable
+                if (visibleMachines === 1) {
+                    window.map.setZoom(14);
+                }
+            }
+            
+            console.log(`Se mostraron ${visibleMachines} máquinas en el mapa`);
+        } else {
+            console.error("No se encontró el objeto google.maps o el mapa no está inicializado");
+        }
+    } catch (error) {
+        console.error("Error al mostrar máquinas en el mapa:", error);
     }
 }
 
