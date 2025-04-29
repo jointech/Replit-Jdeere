@@ -489,8 +489,9 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=Function.prototype" async defer></script>
 
-<!-- IMPLEMENTACIÓN SIMPLIFICADA DE MAPA ESTÁTICO -->
+<!-- IMPLEMENTACIÓN DE MAPA USANDO GOOGLE MAPS API -->
 <script>
     /**
      * Muestra un mapa estático para una máquina seleccionada
@@ -576,7 +577,7 @@ displayStaticMap(machine);
             });
         }
         
-        // Función auxiliar para mostrar el mapa estático como una simple tarjeta con enlaces
+        // Función auxiliar para mostrar el mapa con Google Maps JavaScript API
         function displayStaticMap(machine) {
             // Verificar si la máquina tiene datos de ubicación
             if (!machine || !machine.location || 
@@ -594,65 +595,150 @@ displayStaticMap(machine);
             const lat = machine.location.latitude;
             const lng = machine.location.longitude;
             
-            console.log(`Creando mapa estático para coordenadas: ${lat}, ${lng}`);
+            console.log(`Creando mapa Google para coordenadas: ${lat}, ${lng}`);
             
-            // Crear una tarjeta simple con las coordenadas y enlaces a mapas
-            const mapHtml = `
-                <div class="h-100 w-100 d-flex flex-column align-items-center justify-content-center p-4">
-                    <div class="card bg-dark mb-4 w-100">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">
-                                <i class="fas fa-map-marker-alt me-2"></i> Ubicación de la máquina
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <strong>Latitud:</strong> 
-                                        <span class="badge bg-secondary">${lat}</span>
-                                    </div>
-                                    <div class="mb-3">
-                                        <strong>Longitud:</strong> 
-                                        <span class="badge bg-secondary">${lng}</span>
-                                    </div>
-                                    <div>
-                                        <strong>Actualizado:</strong> 
-                                        <span class="text-muted">${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="alert alert-info mb-3">
-                                        <small>Debido a restricciones de la API, se muestra información de coordenadas. Puede ver la ubicación en un mapa externo usando los enlaces siguientes.</small>
-                                    </div>
-                                </div>
+            // Preparar contenedor para el mapa
+            mapContainer.innerHTML = '';
+            
+            // Crear un div para el mapa con altura 100%
+            const mapDiv = document.createElement('div');
+            mapDiv.id = 'google-map';
+            mapDiv.style.height = '100%';
+            mapDiv.style.width = '100%';
+            mapDiv.style.borderRadius = '8px';
+            mapContainer.appendChild(mapDiv);
+            
+            // Crear el mapa en el contenedor
+            try {
+                // Verificar que Google Maps esté cargado
+                if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+                    console.error('La API de Google Maps no está disponible');
+                    showFallbackInfo();
+                    return;
+                }
+                
+                // Crear ubicación con las coordenadas
+                const position = new google.maps.LatLng(lat, lng);
+                
+                // Configuración del mapa
+                const mapOptions = {
+                    center: position,
+                    zoom: 14,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE,
+                    mapTypeControl: true,
+                    fullscreenControl: true,
+                    streetViewControl: false,
+                    styles: [
+                        {
+                            "featureType": "all",
+                            "elementType": "labels.text.fill",
+                            "stylers": [{"color": "#ffffff"}]
+                        },
+                        {
+                            "featureType": "all",
+                            "elementType": "labels.text.stroke",
+                            "stylers": [{"visibility": "on"}, {"color": "#000000"}, {"lightness": 16}]
+                        }
+                    ]
+                };
+                
+                // Crear el mapa
+                const map = new google.maps.Map(mapDiv, mapOptions);
+                
+                // Añadir marcador
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: machine.name || 'Máquina',
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: '#FFD700',
+                        fillOpacity: 1,
+                        strokeColor: '#000000',
+                        strokeWeight: 1
+                    },
+                    animation: google.maps.Animation.DROP
+                });
+                
+                // Info window con datos adicionales
+                const infoContent = `
+                    <div class="p-2">
+                        <h5>${machine.name || 'Máquina'}</h5>
+                        <p class="mb-1">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? ' - ' + machine.serialNumber : ''}</p>
+                        <small class="text-muted">Actualizado: ${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</small>
+                    </div>
+                `;
+                
+                const infoWindow = new google.maps.InfoWindow({
+                    content: infoContent
+                });
+                
+                // Abrir info window al hacer clic en el marcador
+                marker.addListener('click', function() {
+                    infoWindow.open(map, marker);
+                });
+                
+                // Abrir info window por defecto
+                infoWindow.open(map, marker);
+                
+                console.log("Mapa de Google Maps creado exitosamente");
+                
+            } catch (error) {
+                console.error('Error al crear el mapa con Google Maps:', error);
+                showFallbackInfo();
+            }
+            
+            // Función para mostrar información alternativa si el mapa falla
+            function showFallbackInfo() {
+                const fallbackHtml = `
+                    <div class="h-100 w-100 d-flex flex-column align-items-center justify-content-center p-4">
+                        <div class="card bg-dark mb-4 w-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-map-marker-alt me-2"></i> Ubicación de la máquina
+                                </h5>
                             </div>
-                            
-                            <div class="d-flex flex-wrap justify-content-center gap-2">
-                                <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" class="btn btn-outline-primary">
-                                    <i class="fab fa-google me-2"></i> Ver en Google Maps
-                                </a>
-                                <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14" target="_blank" class="btn btn-outline-success">
-                                    <i class="fas fa-map me-2"></i> Ver en OpenStreetMap
-                                </a>
-                                <a href="https://www.bing.com/maps?cp=${lat}~${lng}&lvl=14" target="_blank" class="btn btn-outline-info">
-                                    <i class="fab fa-microsoft me-2"></i> Ver en Bing Maps
-                                </a>
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <strong>Latitud:</strong> 
+                                            <span class="badge bg-secondary">${lat}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <strong>Longitud:</strong> 
+                                            <span class="badge bg-secondary">${lng}</span>
+                                        </div>
+                                        <div>
+                                            <strong>Actualizado:</strong> 
+                                            <span class="text-muted">${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="alert alert-warning mb-3">
+                                            <small>Error al cargar el mapa. Puedes ver la ubicación a través de los siguientes enlaces:</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex flex-wrap justify-content-center gap-2">
+                                    <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" class="btn btn-outline-primary">
+                                        <i class="fab fa-google me-2"></i> Ver en Google Maps
+                                    </a>
+                                    <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14" target="_blank" class="btn btn-outline-success">
+                                        <i class="fas fa-map me-2"></i> Ver en OpenStreetMap
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="text-center mt-4">
-                        <h4 class="text-white">${machine.name}</h4>
-                        <p class="text-muted">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? '- ' + machine.serialNumber : ''}</p>
-                    </div>
-                </div>
-            `;
+                `;
+                
+                mapContainer.innerHTML = fallbackHtml;
+            }
             
-            // Insertar el HTML en el contenedor
-            mapContainer.innerHTML = mapHtml;
-            
-            console.log("Mapa estático actualizado para máquina:", machine.name || machineId);
+            console.log("Mapa actualizado para máquina:", machine.name || machineId);
         }
     }
     
