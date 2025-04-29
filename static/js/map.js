@@ -506,18 +506,33 @@ function focusMapOnMachine(machineId) {
         return;
     }
 
+    // Primero, ocultar todos los marcadores existentes
+    Object.values(markers).forEach(marker => {
+        marker.setVisible(false);
+    });
+
     // Si la máquina ya está en el mapa, usamos esos datos
     if (markers && markers[machineId]) {
         console.log("Usando marcador existente para enfoque:", machineId);
         
         withGoogleMaps(() => {
             const marker = markers[machineId];
+            marker.setVisible(true); // Mostrar solo el marcador seleccionado
             const position = marker.getPosition();
             
             // Centrar el mapa en la ubicación de la máquina
             map.setCenter(position);
             map.setZoom(15); // Establecer un zoom más cercano
             map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Mantener siempre en vista satélite
+            
+            // Abrir la ventana de información para esta máquina
+            if (window.lastLoadedMachines) {
+                const machine = window.lastLoadedMachines.find(m => m.id === machineId);
+                if (machine) {
+                    infoWindow.setContent(createMachinePopupContent(machine));
+                    infoWindow.open(map, marker);
+                }
+            }
         });
         return;
     }
