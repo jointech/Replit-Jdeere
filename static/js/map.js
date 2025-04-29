@@ -217,8 +217,8 @@ window.initMap = function() {
 // Asegurarse de que la inicialización ocurra cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOMContentLoaded en map.js - Intentando inicializar el mapa");
-    // Verificar si el mapa está presente en la página
-    if (document.getElementById('map')) {
+    // Verificar si el mapa está presente en la página (antiguo ID 'map' o nuevo ID 'simple-map-image')
+    if (document.getElementById('map') || document.getElementById('simple-map-image')) {
         console.log("Elemento del mapa encontrado, inicializando...");
         // Intentar inicializar el mapa
         window.initMap();
@@ -232,11 +232,15 @@ function initMapImpl() {
     console.log("Inicializando Google Maps...");
     
     try {
-        // Verificar si el elemento map existe
-        const mapElement = document.getElementById('map');
+        // Verificar si el elemento map existe (con cualquiera de los dos IDs posibles)
+        let mapElement = document.getElementById('map');
         if (!mapElement) {
-            console.error("Error: No se encontró el elemento con ID 'map'");
-            return;
+            // Si no encuentra 'map', intentar con 'simple-map-image'
+            mapElement = document.getElementById('simple-map-image');
+            if (!mapElement) {
+                console.error("Error: No se encontró ningún elemento de mapa válido ('map' o 'simple-map-image')");
+                return;
+            }
         }
         
         console.log("Elemento del mapa encontrado:", mapElement);
