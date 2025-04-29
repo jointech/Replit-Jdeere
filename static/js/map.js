@@ -501,6 +501,30 @@ function clearMapMarkers() {
 function focusMapOnMachine(machineId) {
     console.log(`Enfocando mapa en máquina: ${machineId}`);
     
+    if (!machineId) {
+        console.warn("ID de máquina no proporcionado para enfocar en el mapa");
+        return;
+    }
+
+    // Si la máquina ya está en el mapa, usamos esos datos
+    if (markers && markers[machineId]) {
+        console.log("Usando marcador existente para enfoque:", machineId);
+        
+        withGoogleMaps(() => {
+            const marker = markers[machineId];
+            const position = marker.getPosition();
+            
+            // Centrar el mapa en la ubicación de la máquina
+            map.setCenter(position);
+            map.setZoom(15); // Establecer un zoom más cercano
+            map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Mantener siempre en vista satélite
+        });
+        return;
+    }
+    
+    // Si no encontramos el marcador, intentamos obtener los datos actualizados
+    console.log("Obteniendo datos actualizados para la máquina:", machineId);
+    
     // Primero, intentamos obtener los datos de la máquina más actualizados
     fetch(`/api/machine/${machineId}`, {
         credentials: 'same-origin',
@@ -526,6 +550,8 @@ function focusMapOnMachine(machineId) {
                     lat: parseFloat(machine.location.latitude),
                     lng: parseFloat(machine.location.longitude)
                 };
+                
+                console.log("Centrando mapa en posición:", position);
                 
                 // Centrar el mapa en la ubicación de la máquina
                 map.setCenter(position);

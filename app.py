@@ -325,7 +325,7 @@ def get_location_history(organization_id):
                         
                         if should_include:
                             location_history.append({
-                                'vin': machine.get('id'),
+                                'vin': machine.get('serialNumber') or machine.get('id'),
                                 'name': machine.get('name'),
                                 'timestamp': timestamp,
                                 'latitude': machine.get('location', {}).get('latitude'),
