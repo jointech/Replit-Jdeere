@@ -4,6 +4,61 @@ let selectedMachineId = null;
 let machineMarkers = {};
 let allLocationData = []; // Initialize allLocationData
 
+// Función para inicializar un mapa básico si el mapa principal no se carga
+function initializeBackupMap() {
+    console.log("Intentando inicializar mapa de respaldo");
+    
+    // Verificar primero si ya hay un mapa inicializado
+    if (window.map) {
+        console.log("Ya existe un mapa inicializado, no se necesita respaldo");
+        return;
+    }
+    
+    // Verificar si el elemento del mapa existe
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error("No se encontró el elemento del mapa");
+        return;
+    }
+    
+    // Verificar si la API de Google Maps está disponible
+    if (!window.google || !window.google.maps) {
+        console.error("API de Google Maps no disponible para el mapa de respaldo");
+        return;
+    }
+    
+    try {
+        console.log("Inicializando mapa de respaldo en main.js");
+        
+        // Crear una instancia del mapa
+        window.map = new google.maps.Map(mapElement, {
+            center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile como centro por defecto
+            zoom: 5,
+            mapTypeId: google.maps.MapTypeId.SATELLITE
+        });
+        
+        // Crear info window global
+        window.infoWindow = new google.maps.InfoWindow();
+        
+        console.log("Mapa de respaldo inicializado correctamente");
+    } catch (error) {
+        console.error("Error al inicializar mapa de respaldo:", error);
+    }
+}
+
+// Verificar el estado del mapa después de un tiempo y proporcionar respaldo si es necesario
+document.addEventListener('DOMContentLoaded', function() {
+    // Esperar 3 segundos y verificar si el mapa está inicializado
+    setTimeout(function() {
+        if (!window.map) {
+            console.warn("Mapa no inicializado después de 3 segundos, activando respaldo");
+            initializeBackupMap();
+        } else {
+            console.log("Mapa ya inicializado, no se necesita respaldo");
+        }
+    }, 3000);
+});
+
 // Definir una versión local de clearMapMarkers en caso de que window.clearMapMarkers no esté disponible
 function clearMapMarkers() {
     console.log("Usando función clearMapMarkers local");

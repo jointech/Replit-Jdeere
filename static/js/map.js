@@ -232,11 +232,28 @@ function initMapImpl() {
     console.log("Inicializando Google Maps...");
     
     try {
+        // Verificar si el elemento map existe
+        const mapElement = document.getElementById('map');
+        if (!mapElement) {
+            console.error("Error: No se encontró el elemento con ID 'map'");
+            return;
+        }
+        
+        console.log("Elemento del mapa encontrado:", mapElement);
+        
+        // Asegurarse de que el elemento tenga dimensiones
+        if (mapElement.offsetWidth === 0 || mapElement.offsetHeight === 0) {
+            console.warn("El elemento del mapa tiene dimensiones cero. Estableciendo dimensiones explícitas.");
+            mapElement.style.height = "500px";
+            mapElement.style.width = "100%";
+        }
+        
         // Info window compartida para todos los marcadores
         infoWindow = new google.maps.InfoWindow();
+        window.infoWindow = infoWindow;
         
         // Crear mapa centrado en una ubicación predeterminada (centro de Chile si no hay datos)
-        map = new google.maps.Map(document.getElementById('map'), {
+        map = new google.maps.Map(mapElement, {
             center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
             zoom: 5,
             mapTypeId: google.maps.MapTypeId.SATELLITE, // Usar vista de satélite por defecto
@@ -248,9 +265,18 @@ function initMapImpl() {
             }
         });
         
+        // Actualizar la referencia global al mapa
+        window.map = map;
+        
         console.log("Mapa de Google Maps inicializado correctamente");
+        
+        // Disparar un evento personalizado para notificar que el mapa está listo
+        const mapReadyEvent = new Event('mapReady');
+        document.dispatchEvent(mapReadyEvent);
     } catch (error) {
         console.error("Error al inicializar el mapa:", error);
+        console.error("Detalles del error:", error.message);
+        console.error("Stack trace:", error.stack);
     }
 }
 
