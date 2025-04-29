@@ -522,7 +522,21 @@ window.clearMapMarkers = function() {
 
 // Función local para compatibilidad interna del archivo
 function clearMapMarkers() {
-    window.clearMapMarkers();
+    // Implementar directamente sin llamar a window.clearMapMarkers para evitar recursión
+    if (!window.googleMapsLoaded) {
+        // Si Google Maps no está cargado, simplemente limpiar el objeto markers
+        window.markers = {};
+        markers = window.markers;
+        return;
+    }
+    
+    // Si hay marcadores activos, eliminarlos del mapa
+    Object.values(window.markers).forEach(marker => {
+        marker.setMap(null);
+    });
+    window.markers = {};
+    markers = window.markers;
+    console.log("Marcadores del mapa limpiados localmente");
 }
 
 // Focus map on a specific machine

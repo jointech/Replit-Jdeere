@@ -8,7 +8,14 @@
     <!-- Bootstrap CSS (Replit theme) -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
 
-    <!-- Google Maps API se cargará de forma asíncrona -->
+    <!-- Google Maps API se carga de forma asíncrona -->
+    <script>
+        // Definir un dummy initMap para evitar errores mientras se carga el script real
+        window.initMap = function() { 
+            console.log("initMap dummy llamado, esperando a que map.js se cargue"); 
+        };
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=initMap" async defer></script>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
