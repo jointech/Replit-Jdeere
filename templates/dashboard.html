@@ -489,20 +489,52 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Carga de Google Maps API se hace mediante carga bajo demanda -->
 <script>
-    // Función para cargar Google Maps API
-    function loadGoogleMapsScript() {
+    // Variable global para controlar si la API ya está cargada
+    window.googleMapsLoaded = false;
+    window.googleMapsCallbacks = [];
+    
+    // Callback que se ejecutará cuando la API esté cargada
+    window.initGoogleMaps = function() {
+        window.googleMapsLoaded = true;
+        
+        // Ejecutar todos los callbacks pendientes
+        while (window.googleMapsCallbacks.length > 0) {
+            const callback = window.googleMapsCallbacks.shift();
+            try {
+                callback();
+            } catch (e) {
+                console.error('Error ejecutando callback de Google Maps:', e);
+            }
+        }
+    };
+    
+    // Función para cargar Google Maps API solo una vez cuando se necesite
+    window.loadGoogleMapsAPI = function(callback) {
+        if (window.googleMapsLoaded) {
+            // Si ya está cargada, ejecuta el callback de inmediato
+            callback();
+            return;
+        }
+        
+        // Añadir el callback a la cola
+        if (callback) {
+            window.googleMapsCallbacks.push(callback);
+        }
+        
+        // Si ya se está cargando, no hacemos nada más
+        if (document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')) {
+            return;
+        }
+        
+        // Cargar el script
         const script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=initMap';
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=initGoogleMaps';
         script.async = true;
         script.defer = true;
         document.head.appendChild(script);
-    }
-
-    // Ejecutar cuando el DOM esté listo
-    document.addEventListener('DOMContentLoaded', function() {
-        loadGoogleMapsScript();
-    });
+    };
 </script>
 
 <!-- IMPLEMENTACIÓN DE MAPA USANDO GOOGLE MAPS API -->
@@ -622,86 +654,81 @@ displayStaticMap(machine);
             mapDiv.style.borderRadius = '8px';
             mapContainer.appendChild(mapDiv);
             
-            // Crear el mapa en el contenedor
-            try {
-                // Verificar que Google Maps esté cargado
-                if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
-                    console.error('La API de Google Maps no está disponible');
-                    showFallbackInfo();
-                    return;
-                }
-                
-                // Crear ubicación con las coordenadas
-                const position = new google.maps.LatLng(lat, lng);
-                
-                // Configuración del mapa
-                const mapOptions = {
-                    center: position,
-                    zoom: 14,
-                    mapTypeId: google.maps.MapTypeId.SATELLITE,
-                    mapTypeControl: true,
-                    fullscreenControl: true,
-                    streetViewControl: false,
-                    styles: [
-                        {
-                            "featureType": "all",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{"color": "#ffffff"}]
+            // Cargar API de Google Maps y luego crear el mapa
+            window.loadGoogleMapsAPI(function() {
+                try {
+                    // Crear ubicación con las coordenadas
+                    const position = new google.maps.LatLng(lat, lng);
+                    
+                    // Configuración del mapa
+                    const mapOptions = {
+                        center: position,
+                        zoom: 14,
+                        mapTypeId: google.maps.MapTypeId.SATELLITE,
+                        mapTypeControl: true,
+                        fullscreenControl: true,
+                        streetViewControl: false,
+                        styles: [
+                            {
+                                "featureType": "all",
+                                "elementType": "labels.text.fill",
+                                "stylers": [{"color": "#ffffff"}]
+                            },
+                            {
+                                "featureType": "all",
+                                "elementType": "labels.text.stroke",
+                                "stylers": [{"visibility": "on"}, {"color": "#000000"}, {"lightness": 16}]
+                            }
+                        ]
+                    };
+                    
+                    // Crear el mapa
+                    const map = new google.maps.Map(mapDiv, mapOptions);
+                    
+                    // Añadir marcador
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: machine.name || 'Máquina',
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 10,
+                            fillColor: '#FFD700',
+                            fillOpacity: 1,
+                            strokeColor: '#000000',
+                            strokeWeight: 1
                         },
-                        {
-                            "featureType": "all",
-                            "elementType": "labels.text.stroke",
-                            "stylers": [{"visibility": "on"}, {"color": "#000000"}, {"lightness": 16}]
-                        }
-                    ]
-                };
-                
-                // Crear el mapa
-                const map = new google.maps.Map(mapDiv, mapOptions);
-                
-                // Añadir marcador
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    title: machine.name || 'Máquina',
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 10,
-                        fillColor: '#FFD700',
-                        fillOpacity: 1,
-                        strokeColor: '#000000',
-                        strokeWeight: 1
-                    },
-                    animation: google.maps.Animation.DROP
-                });
-                
-                // Info window con datos adicionales
-                const infoContent = `
-                    <div class="p-2">
-                        <h5>${machine.name || 'Máquina'}</h5>
-                        <p class="mb-1">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? ' - ' + machine.serialNumber : ''}</p>
-                        <small class="text-muted">Actualizado: ${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</small>
-                    </div>
-                `;
-                
-                const infoWindow = new google.maps.InfoWindow({
-                    content: infoContent
-                });
-                
-                // Abrir info window al hacer clic en el marcador
-                marker.addListener('click', function() {
+                        animation: google.maps.Animation.DROP
+                    });
+                    
+                    // Info window con datos adicionales
+                    const infoContent = `
+                        <div class="p-2">
+                            <h5>${machine.name || 'Máquina'}</h5>
+                            <p class="mb-1">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? ' - ' + machine.serialNumber : ''}</p>
+                            <small class="text-muted">Actualizado: ${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</small>
+                        </div>
+                    `;
+                    
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: infoContent
+                    });
+                    
+                    // Abrir info window al hacer clic en el marcador
+                    marker.addListener('click', function() {
+                        infoWindow.open(map, marker);
+                    });
+                    
+                    // Abrir info window por defecto
                     infoWindow.open(map, marker);
-                });
-                
-                // Abrir info window por defecto
-                infoWindow.open(map, marker);
-                
-                console.log("Mapa de Google Maps creado exitosamente");
-                
-            } catch (error) {
-                console.error('Error al crear el mapa con Google Maps:', error);
-                showFallbackInfo();
-            }
+                    
+                    console.log("Mapa de Google Maps creado exitosamente");
+                    
+                } catch (error) {
+                    console.error('Error al crear el mapa con Google Maps:', error);
+                    showFallbackInfo();
+                }
+            });
             
             // Función para mostrar información alternativa si el mapa falla
             function showFallbackInfo() {
