@@ -221,9 +221,17 @@ function initMapImpl() {
     }
 }
 
-// Add machines to the map
+// Add machines to the map - Exposición global para que main.js pueda acceder
+window.addMachinesToMap = function(machines) {
+    console.log(`Añadiendo ${machines.length} máquinas al mapa desde función global`);
+    
+    // Llamamos a la función local que ya tiene toda la implementación
+    addMachinesToMap(machines);
+};
+
+// Función local para compatibilidad interna del archivo
 function addMachinesToMap(machines) {
-    console.log(`Añadiendo ${machines.length} máquinas al mapa`);
+    console.log(`Añadiendo ${machines.length} máquinas al mapa desde función local`);
     
     // Usar el wrapper para asegurarnos de que Google Maps está cargado
     withGoogleMaps(() => {
@@ -494,19 +502,27 @@ function createMachinePopupContent(machine) {
     `;
 }
 
-// Clear all markers from the map
-function clearMapMarkers() {
-    if (!googleMapsLoaded) {
+// Clear all markers from the map - Exposición global para que main.js pueda acceder
+window.clearMapMarkers = function() {
+    if (!window.googleMapsLoaded) {
         // Si Google Maps no está cargado, simplemente limpiar el objeto markers
-        markers = {};
+        window.markers = {};
+        markers = window.markers;
         return;
     }
     
     // Si hay marcadores activos, eliminarlos del mapa
-    Object.values(markers).forEach(marker => {
+    Object.values(window.markers).forEach(marker => {
         marker.setMap(null);
     });
-    markers = {};
+    window.markers = {};
+    markers = window.markers;
+    console.log("Marcadores del mapa limpiados exitosamente");
+}
+
+// Función local para compatibilidad interna del archivo
+function clearMapMarkers() {
+    window.clearMapMarkers();
 }
 
 // Focus map on a specific machine
