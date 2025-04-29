@@ -74,26 +74,52 @@ function setupOrganizationSearch() {
         return;
     }
 
-    // Manejar el evento de entrada para filtrar la lista
+    // Variables para optimización
+    let debounceTimer;
+    const DEBOUNCE_DELAY = 300; // ms
+
+    // Manejar el evento de entrada para filtrar la lista con debounce
     searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        const organizationItems = document.querySelectorAll('.organization-item');
-        const noResultsMessage = document.getElementById('noResultsMessage');
-        let matchCount = 0;
+        // Cancelar el timer anterior
+        clearTimeout(debounceTimer);
 
-        // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
-        organizationItems.forEach(item => {
-            const orgName = item.textContent.toLowerCase();
-            const orgId = item.getAttribute('data-org-id');
+        // Establecer un nuevo timer
+        debounceTimer = setTimeout(() => {
+            const searchTerm = this.value.toLowerCase().trim();
+            const organizationItems = document.querySelectorAll('.organization-item');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            let matchCount = 0;
 
-            // Verificar si el nombre o ID de la organización contiene el término de búsqueda
-            if (orgName.includes(searchTerm) || orgId.includes(searchTerm)) {
-                item.parentElement.style.display = ''; // Mostrar este elemento
-                matchCount++;
-            } else {
-                item.parentElement.style.display = 'none'; // Ocultar este elemento
+            // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
+            organizationItems.forEach(item => {
+                const orgName = item.textContent.toLowerCase();
+                const orgId = item.getAttribute('data-org-id');
+                const listItem = item.closest('li');
+
+                // Verificar si el nombre o ID de la organización contiene el término de búsqueda
+                if (orgName.includes(searchTerm) || (orgId && orgId.includes(searchTerm))) {
+                    if (listItem) {
+                        listItem.style.display = '';
+                        matchCount++;
+                    }
+                } else {
+                    if (listItem) {
+                        listItem.style.display = 'none';
+                    }
+                }
+            });
+
+            // Mostrar/ocultar mensaje de "sin resultados"
+            if (noResultsMessage) {
+                noResultsMessage.classList.toggle('d-none', !(matchCount === 0 && searchTerm.length > 0));
             }
-        });
+        }, DEBOUNCE_DELAY);
+    });
+
+    // Prevenir que el dropdown se cierre al hacer clic en el campo de búsqueda
+    searchInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
 
         // Mostrar mensaje de "sin resultados" si no hay coincidencias
         if (noResultsMessage) {
