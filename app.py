@@ -295,6 +295,7 @@ def get_location_history(organization_id):
         return jsonify({'error': 'Not authenticated'}), 401
     
     try:
+        from datetime import datetime
         token = session.get('oauth_token')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -304,32 +305,34 @@ def get_location_history(organization_id):
         location_history = []
         for machine in machines:
             if machine.get('location'):
-                location_data = {
-                    'vin': machine.get('id'),
-                    'name': machine.get('name'),
-                    'timestamp': machine.get('location', {}).get('timestamp'),
-                    'latitude': machine.get('location', {}).get('latitude'),
-                    'longitude': machine.get('location', {}).get('longitude')
-                }
-                
-                # Aplicar filtro de fechas si se especificaron
-                if start_date or end_date:
-                    timestamp = location_data['timestamp']
-                    if timestamp:
+                timestamp = machine.get('location', {}).get('timestamp')
+                if timestamp:
+                    try:
                         location_date = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
                         
-                        if start_date and location_date < datetime.strptime(start_date, '%Y-%m-%d'):
-                            continue
-                            
-                        if end_date:
+                        # Verificar si la fecha está dentro del rango
+                        should_include = True
+                        if start_date:
+                            start = datetime.strptime(start_date, '%Y-%m-%d')
+                            if location_date.date() < start.date():
+                                should_include = False
+                                
+                        if end_date and should_include:
                             end = datetime.strptime(end_date, '%Y-%m-%d')
                             end = end.replace(hour=23, minute=59, second=59)
                             if location_date > end:
-                                continue
-                                
-                        location_history.append(location_data)
-                else:
-                    location_history.append(location_data)
+                                should_include = False
+                        
+                        if should_include:
+                            location_history.append({
+                                'vin': machine.get('id'),
+                                'name': machine.get('name'),
+                                'timestamp': timestamp,
+                                'latitude': machine.get('location', {}).get('latitude'),
+                                'longitude': machine.get('location', {}).get('longitude')
+                            })
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"Error processing date for machine {machine.get('id')}: {str(e)}")
         
         return jsonify(location_history)
     except Exception as e:
