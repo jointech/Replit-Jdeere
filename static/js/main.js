@@ -603,8 +603,8 @@ function selectMachine(machineId) {
         // Save selected machine
         selectedMachineId = machineId;
 
-        // Focus map on selected machine
-        focusMapOnMachine(machineId);
+        // La función focusMapOnMachine no es necesaria para el mapa estático
+        // La selección de la máquina en el mapa se maneja en la implementación de selectMachineOnMap
 
         // Si tenemos máquinas cargadas y cambió la selección, actualizar el mapa
         if (previousSelectedMachineId !== selectedMachineId && window.lastLoadedMachines) {

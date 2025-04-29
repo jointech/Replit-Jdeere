@@ -294,16 +294,31 @@
                 </h5>
             </div>
             <div class="card-body p-0">
-                <!-- Elemento para el mapa principal -->
-                <div id="map-container" style="position: relative; height: 500px; width: 100%; border-radius: 8px; overflow: hidden;">
-                    <div id="map" style="position: absolute; top: 0; left: 0; height: 100%; width: 100%; z-index: 1; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
-                    <!-- Mensaje de carga del mapa -->
-                    <div id="map-loading" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); color: white; display: flex; align-items: center; justify-content: center; z-index: 2;">
-                        <div class="text-center">
+                <!-- Contenedor para el mapa estático -->
+                <div id="static-map-container" class="position-relative" style="height: 500px; width: 100%; border-radius: 8px; overflow: hidden; background-color: #121212;">
+                    
+                    <!-- Mensaje inicial -->
+                    <div id="map-initial-message" class="position-absolute top-0 left-0 w-100 h-100 d-flex align-items-center justify-content-center text-white">
+                        <div class="text-center p-4">
+                            <i class="fas fa-map-marked-alt mb-3" style="font-size: 3rem;"></i>
+                            <h5>Seleccione una organización y máquina</h5>
+                            <p class="text-muted">Se mostrará la ubicación en el mapa</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Mapa estático (imagen) que se mostrará cuando haya ubicaciones -->
+                    <div id="map-image-container" class="position-absolute top-0 left-0 w-100 h-100" style="display: none; background-position: center; background-size: cover;"></div>
+                    
+                    <!-- Capa de marcadores personalizados -->
+                    <div id="map-markers-container" class="position-absolute top-0 left-0 w-100 h-100" style="pointer-events: none;"></div>
+                    
+                    <!-- Mensaje de carga -->
+                    <div id="map-loading" class="position-absolute top-0 left-0 w-100 h-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center" style="display: none; z-index: 10;">
+                        <div class="text-center text-white">
                             <div class="spinner-border mb-2" role="status">
                                 <span class="visually-hidden">Cargando mapa...</span>
                             </div>
-                            <p class="mb-0">Inicializando mapa...</p>
+                            <p class="mb-0">Cargando ubicaciones...</p>
                         </div>
                     </div>
                 </div>
@@ -488,169 +503,314 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- IMPLEMENTACIÓN DIRECTA DE GOOGLE MAPS -->
+<!-- IMPLEMENTACIÓN DE MAPA ESTÁTICO -->
 <script>
-    // Variables globales
-    let map;
-    let infoWindow;
-    let markers = {};
-    let mapInitialized = false;
+    // Variables globales para mapa estático
+    let staticMapData = {
+        machines: [],
+        selectedMachineId: null,
+        bounds: null,
+        center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile por defecto
+        zoom: 5
+    };
     
-    // Función que inicializa directamente el mapa
-    function initializeMap() {
-        console.log("Inicializando mapa directamente en dashboard.html");
-        
-        // Ocultar el mensaje de carga cuando el mapa esté listo
-        function hideMapLoading() {
-            const mapLoading = document.getElementById('map-loading');
-            if (mapLoading) {
-                mapLoading.style.display = 'none';
-            }
-        }
-        
-        try {
-            // Verificar si el elemento del mapa existe
-            const mapElement = document.getElementById('map');
-            if (!mapElement) {
-                console.error("Elemento del mapa no encontrado");
-                return false;
-            }
-            
-            // Crear nueva instancia del mapa
-            map = new google.maps.Map(mapElement, {
-                center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
-                zoom: 5,
-                mapTypeId: google.maps.MapTypeId.SATELLITE,
-                mapTypeControl: true,
-                fullscreenControl: true,
-                streetViewControl: false
-            });
-            
-            // Crear ventana de información para marcadores
-            infoWindow = new google.maps.InfoWindow();
-            
-            // Exponer objetos al ámbito global para que otras funciones puedan usarlos
-            window.map = map;
-            window.infoWindow = infoWindow;
-            window.markers = markers;
-            
-            // Marcar como inicializado
-            mapInitialized = true;
-            window.mapInitialized = true;
-            
-            // Ocultar mensaje de carga
-            hideMapLoading();
-            
-            console.log("Mapa inicializado correctamente");
-            return true;
-        } catch (error) {
-            console.error("Error inicializando el mapa:", error);
-            return false;
-        }
-    }
-    
-    // Función para añadir marcadores al mapa
+    /**
+     * Actualiza el mapa estático con las máquinas proporcionadas
+     * @param {Array} machines - Lista de máquinas con ubicaciones
+     */
     function addMachinesToMap(machines) {
-        if (!mapInitialized || !map) {
-            console.error("El mapa no está inicializado");
-            return;
-        }
+        console.log("Usando implementación de mapa estático para", machines.length, "máquinas");
+        
+        // Mostrar indicador de carga
+        const loadingElement = document.getElementById('map-loading');
+        if (loadingElement) loadingElement.style.display = 'flex';
+        
+        // Ocultar mensaje inicial
+        const initialMessage = document.getElementById('map-initial-message');
+        if (initialMessage) initialMessage.style.display = 'none';
         
         // Limpiar marcadores existentes
         clearMapMarkers();
         
-        // Crear límites para ajustar la vista del mapa
-        const bounds = new google.maps.LatLngBounds();
-        let visibleMachines = 0;
+        // Filtrar máquinas con ubicación
+        const machinesWithLocation = machines.filter(machine => 
+            machine.location && 
+            machine.location.latitude && 
+            machine.location.longitude);
+        
+        // Guardar referencia a las máquinas
+        staticMapData.machines = machinesWithLocation;
+        
+        if (machinesWithLocation.length === 0) {
+            // Si no hay máquinas con ubicación, mostrar mensaje
+            if (initialMessage) initialMessage.style.display = 'flex';
+            if (loadingElement) loadingElement.style.display = 'none';
+            return;
+        }
+        
+        // Calcular límites para el mapa
+        const bounds = calculateBounds(machinesWithLocation);
+        staticMapData.bounds = bounds;
+        
+        // Determinar centro y zoom apropiados
+        if (machinesWithLocation.length === 1) {
+            // Si solo hay una máquina, centrar en ella
+            staticMapData.center = {
+                lat: parseFloat(machinesWithLocation[0].location.latitude),
+                lng: parseFloat(machinesWithLocation[0].location.longitude)
+            };
+            staticMapData.zoom = 15; // Zoom cercano para una máquina
+        } else {
+            // Calcular centro basado en los límites
+            staticMapData.center = {
+                lat: (bounds.north + bounds.south) / 2,
+                lng: (bounds.east + bounds.west) / 2
+            };
+            
+            // Calcular zoom basado en la distancia
+            const latSpan = bounds.north - bounds.south;
+            const lngSpan = bounds.east - bounds.west;
+            // Factor de ajuste para el zoom
+            const zoomLat = Math.log(360 / latSpan) / Math.log(2);
+            const zoomLng = Math.log(360 / lngSpan) / Math.log(2);
+            staticMapData.zoom = Math.floor(Math.min(zoomLat, zoomLng, 15));
+        }
+        
+        // Generar y mostrar el mapa estático
+        updateStaticMapImage();
+        
+        // Crear marcadores visuales para cada máquina
+        createVisualMarkers(machinesWithLocation);
+        
+        // Ocultar indicador de carga
+        if (loadingElement) loadingElement.style.display = 'none';
+        
+        console.log(`Añadidas ${machinesWithLocation.length} máquinas al mapa estático`);
+    }
+    
+    /**
+     * Calcula los límites geográficos para un conjunto de máquinas
+     */
+    function calculateBounds(machines) {
+        let north = -90, south = 90, east = -180, west = 180;
         
         machines.forEach(machine => {
             if (machine.location && machine.location.latitude && machine.location.longitude) {
-                const position = {
-                    lat: parseFloat(machine.location.latitude),
-                    lng: parseFloat(machine.location.longitude)
-                };
+                const lat = parseFloat(machine.location.latitude);
+                const lng = parseFloat(machine.location.longitude);
+                
+                north = Math.max(north, lat);
+                south = Math.min(south, lat);
+                east = Math.max(east, lng);
+                west = Math.min(west, lng);
+            }
+        });
+        
+        // Añadir algo de margen
+        const latMargin = (north - south) * 0.1;
+        const lngMargin = (east - west) * 0.1;
+        
+        return {
+            north: north + latMargin,
+            south: south - latMargin,
+            east: east + lngMargin,
+            west: west - lngMargin
+        };
+    }
+    
+    /**
+     * Genera la URL para la imagen del mapa estático de Google y la muestra
+     */
+    function updateStaticMapImage() {
+        const mapContainer = document.getElementById('map-image-container');
+        if (!mapContainer) return;
+        
+        // Construir la URL para el mapa estático
+        let mapUrl = 'https://maps.googleapis.com/maps/api/staticmap?';
+        mapUrl += `center=${staticMapData.center.lat},${staticMapData.center.lng}`;
+        mapUrl += `&zoom=${staticMapData.zoom}`;
+        mapUrl += '&size=800x600';
+        mapUrl += '&scale=2'; // Para pantallas de alta resolución
+        mapUrl += '&maptype=satellite';
+        
+        // Añadir la clave API
+        mapUrl += '&key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc';
+        
+        // Mostrar el contenedor de imagen
+        mapContainer.style.display = 'block';
+        mapContainer.style.backgroundImage = `url('${mapUrl}')`;
+        
+        console.log("Mapa estático actualizado");
+    }
+    
+    /**
+     * Crea marcadores visuales personalizados para cada máquina
+     */
+    function createVisualMarkers(machines) {
+        const markersContainer = document.getElementById('map-markers-container');
+        if (!markersContainer) return;
+        
+        // Limpiar marcadores existentes
+        markersContainer.innerHTML = '';
+        
+        // Crear un marcador para cada máquina
+        machines.forEach(machine => {
+            if (machine.location && machine.location.latitude && machine.location.longitude) {
+                // Convertir coordenadas a posición en el mapa
+                const position = latLngToPixel(
+                    parseFloat(machine.location.latitude),
+                    parseFloat(machine.location.longitude)
+                );
                 
                 // Determinar si es la máquina seleccionada
-                const isSelected = machine.id === window.selectedMachineId;
+                const isSelected = machine.id === staticMapData.selectedMachineId;
                 
-                // Crear marcador
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: map,
-                    title: machine.name || 'Máquina',
-                    icon: {
-                        url: isSelected ? 
-                            'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' : 
-                            'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                        scaledSize: new google.maps.Size(isSelected ? 42 : 35, isSelected ? 42 : 35)
-                    }
-                });
+                // Crear elemento para el marcador
+                const marker = document.createElement('div');
+                marker.className = 'map-marker';
+                marker.dataset.machineId = machine.id;
+                marker.style.position = 'absolute';
+                marker.style.left = `${position.x}px`;
+                marker.style.top = `${position.y}px`;
+                marker.style.width = isSelected ? '24px' : '20px';
+                marker.style.height = isSelected ? '24px' : '20px';
+                marker.style.backgroundColor = isSelected ? '#FFD700' : '#00E676';
+                marker.style.borderRadius = '50%';
+                marker.style.border = '2px solid white';
+                marker.style.boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+                marker.style.transform = 'translate(-50%, -50%)';
+                marker.style.zIndex = isSelected ? '2' : '1';
+                marker.style.cursor = 'pointer';
                 
-                // Añadir evento clic
-                marker.addListener('click', function() {
+                // Añadir evento de clic
+                marker.addEventListener('click', function() {
                     if (window.selectMachine) {
                         window.selectMachine(machine.id);
                     }
                 });
                 
-                // Guardar referencia al marcador
-                markers[machine.id] = marker;
+                // Añadir título al marcador (tooltip)
+                marker.title = machine.name || 'Máquina';
                 
-                // Extender límites
-                bounds.extend(position);
-                visibleMachines++;
+                // Añadir el marcador al contenedor
+                markersContainer.appendChild(marker);
             }
         });
-        
-        // Ajustar el mapa si hay máquinas visibles
-        if (visibleMachines > 0) {
-            map.fitBounds(bounds);
-            if (visibleMachines === 1) {
-                google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
-                    if (map.getZoom() > 15) map.setZoom(15);
-                });
-            }
-        }
-        
-        console.log(`Añadidas ${visibleMachines} máquinas al mapa`);
     }
     
-    // Función para limpiar marcadores
-    function clearMapMarkers() {
-        for (const id in markers) {
-            if (markers[id]) {
-                markers[id].setMap(null);
-            }
+    /**
+     * Convierte coordenadas geográficas a posición en píxeles dentro del mapa
+     */
+    function latLngToPixel(lat, lng) {
+        // Esta es una aproximación del algoritmo de proyección Mercator que usa Google Maps
+        if (!staticMapData.bounds) return { x: 0, y: 0 };
+        
+        const mapWidth = document.getElementById('map-markers-container').offsetWidth;
+        const mapHeight = document.getElementById('map-markers-container').offsetHeight;
+        
+        // Calcular posición relativa dentro de los límites
+        const latRatio = (staticMapData.bounds.north - lat) / 
+                         (staticMapData.bounds.north - staticMapData.bounds.south);
+        const lngRatio = (lng - staticMapData.bounds.west) / 
+                         (staticMapData.bounds.east - staticMapData.bounds.west);
+        
+        // Convertir a píxeles
+        return {
+            x: lngRatio * mapWidth,
+            y: latRatio * mapHeight
+        };
+    }
+    
+    /**
+     * Actualiza el mapa para mostrar una máquina seleccionada
+     */
+    function selectMachineOnMap(machineId) {
+        console.log("Seleccionando máquina en mapa estático:", machineId);
+        
+        // Guardar ID de la máquina seleccionada
+        staticMapData.selectedMachineId = machineId;
+        
+        // Recrear marcadores visuales con la máquina seleccionada
+        createVisualMarkers(staticMapData.machines);
+        
+        // Si solo hay una máquina seleccionada, centrar el mapa en ella
+        const selectedMachine = staticMapData.machines.find(m => m.id === machineId);
+        if (selectedMachine && selectedMachine.location) {
+            staticMapData.center = {
+                lat: parseFloat(selectedMachine.location.latitude),
+                lng: parseFloat(selectedMachine.location.longitude)
+            };
+            staticMapData.zoom = 15;
+            
+            // Actualizar imagen del mapa
+            updateStaticMapImage();
         }
-        markers = {};
+    }
+    
+    /**
+     * Limpia los marcadores del mapa
+     */
+    function clearMapMarkers() {
+        const markersContainer = document.getElementById('map-markers-container');
+        if (markersContainer) {
+            markersContainer.innerHTML = '';
+        }
+        
+        // Restablecer datos
+        staticMapData.machines = [];
+        staticMapData.selectedMachineId = null;
     }
     
     // Exponer funciones al ámbito global
     window.addMachinesToMap = addMachinesToMap;
     window.clearMapMarkers = clearMapMarkers;
+    window.selectMachineOnMap = selectMachineOnMap;
     
-    // Inicializar el mapa cuando el API de Google Maps esté cargada
-    function initMapWrapper() {
-        console.log("Google Maps API cargada, inicializando mapa");
-        initializeMap();
-    }
+    // La función global para seleccionar máquina en el mapa
+    window.originalSelectMachine = window.selectMachine;
+    window.selectMachine = function(machineId) {
+        // Llamar a la función original si existe
+        if (window.originalSelectMachine) {
+            try {
+                window.originalSelectMachine(machineId);
+            } catch (error) {
+                console.error("Error al seleccionar máquina con función original:", error);
+            }
+        }
+        
+        // Seleccionar en el mapa estático
+        selectMachineOnMap(machineId);
+    };
     
     // Inicializar cuando el DOM esté listo
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("DOM cargado, verificando Google Maps API");
-        
-        if (window.google && window.google.maps) {
-            initMapWrapper();
-        } else {
-            console.log("Esperando a que Google Maps se cargue...");
-            // La función global callback que Google Maps llamará cuando se cargue
-            window.initMap = initMapWrapper;
-        }
+        console.log("DOM cargado para mapa estático");
     });
 </script>
 
-<!-- Incluir Google Maps con una callback específica -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&libraries=places,geometry&callback=initMap"></script>
+<!-- Añadir estilos para el mapa estático -->
+<style>
+    #static-map-container {
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    #map-image-container {
+        background-position: center;
+        background-size: cover;
+        transition: all 0.3s ease;
+    }
+    
+    .map-marker {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .map-marker:hover {
+        transform: translate(-50%, -50%) scale(1.2);
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    }
+</style>
 
 <!-- Incluir el resto de los scripts de la aplicación -->
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
