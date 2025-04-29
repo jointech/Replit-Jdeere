@@ -1,0 +1,126 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-5">Historial de Ubicaciones</h1>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="organizationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-building me-2"></i> Seleccionar Organización
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="organizationDropdown" style="width: 300px;">
+                    <div class="mb-2">
+                        <input type="text" class="form-control form-control-sm" id="orgSearchInput" placeholder="Buscar organización..." autocomplete="off">
+                    </div>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <ul class="list-unstyled mb-0" id="organizationList">
+                            {% for org in organizations %}
+                            <li><a class="dropdown-item organization-item" href="#" data-org-id="{{ org.id }}">{{ org.name }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i> Últimas Ubicaciones Reportadas
+                </h5>
+                <button class="btn btn-sm btn-outline-success" onclick="exportLocationHistory()">
+                    <i class="fas fa-file-excel me-1"></i> Exportar a Excel
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="locationHistoryTable" class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>VIN</th>
+                                <th>Nombre</th>
+                                <th>Última Transmisión</th>
+                                <th>Latitud</th>
+                                <th>Longitud</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locationHistoryTableBody">
+                            <!-- Datos serán cargados dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar selección de organización
+    document.querySelectorAll('.organization-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const orgId = this.getAttribute('data-org-id');
+            loadLocationHistory(orgId);
+        });
+    });
+});
+
+function loadLocationHistory(organizationId) {
+    fetch(`/api/location-history/${organizationId}`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('locationHistoryTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(location => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${location.vin}</td>
+                    <td>${location.name}</td>
+                    <td>${new Date(location.timestamp).toLocaleString()}</td>
+                    <td>${location.latitude}</td>
+                    <td>${location.longitude}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function exportLocationHistory() {
+    const table = document.getElementById('locationHistoryTable');
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Agregar encabezados
+    const headers = Array.from(table.querySelectorAll('thead th'))
+        .map(header => header.textContent);
+    csvContent += headers.join(',') + "\n";
+    
+    // Agregar datos
+    const data = Array.from(table.querySelectorAll('tbody tr'))
+        .map(row => Array.from(row.querySelectorAll('td'))
+            .map(cell => `"${cell.textContent}"`)
+            .join(','));
+    csvContent += data.join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'location_history.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

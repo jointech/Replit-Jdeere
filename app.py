@@ -268,6 +268,51 @@ def auth_complete():
             flash(error_msg, "danger")
             return redirect(url_for('auth_setup'))
 
+@app.route('/location-history')
+def location_history():
+    """View for machine location history grouped by organization."""
+    if 'oauth_token' not in session:
+        flash("Debe iniciar sesión para acceder al historial de ubicaciones.", "warning")
+        return redirect(url_for('index'))
+    
+    try:
+        token = session.get('oauth_token')
+        organizations = fetch_organizations(token)
+        
+        return render_template(
+            'location_history.html',
+            organizations=organizations
+        )
+    except Exception as e:
+        logger.error(f"Error loading location history: {str(e)}")
+        flash(f"Error al cargar el historial de ubicaciones: {str(e)}", "danger")
+        return render_template('error.html', error=str(e))
+
+@app.route('/api/location-history/<organization_id>')
+def get_location_history(organization_id):
+    """API endpoint to get location history for all machines in an organization."""
+    if 'oauth_token' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        token = session.get('oauth_token')
+        machines = fetch_machines_by_organization(token, organization_id)
+        
+        location_history = []
+        for machine in machines:
+            if machine.get('location'):
+                location_history.append({
+                    'vin': machine.get('id'),
+                    'name': machine.get('name'),
+                    'timestamp': machine.get('location', {}).get('timestamp'),
+                    'latitude': machine.get('location', {}).get('latitude'),
+                    'longitude': machine.get('location', {}).get('longitude')
+                })
+        
+        return jsonify(location_history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/dashboard')
 def dashboard():
     """Main dashboard view for authenticated users."""
