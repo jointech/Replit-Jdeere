@@ -7,6 +7,16 @@ let allLocationData = []; // Initialize allLocationData
 // AVISO: Se ha cambiado a un mapa estático, estas funciones son compatibles
 // con la nueva implementación en dashboard.html
 
+// Función de inicialización de Google Maps para compatibilidad con el código existente
+window.initializeGoogleMap = function(elementId) {
+    console.log("Inicializando mapa en elemento:", elementId);
+    // En lugar de inicializar Google Maps, simplemente registramos el ID de elemento
+    // para que no genere más errores
+    if (!document.getElementById(elementId)) {
+        console.error("No se encontró el elemento del mapa:", elementId);
+    }
+}
+
 // Función para inicializar un mapa básico - ahora es vacía ya que usamos una versión estática
 function initializeBackupMap() {
     console.log("La función de mapa de respaldo está desactivada, usando mapa estático");
@@ -300,7 +310,7 @@ function loadMachines(organizationId) {
             // Verificar si es necesario inicializar el mapa antes de continuar
             if ((!window.map || typeof window.map.getCenter !== 'function') && window.initializeGoogleMap) {
                 console.log("El mapa no está inicializado, intentando inicializar desde loadMachines");
-                window.initializeGoogleMap('map');
+                window.initializeGoogleMap('simple-map-image');
             }
 
             // Mostrar campo de búsqueda si hay máquinas
