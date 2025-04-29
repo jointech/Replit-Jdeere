@@ -85,13 +85,21 @@ function setupOrganizationSearch() {
         organizationItems.forEach(item => {
             const orgName = item.textContent.toLowerCase();
             const orgId = item.getAttribute('data-org-id');
+            const listItem = item.closest('li');
 
             // Verificar si el nombre o ID de la organización contiene el término de búsqueda
             if (orgName.includes(searchTerm) || orgId.includes(searchTerm)) {
-                item.parentElement.style.display = ''; // Mostrar este elemento
+                if (listItem) listItem.style.display = ''; // Mostrar este elemento
                 matchCount++;
             } else {
-                item.parentElement.style.display = 'none'; // Ocultar este elemento
+                if (listItem) listItem.style.display = 'none'; // Ocultar este elemento
+            }
+        });
+
+        // Actualizar mensaje de no resultados
+        if (noResultsMessage) {
+            noResultsMessage.style.display = (matchCount === 0 && searchTerm.length > 0) ? 'block' : 'none';
+        }
             }
         });
 
