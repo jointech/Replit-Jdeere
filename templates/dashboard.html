@@ -475,10 +475,35 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Usar la función centralizada definida en base.html
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Dashboard: DOM cargado, inicializando mapa");
+        
+        // Inicializar el mapa usando la función global de base.html
+        if (window.initializeGoogleMap) {
+            const initialized = window.initializeGoogleMap('map');
+            console.log("Resultado de inicialización del mapa:", initialized ? "ÉXITO" : "FALLIDO");
+        } else {
+            console.error("La función initializeGoogleMap no está disponible");
+        }
+        
+        // Añadir un respaldo por si acaso
+        window.setTimeout(function() {
+            if (!window.isMapReady || !window.isMapReady()) {
+                console.warn("El mapa no se ha inicializado correctamente después de 2 segundos, intentando de nuevo");
+                if (window.initializeGoogleMap) {
+                    window.initializeGoogleMap('map');
+                }
+            }
+        }, 2000);
+    });
+</script>
+
 <!-- Aseguramos que map.js se carga primero y completamente -->
-<script src="{{ url_for('static', filename='js/map.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
 <!-- main.js se cargará después de map.js -->
-<script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <script>
 // Script para compatibilidad de IDs entre CSS y JavaScript
 document.addEventListener('DOMContentLoaded', function() {

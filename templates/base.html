@@ -8,29 +8,63 @@
     <!-- Bootstrap CSS (Replit theme) -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
 
-    <!-- Google Maps API se carga de forma asíncrona, sin callback para evitar problemas -->
+    <!-- Google Maps API se carga de forma síncrona para evitar problemas de inicialización -->
     <script>
         // Definir variables globales para Google Maps
+        window.map = null;
+        window.markers = {};
+        window.infoWindow = null;
         window.googleMapsLoaded = false;
+        window.selectedMachineId = null;
         
-        // Definir un dummy initMap para evitar errores mientras se carga el script real
-        window.initMap = function() { 
-            console.log("initMap dummy llamado, esperando a que map.js se cargue"); 
-            window.googleMapsLoaded = true;
+        // Función para verificar si el mapa está disponible
+        window.isMapReady = function() {
+            return window.map !== null && typeof window.map.getCenter === 'function';
         };
         
-        // Función para verificar si el mapa está disponible y llamar a una función
-        window.whenMapIsReady = function(callback) {
-            if (window.google && window.google.maps) {
-                callback();
-            } else {
-                setTimeout(function() {
-                    window.whenMapIsReady(callback);
-                }, 100);
+        // Función centralizada para inicializar el mapa
+        window.initializeGoogleMap = function(elementId) {
+            console.log("Inicializando mapa en elemento:", elementId);
+            const mapElement = document.getElementById(elementId);
+            
+            if (!mapElement) {
+                console.error("No se encontró el elemento del mapa:", elementId);
+                return false;
+            }
+            
+            if (!window.google || !window.google.maps) {
+                console.error("La API de Google Maps no está disponible");
+                return false;
+            }
+            
+            try {
+                console.log("Creando instancia de mapa en elemento:", elementId);
+                
+                // Crear el mapa
+                window.map = new google.maps.Map(mapElement, {
+                    center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile
+                    zoom: 5,
+                    mapTypeId: google.maps.MapTypeId.SATELLITE,
+                    mapTypeControl: true,
+                    fullscreenControl: true,
+                    streetViewControl: false
+                });
+                
+                // Crear infoWindow
+                window.infoWindow = new google.maps.InfoWindow();
+                
+                // Marcar como inicializado
+                window.googleMapsLoaded = true;
+                
+                console.log("Mapa inicializado correctamente");
+                return true;
+            } catch (error) {
+                console.error("Error al inicializar el mapa:", error);
+                return false;
             }
         };
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&libraries=places,geometry" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&libraries=places,geometry"></script>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">

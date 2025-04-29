@@ -135,21 +135,29 @@ function addMachinesToMap(machines) {
                     // Determinar si esta máquina está seleccionada
                     const isSelected = (machine.id === selectedMachineId);
                     
-                    // Crear marcador
-                    const marker = new google.maps.Marker({
-                        position: position,
-                        map: window.map,
-                        title: machine.name || 'Máquina',
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            fillColor: pinColor,
-                            fillOpacity: 0.9,
-                            strokeWeight: isSelected ? 3 : 1,
-                            strokeColor: isSelected ? '#000000' : '#FFFFFF',
-                            scale: isSelected ? 10 : 8
-                        },
-                        zIndex: isSelected ? 1000 : 1
-                    });
+                    // Verificar explícitamente que el mapa existe y es una instancia válida
+                    if (!window.map || typeof window.map.getCenter !== 'function') {
+                        console.error("El objeto mapa no es válido o no ha sido inicializado correctamente");
+                        return;
+                    }
+                    
+                    try {
+                        // Crear marcador usando URL en lugar de path para evitar errores
+                        const marker = new google.maps.Marker({
+                            position: position,
+                            map: window.map,
+                            title: machine.name || 'Máquina',
+                            icon: {
+                                url: isSelected ? 
+                                    'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' : 
+                                    'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                                scaledSize: new google.maps.Size(isSelected ? 42 : 35, isSelected ? 42 : 35)
+                            },
+                            zIndex: isSelected ? 1000 : 1
+                        });
+                    } catch (err) {
+                        console.error("Error al crear marcador:", err);
+                    }
                     
                     // Almacenar referencia al marcador
                     machineMarkers[machine.id] = marker;
@@ -425,6 +433,12 @@ function loadMachines(organizationId) {
             // Update machine count
             if (machineCountElement) {
                 machineCountElement.textContent = machines.length;
+            }
+            
+            // Verificar si es necesario inicializar el mapa antes de continuar
+            if ((!window.map || typeof window.map.getCenter !== 'function') && window.initializeGoogleMap) {
+                console.log("El mapa no está inicializado, intentando inicializar desde loadMachines");
+                window.initializeGoogleMap('map');
             }
 
             // Mostrar campo de búsqueda si hay máquinas
