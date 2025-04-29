@@ -4,188 +4,50 @@ let selectedMachineId = null;
 let machineMarkers = {};
 let allLocationData = []; // Initialize allLocationData
 
-// Función para inicializar un mapa básico si el mapa principal no se carga
+// AVISO: Se ha cambiado a un mapa estático, estas funciones son compatibles
+// con la nueva implementación en dashboard.html
+
+// Función para inicializar un mapa básico - ahora es vacía ya que usamos una versión estática
 function initializeBackupMap() {
-    console.log("Intentando inicializar mapa de respaldo");
-    
-    // Verificar primero si ya hay un mapa inicializado
-    if (window.map) {
-        console.log("Ya existe un mapa inicializado, no se necesita respaldo");
-        return;
-    }
-    
-    // Verificar si el elemento del mapa existe
-    const mapElement = document.getElementById('map');
-    if (!mapElement) {
-        console.error("No se encontró el elemento del mapa");
-        return;
-    }
-    
-    // Verificar si la API de Google Maps está disponible
-    if (!window.google || !window.google.maps) {
-        console.error("API de Google Maps no disponible para el mapa de respaldo");
-        return;
-    }
-    
-    try {
-        console.log("Inicializando mapa de respaldo en main.js");
-        
-        // Crear una instancia del mapa
-        window.map = new google.maps.Map(mapElement, {
-            center: { lat: -33.4489, lng: -70.6693 }, // Santiago, Chile como centro por defecto
-            zoom: 5,
-            mapTypeId: google.maps.MapTypeId.SATELLITE
-        });
-        
-        // Crear info window global
-        window.infoWindow = new google.maps.InfoWindow();
-        
-        console.log("Mapa de respaldo inicializado correctamente");
-    } catch (error) {
-        console.error("Error al inicializar mapa de respaldo:", error);
-    }
+    console.log("La función de mapa de respaldo está desactivada, usando mapa estático");
+    // No hacer nada ya que ahora usamos un mapa estático
 }
 
-// Verificar el estado del mapa después de un tiempo y proporcionar respaldo si es necesario
+// No necesitamos verificar el estado del mapa
 document.addEventListener('DOMContentLoaded', function() {
-    // Esperar 3 segundos y verificar si el mapa está inicializado
-    setTimeout(function() {
-        if (!window.map) {
-            console.warn("Mapa no inicializado después de 3 segundos, activando respaldo");
-            initializeBackupMap();
-        } else {
-            console.log("Mapa ya inicializado, no se necesita respaldo");
-        }
-    }, 3000);
+    console.log("DOM cargado, usando implementación de mapa estático");
 });
 
-// Definir una versión local de clearMapMarkers en caso de que window.clearMapMarkers no esté disponible
+// Versión simplificada de clearMapMarkers
 function clearMapMarkers() {
-    console.log("Usando función clearMapMarkers local");
-    // Evitar llamar a window.clearMapMarkers para prevenir recursión infinita
-    // Solo limpiar machineMarkers directamente
-    if (machineMarkers) {
-        console.log("Limpiando marcadores locales");
-        for (const key in machineMarkers) {
-            if (Object.hasOwnProperty.call(machineMarkers, key)) {
-                const marker = machineMarkers[key];
-                if (marker && marker.setMap) {
-                    marker.setMap(null);
-                }
-            }
+    console.log("Limpiando marcadores en versión compatible con mapa estático");
+    // Limpiar referencias locales
+    machineMarkers = {};
+    
+    // Llamar a la implementación global si existe
+    if (window.clearMapMarkers && window.clearMapMarkers !== clearMapMarkers) {
+        try {
+            window.clearMapMarkers();
+        } catch (error) {
+            console.error("Error al llamar a clearMapMarkers global:", error);
         }
-        machineMarkers = {};
-    } else {
-        console.warn("No hay arreglo machineMarkers disponible");
     }
 }
 
-// Definir una versión local de addMachinesToMap
+// Versión simplificada de addMachinesToMap
 function addMachinesToMap(machines) {
-    console.log("Usando función addMachinesToMap local");
-    // Evitar llamar a window.addMachinesToMap para prevenir recursión infinita
+    console.log("Añadiendo máquinas en versión compatible con mapa estático:", machines.length);
     
-    // Implementar una versión simplificada para mostrar las máquinas en el mapa
-    try {
-        console.log(`Intentando mostrar ${machines.length} máquinas en el mapa`);
-        
-        // Primero limpiar el mapa
-        clearMapMarkers();
-        
-        // Verificar si el objeto window.google está disponible
-        if (window.google && window.google.maps && window.map) {
-            // Crear un bounds para ajustar el mapa a todos los marcadores
-            const bounds = new google.maps.LatLngBounds();
-            let visibleMachines = 0;
-            
-            // Añadir máquina por máquina
-            machines.forEach(machine => {
-                // Verificar que la máquina tiene ubicación
-                if (machine.location && machine.location.latitude && machine.location.longitude) {
-                    visibleMachines++;
-                    
-                    // Crear posición
-                    const position = new google.maps.LatLng(
-                        machine.location.latitude,
-                        machine.location.longitude
-                    );
-                    
-                    // Agregar al bounds
-                    bounds.extend(position);
-                    
-                    // Determinar color según alertas (simplificado)
-                    let pinColor = '#4CAF50'; // Verde por defecto
-                    
-                    // Si hay alertas para esta máquina, usar el color correspondiente
-                    if (window.machineAlerts && window.machineAlerts[machine.id]) {
-                        const alerts = window.machineAlerts[machine.id];
-                        if (alerts.length > 0) {
-                            // Buscar la alerta de mayor severidad
-                            for (const alert of alerts) {
-                                if (alert.severity === 'HIGH') {
-                                    pinColor = '#F44336'; // Rojo para severidad alta
-                                    break;
-                                } else if (alert.severity === 'MEDIUM') {
-                                    pinColor = '#FF9800'; // Naranja para severidad media
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Determinar si esta máquina está seleccionada
-                    const isSelected = (machine.id === selectedMachineId);
-                    
-                    // Verificar explícitamente que el mapa existe y es una instancia válida
-                    if (!window.map || typeof window.map.getCenter !== 'function') {
-                        console.error("El objeto mapa no es válido o no ha sido inicializado correctamente");
-                        return;
-                    }
-                    
-                    try {
-                        // Crear marcador usando URL en lugar de path para evitar errores
-                        const marker = new google.maps.Marker({
-                            position: position,
-                            map: window.map,
-                            title: machine.name || 'Máquina',
-                            icon: {
-                                url: isSelected ? 
-                                    'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' : 
-                                    'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                                scaledSize: new google.maps.Size(isSelected ? 42 : 35, isSelected ? 42 : 35)
-                            },
-                            zIndex: isSelected ? 1000 : 1
-                        });
-                    } catch (err) {
-                        console.error("Error al crear marcador:", err);
-                    }
-                    
-                    // Almacenar referencia al marcador
-                    machineMarkers[machine.id] = marker;
-                    
-                    // Añadir evento de clic
-                    marker.addListener('click', function() {
-                        console.log(`Clic en marcador de máquina: ${machine.id}`);
-                        selectMachine(machine.id);
-                    });
-                }
-            });
-            
-            // Ajustar el mapa si hay marcadores visibles
-            if (visibleMachines > 0) {
-                window.map.fitBounds(bounds);
-                
-                // Si solo hay un marcador, hacer zoom a un nivel razonable
-                if (visibleMachines === 1) {
-                    window.map.setZoom(14);
-                }
-            }
-            
-            console.log(`Se mostraron ${visibleMachines} máquinas en el mapa`);
-        } else {
-            console.error("No se encontró el objeto google.maps o el mapa no está inicializado");
+    // Guardar las máquinas para uso posterior
+    window.lastLoadedMachines = machines;
+    
+    // Llamar a la implementación global si existe
+    if (window.addMachinesToMap && window.addMachinesToMap !== addMachinesToMap) {
+        try {
+            window.addMachinesToMap(machines);
+        } catch (error) {
+            console.error("Error al llamar a addMachinesToMap global:", error);
         }
-    } catch (error) {
-        console.error("Error al mostrar máquinas en el mapa:", error);
     }
 }
 

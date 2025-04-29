@@ -519,41 +519,71 @@
         if (initialMessage) initialMessage.style.display = 'none';
         
         const mapContainer = document.getElementById('simple-map-image');
-        if (!mapContainer) return;
-        
-        // Buscar la máquina seleccionada
-        const machines = window.allLoadedMachines || [];
-        const selectedMachine = machines.find(m => m.id === machineId);
-        
-        if (!selectedMachine || !selectedMachine.location || 
-            !selectedMachine.location.latitude || !selectedMachine.location.longitude) {
-            console.log("No hay datos de ubicación para esta máquina");
-            mapContainer.style.display = 'none';
-            if (initialMessage) initialMessage.style.display = 'flex';
+        if (!mapContainer) {
+            console.error("No se encontró el contenedor del mapa 'simple-map-image'");
             return;
         }
         
-        // Extraer coordenadas
-        const lat = selectedMachine.location.latitude;
-        const lng = selectedMachine.location.longitude;
-        
-        // Crear URL para el mapa estático con un solo marcador
-        let mapUrl = 'https://maps.googleapis.com/maps/api/staticmap?';
-        mapUrl += `center=${lat},${lng}`;
-        mapUrl += '&zoom=14'; // Zoom fijo para ver bien la ubicación
-        mapUrl += '&size=800x600';
-        mapUrl += '&scale=2'; // Para pantallas de alta resolución
-        mapUrl += '&maptype=satellite';
-        mapUrl += `&markers=color:yellow|size:mid|${lat},${lng}`; // Añadir marcador amarillo
-        
-        // Añadir la clave API
-        mapUrl += '&key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc';
-        
-        // Mostrar el mapa
-        mapContainer.style.display = 'block';
-        mapContainer.style.backgroundImage = `url('${mapUrl}')`;
-        
-        console.log("Mapa estático actualizado para máquina:", selectedMachine.name || machineId);
+        // Cargar detalles de la máquina para obtener la ubicación
+        fetch(`/api/machine/${machineId}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Error al cargar detalles de la máquina');
+            }
+            return response.json();
+        })
+        .then(machine => {
+            console.log("Datos de la máquina recibidos para el mapa:", machine);
+            
+            // Verificar si la máquina tiene datos de ubicación
+            if (!machine || !machine.location || 
+                !machine.location.latitude || !machine.location.longitude) {
+                console.log("No hay datos de ubicación disponibles para esta máquina");
+                mapContainer.style.display = 'none';
+                if (initialMessage) initialMessage.style.display = 'flex';
+                return;
+            }
+            
+            // Extraer coordenadas
+            const lat = machine.location.latitude;
+            const lng = machine.location.longitude;
+            
+            console.log(`Creando mapa estático para coordenadas: ${lat}, ${lng}`);
+            
+            // Crear URL para el mapa estático con un solo marcador
+            let mapUrl = 'https://maps.googleapis.com/maps/api/staticmap?';
+            mapUrl += `center=${lat},${lng}`;
+            mapUrl += '&zoom=14'; // Zoom fijo para ver bien la ubicación
+            mapUrl += '&size=800x600';
+            mapUrl += '&scale=2'; // Para pantallas de alta resolución
+            mapUrl += '&maptype=satellite';
+            mapUrl += `&markers=color:yellow|size:mid|${lat},${lng}`; // Añadir marcador amarillo
+            
+            // Añadir la clave API
+            mapUrl += '&key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc';
+            
+            // Mostrar el mapa
+            mapContainer.style.display = 'block';
+            mapContainer.style.backgroundImage = `url('${mapUrl}')`;
+            
+            console.log("Mapa estático actualizado para máquina:", machine.name || machineId);
+        })
+        .catch(error => {
+            console.error("Error al cargar datos para el mapa:", error);
+            // Mostrar mensaje de error en el contenedor del mapa
+            mapContainer.innerHTML = `
+                <div class="alert alert-danger m-3">
+                    Error al cargar el mapa: ${error.message}
+                </div>
+            `;
+            mapContainer.style.display = 'block';
+        });
     }
     
     /**
