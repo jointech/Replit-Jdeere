@@ -489,53 +489,7 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- Carga de Google Maps API se hace mediante carga bajo demanda -->
-<script>
-    // Variable global para controlar si la API ya está cargada
-    window.googleMapsLoaded = false;
-    window.googleMapsCallbacks = [];
-    
-    // Callback que se ejecutará cuando la API esté cargada
-    window.initGoogleMaps = function() {
-        window.googleMapsLoaded = true;
-        
-        // Ejecutar todos los callbacks pendientes
-        while (window.googleMapsCallbacks.length > 0) {
-            const callback = window.googleMapsCallbacks.shift();
-            try {
-                callback();
-            } catch (e) {
-                console.error('Error ejecutando callback de Google Maps:', e);
-            }
-        }
-    };
-    
-    // Función para cargar Google Maps API solo una vez cuando se necesite
-    window.loadGoogleMapsAPI = function(callback) {
-        if (window.googleMapsLoaded) {
-            // Si ya está cargada, ejecuta el callback de inmediato
-            callback();
-            return;
-        }
-        
-        // Añadir el callback a la cola
-        if (callback) {
-            window.googleMapsCallbacks.push(callback);
-        }
-        
-        // Si ya se está cargando, no hacemos nada más
-        if (document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')) {
-            return;
-        }
-        
-        // Cargar el script
-        const script = document.createElement('script');
-        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&callback=initGoogleMaps';
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-    };
-</script>
+<!-- No se carga Google Maps, usamos OpenStreetMap que no requiere API key -->
 
 <!-- IMPLEMENTACIÓN DE MAPA USANDO GOOGLE MAPS API -->
 <script>
@@ -623,7 +577,7 @@ displayStaticMap(machine);
             });
         }
         
-        // Función auxiliar para mostrar el mapa con Google Maps JavaScript API
+        // Función auxiliar para mostrar el mapa con OpenStreetMap
         function displayStaticMap(machine) {
             // Verificar si la máquina tiene datos de ubicación
             if (!machine || !machine.location || 
@@ -641,94 +595,58 @@ displayStaticMap(machine);
             const lat = machine.location.latitude;
             const lng = machine.location.longitude;
             
-            console.log(`Creando mapa Google para coordenadas: ${lat}, ${lng}`);
+            console.log(`Creando mapa OSM para coordenadas: ${lat}, ${lng}`);
             
-            // Preparar contenedor para el mapa
-            mapContainer.innerHTML = '';
+            // Construir OpenStreetMap como iframe
+            const iframeUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.02}%2C${lat-0.02}%2C${lng+0.02}%2C${lat+0.02}&layer=mapnik&marker=${lat}%2C${lng}`;
             
-            // Crear un div para el mapa con altura 100%
-            const mapDiv = document.createElement('div');
-            mapDiv.id = 'google-map';
-            mapDiv.style.height = '100%';
-            mapDiv.style.width = '100%';
-            mapDiv.style.borderRadius = '8px';
-            mapContainer.appendChild(mapDiv);
-            
-            // Cargar API de Google Maps y luego crear el mapa
-            window.loadGoogleMapsAPI(function() {
-                try {
-                    // Crear ubicación con las coordenadas
-                    const position = new google.maps.LatLng(lat, lng);
-                    
-                    // Configuración del mapa
-                    const mapOptions = {
-                        center: position,
-                        zoom: 14,
-                        mapTypeId: google.maps.MapTypeId.SATELLITE,
-                        mapTypeControl: true,
-                        fullscreenControl: true,
-                        streetViewControl: false,
-                        styles: [
-                            {
-                                "featureType": "all",
-                                "elementType": "labels.text.fill",
-                                "stylers": [{"color": "#ffffff"}]
-                            },
-                            {
-                                "featureType": "all",
-                                "elementType": "labels.text.stroke",
-                                "stylers": [{"visibility": "on"}, {"color": "#000000"}, {"lightness": 16}]
-                            }
-                        ]
-                    };
-                    
-                    // Crear el mapa
-                    const map = new google.maps.Map(mapDiv, mapOptions);
-                    
-                    // Añadir marcador
-                    const marker = new google.maps.Marker({
-                        position: position,
-                        map: map,
-                        title: machine.name || 'Máquina',
-                        icon: {
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 10,
-                            fillColor: '#FFD700',
-                            fillOpacity: 1,
-                            strokeColor: '#000000',
-                            strokeWeight: 1
-                        },
-                        animation: google.maps.Animation.DROP
-                    });
-                    
-                    // Info window con datos adicionales
-                    const infoContent = `
-                        <div class="p-2">
-                            <h5>${machine.name || 'Máquina'}</h5>
-                            <p class="mb-1">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? ' - ' + machine.serialNumber : ''}</p>
-                            <small class="text-muted">Actualizado: ${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</small>
+            // Crear contenido combinado: iframe para mapa + información de la máquina
+            const mapHtml = `
+                <div class="h-100 d-flex flex-column">
+                    <div class="p-2 bg-dark border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-white">
+                                <i class="fas fa-map-marker-alt me-2"></i> 
+                                ${machine.name || 'Máquina'} 
+                                <small class="text-muted">${machine.model ? machine.model.name : ''} ${machine.serialNumber ? ' - ' + machine.serialNumber : ''}</small>
+                            </h5>
+                            <div>
+                                <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14" target="_blank" class="btn btn-sm btn-outline-light">
+                                    <i class="fas fa-external-link-alt me-1"></i> Abrir mapa
+                                </a>
+                            </div>
                         </div>
-                    `;
-                    
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: infoContent
-                    });
-                    
-                    // Abrir info window al hacer clic en el marcador
-                    marker.addListener('click', function() {
-                        infoWindow.open(map, marker);
-                    });
-                    
-                    // Abrir info window por defecto
-                    infoWindow.open(map, marker);
-                    
-                    console.log("Mapa de Google Maps creado exitosamente");
-                    
-                } catch (error) {
-                    console.error('Error al crear el mapa con Google Maps:', error);
+                        <small class="text-muted">Ubicación actualizada: ${machine.location.timestamp ? new Date(machine.location.timestamp).toLocaleString() : 'N/A'}</small>
+                    </div>
+                    <div class="position-relative flex-grow-1">
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            frameborder="0" 
+                            scrolling="no" 
+                            marginheight="0" 
+                            marginwidth="0" 
+                            src="${iframeUrl}" 
+                            style="border-radius: 0 0 8px 8px;"
+                            id="osm-map"
+                            loading="lazy"
+                        ></iframe>
+                    </div>
+                </div>
+            `;
+            
+            mapContainer.innerHTML = mapHtml;
+            
+            // Agregar manejador de error para el iframe
+            const iframe = document.getElementById('osm-map');
+            if (iframe) {
+                iframe.onerror = function() {
+                    console.error('Error al cargar el mapa de OpenStreetMap');
                     showFallbackInfo();
-                }
-            });
+                };
+            }
+            
+            console.log("Mapa OpenStreetMap creado para máquina:", machine.name || machineId);
             
             // Función para mostrar información alternativa si el mapa falla
             function showFallbackInfo() {
