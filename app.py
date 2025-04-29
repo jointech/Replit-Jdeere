@@ -302,7 +302,7 @@ def get_location_history(organization_id):
         for machine in machines:
             if machine.get('location'):
                 location_history.append({
-                    'vin': str(machine.get('id')),  # Convertir a string para asegurar el formato completo
+                    'vin': machine.get('id'),
                     'name': machine.get('name'),
                     'timestamp': machine.get('location', {}).get('timestamp'),
                     'latitude': machine.get('location', {}).get('latitude'),
@@ -407,29 +407,12 @@ def get_machines(organization_id):
             # Intentar obtener máquinas reales desde la API de John Deere
             logger.info(f"Obteniendo máquinas reales para la organización {organization_id}")
             machines = fetch_machines_by_organization(token, organization_id)
-            logger.info(f"Máquinas obtenidas: {len(machines) if machines else 0}")
+            logger.info(f"Máquinas obtenidas: {len(machines)}")
             
-            # Asegurar que tenemos una lista de máquinas válida
-            if machines is None:
-                machines = []
-            elif not isinstance(machines, list):
-                machines = [machines]
-                
-            # Procesar cada máquina para asegurar que tiene todos los campos necesarios
-            processed_machines = []
-            for machine in machines:
-                if isinstance(machine, dict):
-                    # Asegurar que tenemos todos los campos requeridos
-                    processed_machine = {
-                        'id': machine.get('id', 'N/A'),
-                        'name': machine.get('name', 'Sin nombre'),
-                        'category': machine.get('category', 'Sin categoría'),
-                        'model': machine.get('model', {}),
-                        'location': machine.get('location', {})
-                    }
-                    processed_machines.append(processed_machine)
-            
-            return jsonify(processed_machines)
+            if not machines:
+                logger.warning(f"No se obtuvieron máquinas para la organización {organization_id}")
+                # Retornar lista vacía pero con mensaje informativo
+                return jsonify([])
                 
         except Exception as m_error:
             logger.error(f"Error fetching machines from API: {str(m_error)}")

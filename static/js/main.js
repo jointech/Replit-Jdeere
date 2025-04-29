@@ -82,36 +82,16 @@ function setupOrganizationSearch() {
         let matchCount = 0;
 
         // Recorrer cada elemento y mostrar/ocultar según el término de búsqueda
-        const organizationItems = document.querySelectorAll('.organization-item');
-        let matchCount = 0;
-
         organizationItems.forEach(item => {
             const orgName = item.textContent.toLowerCase();
             const orgId = item.getAttribute('data-org-id');
-            const listItem = item.closest('li');
 
-            if (orgName.includes(searchTerm) || (orgId && orgId.includes(searchTerm))) {
-                if (listItem) {
-                    listItem.style.display = '';
-                    matchCount++;
-                }
+            // Verificar si el nombre o ID de la organización contiene el término de búsqueda
+            if (orgName.includes(searchTerm) || orgId.includes(searchTerm)) {
+                item.parentElement.style.display = ''; // Mostrar este elemento
+                matchCount++;
             } else {
-                if (listItem) {
-                    listItem.style.display = 'none';
-                }
-            }
-        });
-        
-        // Actualizar mensaje de no resultados
-        const noResultsMessage = document.getElementById('noMachineResultsMessage');
-        if (noResultsMessage) {
-            noResultsMessage.style.display = filteredMachines.length === 0 ? 'block' : 'none';
-        }
-
-        // Actualizar mensaje de no resultados
-        if (noResultsMessage) {
-            noResultsMessage.style.display = (matchCount === 0 && searchTerm.length > 0) ? 'block' : 'none';
-        }
+                item.parentElement.style.display = 'none'; // Ocultar este elemento
             }
         });
 
