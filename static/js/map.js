@@ -177,13 +177,15 @@ function findHighestSeverityAlert(alerts) {
 loadGoogleMaps();
 
 // Initialize the map - wrapper function que se llama desde DOMContentLoaded
-function initMap() {
+// Esta función debe estar disponible globalmente
+window.initMap = function() {
+    console.log("Inicializando mapa desde initMap global");
     // Si Google Maps ya está cargado, inicializar inmediatamente
     // Si no, se iniciará automáticamente cuando se cargue la API
     if (googleMapsLoaded) {
         initMapImpl();
     }
-}
+};
 
 // Implementación real de la inicialización del mapa
 function initMapImpl() {
