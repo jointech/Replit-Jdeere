@@ -1706,55 +1706,8 @@ function filterLocationsByDate() {
     .catch(error => console.error('Error:', error));
 }
 
-// Placeholder function - replace with actual map initialization logic
-function initMap() {
-    console.log("Mapa inicializado");
-}
-
-// Placeholder function - replace with actual map marker clearing logic
-function clearMapMarkers() {
-    console.log("Marcadores del mapa borrados");
-}
-
-
-// Placeholder function - replace with actual map focusing logic
-function focusMapOnMachine(machineId) {
-    console.log(`Enfocando mapa en máquina: ${machineId}`);
-}
-
-// Placeholder function - replace with actual location data rendering logic
-function renderLocationData(data) {
-    console.log(`Renderizando datos de ubicación: ${data.length}`);
-    const tbody = document.getElementById('locationHistoryTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = ''; // Clear existing data
-
-    if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay datos de ubicación disponibles.</td></tr>';
-        return;
-    }
-
-    data.forEach(location => {
-        const row = tbody.insertRow();
-        const timestampCell = row.insertCell();
-        const latitudeCell = row.insertCell();
-        const longitudeCell = row.insertCell();
-        const speedCell = row.insertCell();
-        const directionCell = row.insertCell();
-
-        timestampCell.textContent = new Date(location.timestamp).toLocaleString();
-        latitudeCell.textContent = location.latitude;
-        longitudeCell.textContent = location.longitude;
-        speedCell.textContent = location.speed;
-        directionCell.textContent = location.direction;
-    });
-}
-
-
-// Placeholder for addMachinesToMap function
-function addMachinesToMap(machines) {
-    console.log(`Añadiendo ${machines.length} máquinas al mapa`);
-}
+// Estos son links a las implementaciones reales en map.js
+// La implementación real está en map.js
 
 
 // Placeholder for MAX_RESULTS constant
