@@ -36,13 +36,14 @@ function loadGoogleMaps() {
         return;
     }
     
-    console.log("Cargando Google Maps API...");
+    console.log("Verificando estado de Google Maps API...");
     window.googleMapsLoading = true;
     
-    // Función de callback que será llamada cuando la API se cargue
-    window.initGoogleMaps = function() {
-        console.log("Google Maps API cargada correctamente");
+    // Comprobar si la API de Google Maps ya está disponible
+    if (window.google && window.google.maps) {
+        console.log("Google Maps API ya está disponible, no necesita cargarse de nuevo");
         googleMapsLoaded = true;
+        window.googleMapsLoaded = true;
         
         // Inicializar el mapa
         initMapImpl();
@@ -52,14 +53,29 @@ function loadGoogleMaps() {
             const callback = mapPendingCallbacks.shift();
             callback();
         }
-    };
+        return;
+    }
     
-    // Crear el script para cargar la API de Google Maps
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBxQpMnELsUyNLJuMGloCRu2ssQ5zGplmc&libraries=places,geometry&callback=initGoogleMaps`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+    console.log("Esperando a que Google Maps API se cargue (ya debería estar cargándose en base.html)...");
+    
+    // En lugar de cargar un nuevo script, verificamos periódicamente si la API ya está cargada
+    const checkGoogleMapsLoaded = setInterval(function() {
+        if (window.google && window.google.maps) {
+            clearInterval(checkGoogleMapsLoaded);
+            console.log("Google Maps API cargada correctamente (detectado)");
+            googleMapsLoaded = true;
+            window.googleMapsLoaded = true;
+            
+            // Inicializar el mapa
+            initMapImpl();
+            
+            // Llamar a todas las funciones pendientes
+            while (mapPendingCallbacks.length > 0) {
+                const callback = mapPendingCallbacks.shift();
+                callback();
+            }
+        }
+    }, 200); // Comprobar cada 200ms
 }
 
 // Wrapper para las funciones que dependen de Google Maps
@@ -191,8 +207,25 @@ window.initMap = function() {
     // Si no, se iniciará automáticamente cuando se cargue la API
     if (googleMapsLoaded) {
         initMapImpl();
+    } else {
+        console.log("Google Maps aún no está cargado, se iniciará cuando esté disponible");
+        // Asegurar que Google Maps se cargue
+        loadGoogleMaps();
     }
 };
+
+// Asegurarse de que la inicialización ocurra cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded en map.js - Intentando inicializar el mapa");
+    // Verificar si el mapa está presente en la página
+    if (document.getElementById('map')) {
+        console.log("Elemento del mapa encontrado, inicializando...");
+        // Intentar inicializar el mapa
+        window.initMap();
+    } else {
+        console.log("No se encontró el elemento del mapa en la página actual");
+    }
+});
 
 // Implementación real de la inicialización del mapa
 function initMapImpl() {

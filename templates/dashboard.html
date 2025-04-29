@@ -502,6 +502,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Si no está en el mapeo o no se encontró con el nuevo ID, usa el método original
         return originalGetElementById.call(document, id);
     };
+    
+    // Verificar si el mapa ya fue inicializado
+    console.log("Verificando inicialización del mapa desde dashboard.html");
+    if (typeof google !== 'undefined' && google.maps) {
+        console.log("Google Maps API ya está cargada");
+        // Si initMap ya está definido, usarlo
+        if (typeof window.initMap === 'function') {
+            console.log("Llamando a window.initMap desde dashboard.html");
+            window.initMap();
+        } else {
+            console.warn("window.initMap no es una función válida");
+        }
+    } else {
+        console.log("Esperando a que Google Maps API cargue...");
+    }
 });
 </script>
 {% endblock %}
